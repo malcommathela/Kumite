@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0.0",
+  "memoryMap": "memory.json",
+  "viewports": [
+    { "name": "desktop", "width": 1440, "height": 900 },
+    { "name": "mobile", "width": 390, "height": 844 }
+  ],
+  "sections": [
+    {
+      "id": "hero",
+      "order": 1,
+      "background": "#111111",
+      "components": ["nav-primary", "hero-heading"],
+      "images": [
+        {
+          "imageId": "hero-image",
+          "objectFit": "cover",
+          "objectPosition": "50% 45%",
+          "focalPoint": { "x": 0.72, "y": 0.55 },
+          "textSafeArea": { "x": 0.04, "y": 0.66, "width": 0.42, "height": 0.26 },
+          "overlays": [
+            {
+              "kind": "linear-gradient",
+              "layer": "independent",
+              "direction": "to top",
+              "strength": 0.65,
+              "preservesImage": true
+            }
+          ],
+          "responsive": [
+            { "breakpoint": "mobile", "objectPosition": "62% 50%" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "intro",
+      "order": 2,
+      "background": "#f4f3ef",
+      "components": ["intro-heading"]
+    },
+    {
+      "id": "footer",
+      "order": 3,
+      "background": "#111111",
+      "components": ["footer-nav"]
+    }
+  ],
+  "components": [
+    {
+      "id": "nav-primary",
+      "variant": "default",
+      "background": "transparent",
+      "height": 56
+    },
+    {
+      "id": "hero-heading",
+      "variant": "display",
+      "foreground": "#ffffff",
+      "fontSize": 64
+    },
+    {
+      "id": "intro-heading",
+      "variant": "display",
+      "foreground": "#1c1c1a",
+      "fontSize": 56
+    },
+    {
+      "id": "footer-nav",
+      "variant": "default",
+      "background": "#111111",
+      "foreground": "#ffffff",
+      "height": 200
+    }
+  ]
+}

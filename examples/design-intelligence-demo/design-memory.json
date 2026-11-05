@@ -1,0 +1,1712 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapId": "map-kononenko-atelier-kohaku-001",
+  "source": {
+    "sourceType": "screenshot",
+    "identity": {
+      "title": {
+        "value": "Kononenko Architectural Bureau — landing page",
+        "confidence": "exact",
+        "evidence": ["E-SHOT-HERO"],
+        "note": "Visible title and wordmark in the captured hero."
+      },
+      "author": {
+        "value": "Kononenko Architectural Bureau",
+        "confidence": "exact",
+        "evidence": ["E-SHOT-HERO"],
+        "note": "Transcribed from the visible wordmark."
+      },
+      "licence": {
+        "value": null,
+        "confidence": "unknown",
+        "note": "No licence statement was visible. No reference photography, code or brand asset is reused in the demo."
+      },
+      "originalUrl": "https://kononenkogroup.com",
+      "capturedAt": "2026-09-10",
+      "attribution": "Reference captured for internal design study. The demo uses separate Unsplash photography and fictional content."
+    },
+    "access": {
+      "status": "screenshot-only",
+      "extractionMethod": {
+        "value": "Three viewport captures (1440×900, 768×10151, 375×10939) plus live DOM inspection of section order and image object-fit.",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-HERO", "E-SHOT-FULL-768", "E-SHOT-MOBILE", "E-CSS-DOM"],
+        "note": "No design file, stylesheet or token export was available."
+      },
+      "limitations": [
+        "No CSS tokens, variable collection or design file was accessible; foundations are measured from captures.",
+        "The licensed display typeface cannot be identified from pixels; a locally available serif stack is recorded as a substitution.",
+        "Hover, focus and loading states were not captured.",
+        "The statistics and client-wall regions were excluded from this demo's scope; no metrics or client names were invented."
+      ]
+    },
+    "unavailable": [
+      {
+        "property": "Design tokens, CSS custom properties and exact typeface files",
+        "reason": "The reference was observed as rendered output only, not as a design file or token export."
+      },
+      {
+        "property": "Hover, focus and loading states",
+        "reason": "Static captures do not expose interaction states."
+      },
+      {
+        "property": "Statistics and client-wall sections",
+        "reason": "Excluded by scope. Reproducing them would require inventing metrics and client identities, which this project forbids."
+      }
+    ]
+  },
+  "foundations": {
+    "colours": {
+      "palette": [
+        {
+          "value": "#FFFFFF",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"],
+          "note": "Hero display and navigation text."
+        },
+        {
+          "value": "#111111",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"],
+          "note": "Body text and dark section surfaces."
+        },
+        {
+          "value": "#EFEDE8",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"],
+          "note": "Warm off-white page surface."
+        },
+        {
+          "value": "#8A8A82",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"],
+          "note": "Muted labels and metadata."
+        },
+        {
+          "value": "#D6D2C8",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"],
+          "note": "Low-contrast hairline colour."
+        }
+      ],
+      "semantic": {
+        "background": {
+          "value": "#EFEDE8",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "foreground": {
+          "value": "#111111",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "muted": {
+          "value": "#8A8A82",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "border": {
+          "value": "#D6D2C8",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "onDark": {
+          "value": "#FFFFFF",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        }
+      }
+    },
+    "typography": {
+      "families": [
+        {
+          "value": "High-contrast Didone serif (family unidentified)",
+          "confidence": "estimated",
+          "note": "Serif display headings in the reference; the licensed family cannot be identified from pixels. The demo substitutes a local Bodoni/Didot/Times stack."
+        },
+        {
+          "value": "Helvetica Neue, Helvetica, Arial, sans-serif",
+          "confidence": "estimated",
+          "note": "Neutral grotesque used for navigation, labels and metadata."
+        }
+      ],
+      "sizes": [
+        {
+          "value": "50px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-HERO"],
+          "note": "Hero wordmark size at 1440px; two lines with a 49px baseline distance."
+        },
+        {
+          "value": "46px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"],
+          "note": "Section display size observed on the 768px capture; the type scales with viewport width."
+        },
+        {
+          "value": "13px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"],
+          "note": "Metadata values."
+        },
+        {
+          "value": "11px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"],
+          "note": "Navigation and small labels."
+        }
+      ],
+      "weights": [
+        {
+          "value": 400,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"],
+          "note": "Regular weight across display, labels and body."
+        }
+      ],
+      "lineHeights": [
+        {
+          "value": "0.98",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-HERO"],
+          "note": "Hero display leading."
+        },
+        {
+          "value": "1.5",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"],
+          "note": "Body leading measured between paragraph baselines."
+        }
+      ],
+      "letterSpacing": [
+        {
+          "value": "-0.03em",
+          "confidence": "estimated",
+          "note": "Tight display tracking observed in the serif headings; exact value estimated."
+        },
+        {
+          "value": "0.04em",
+          "confidence": "estimated",
+          "note": "Slight positive tracking on small labels; estimated from the captures."
+        }
+      ]
+    },
+    "spacing": {
+      "scale": [
+        { "value": "8px", "confidence": "measured", "evidence": ["E-MEASURE-LAYOUT"] },
+        { "value": "16px", "confidence": "measured", "evidence": ["E-MEASURE-LAYOUT"] },
+        { "value": "24px", "confidence": "measured", "evidence": ["E-MEASURE-LAYOUT"] },
+        { "value": "48px", "confidence": "measured", "evidence": ["E-MEASURE-LAYOUT"] },
+        { "value": "96px", "confidence": "measured", "evidence": ["E-MEASURE-LAYOUT"] },
+        { "value": "120px", "confidence": "measured", "evidence": ["E-MEASURE-LAYOUT"] }
+      ],
+      "sectionRhythm": {
+        "value": "120px",
+        "confidence": "measured",
+        "evidence": ["E-MEASURE-LAYOUT"]
+      }
+    },
+    "borders": {
+      "widths": [
+        { "value": "1px", "confidence": "measured", "evidence": ["E-SHOT-FULL-768"] }
+      ],
+      "colours": [
+        { "value": "#D6D2C8", "confidence": "measured", "evidence": ["E-SHOT-FULL-768"] }
+      ],
+      "styles": [
+        { "value": "solid", "confidence": "measured", "evidence": ["E-SHOT-FULL-768"] }
+      ]
+    },
+    "radii": {
+      "scale": [
+        {
+          "value": "0px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"],
+          "note": "Rectilinear photography and surfaces; no rounded corners observed."
+        }
+      ]
+    },
+    "shadows": [
+      {
+        "value": "none",
+        "confidence": "estimated",
+        "note": "No elevation or drop shadow is visible in the captures."
+      }
+    ],
+    "backgrounds": [
+      { "value": "#EFEDE8", "confidence": "measured", "evidence": ["E-SHOT-FULL-768"] },
+      {
+        "value": "#111111",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"],
+        "note": "Quote and footer bands."
+      }
+    ],
+    "layout": {
+      "maxWidth": {
+        "value": "1392px",
+        "confidence": "measured",
+        "evidence": ["E-MEASURE-LAYOUT"],
+        "note": "1440px viewport with a 24px inset on each side."
+      },
+      "breakpoints": [
+        {
+          "name": "mobile",
+          "width": { "value": "375px", "confidence": "measured", "evidence": ["E-SHOT-MOBILE"] }
+        },
+        {
+          "name": "tablet",
+          "width": { "value": "768px", "confidence": "measured", "evidence": ["E-SHOT-FULL-768"] }
+        },
+        {
+          "name": "desktop",
+          "width": { "value": "1440px", "confidence": "measured", "evidence": ["E-SHOT-HERO"] }
+        }
+      ],
+      "grid": {
+        "value": "12-column editorial grid with a 24px gutter; the hero is full-bleed",
+        "confidence": "measured",
+        "evidence": ["E-MEASURE-LAYOUT"]
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "cmp-header-nav",
+      "name": "Header Navigation",
+      "type": "navigation",
+      "sourceLocation": "Header / top navigation",
+      "confidence": "measured",
+      "evidence": ["E-SHOT-HERO"],
+      "variants": [
+        {
+          "name": "Desktop",
+          "properties": {
+            "background": {
+              "value": "transparent",
+              "confidence": "estimated",
+              "note": "The navigation sits directly on the hero photograph; no header surface is visible."
+            },
+            "foreground": {
+              "value": "#FFFFFF",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-HERO"]
+            },
+            "gap": {
+              "value": "24px",
+              "confidence": "estimated",
+              "note": "Gap estimated from the label spacing at 1440px."
+            },
+            "typography": {
+              "family": {
+                "value": "Helvetica Neue, Helvetica, Arial, sans-serif",
+                "confidence": "estimated",
+                "evidence": ["E-INFER-TYPE"]
+              },
+              "size": {
+                "value": "11px",
+                "confidence": "measured",
+                "evidence": ["E-SHOT-HERO"]
+              },
+              "weight": {
+                "value": 400,
+                "confidence": "measured",
+                "evidence": ["E-SHOT-HERO"]
+              }
+            }
+          }
+        },
+        {
+          "name": "Mobile",
+          "properties": {
+            "background": {
+              "value": "transparent",
+              "confidence": "estimated",
+              "note": "The mobile header also sits on the hero photograph."
+            },
+            "foreground": {
+              "value": "#FFFFFF",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            },
+            "gap": {
+              "value": "12px",
+              "confidence": "estimated",
+              "note": "Compact spacing estimated from the 375px capture."
+            },
+            "typography": {
+              "family": {
+                "value": "Helvetica Neue, Helvetica, Arial, sans-serif",
+                "confidence": "estimated",
+                "evidence": ["E-INFER-TYPE"]
+              },
+              "size": {
+                "value": "11px",
+                "confidence": "measured",
+                "evidence": ["E-SHOT-MOBILE"]
+              },
+              "weight": {
+                "value": 400,
+                "confidence": "measured",
+                "evidence": ["E-SHOT-MOBILE"]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmp-project-card",
+      "name": "Project Card",
+      "type": "card",
+      "sourceLocation": "Selected work / image card with caption",
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"],
+      "variants": [
+        {
+          "name": "Landscape",
+          "properties": {
+            "background": {
+              "value": "transparent",
+              "confidence": "estimated",
+              "note": "Image-led card with no visible surface."
+            },
+            "width": {
+              "value": "100%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            },
+            "padding": {
+              "value": "0px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            },
+            "gap": {
+              "value": "12px",
+              "confidence": "estimated",
+              "note": "Caption gap estimated from the captures."
+            },
+            "radius": {
+              "value": "0px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            },
+            "typography": {
+              "family": {
+                "value": "Helvetica Neue, Helvetica, Arial, sans-serif",
+                "confidence": "estimated",
+                "evidence": ["E-INFER-TYPE"]
+              },
+              "size": {
+                "value": "12px",
+                "confidence": "measured",
+                "evidence": ["E-SHOT-FULL-768"]
+              },
+              "weight": {
+                "value": 400,
+                "confidence": "measured",
+                "evidence": ["E-SHOT-FULL-768"]
+              }
+            }
+          }
+        },
+        {
+          "name": "Portrait",
+          "properties": {
+            "background": {
+              "value": "transparent",
+              "confidence": "estimated",
+              "note": "Image-led card with no visible surface."
+            },
+            "width": {
+              "value": "100%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            },
+            "padding": {
+              "value": "0px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            },
+            "gap": {
+              "value": "12px",
+              "confidence": "estimated",
+              "note": "Caption gap estimated from the captures."
+            },
+            "radius": {
+              "value": "0px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmp-meta-list",
+      "name": "Studio Metadata List",
+      "type": "other",
+      "sourceLocation": "Introduction / practice metadata",
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"],
+      "variants": [
+        {
+          "name": "Default",
+          "properties": {
+            "foreground": {
+              "value": "#111111",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            },
+            "typography": {
+              "family": {
+                "value": "Helvetica Neue, Helvetica, Arial, sans-serif",
+                "confidence": "estimated",
+                "evidence": ["E-INFER-TYPE"]
+              },
+              "size": {
+                "value": "13px",
+                "confidence": "measured",
+                "evidence": ["E-SHOT-FULL-768"]
+              },
+              "weight": {
+                "value": 400,
+                "confidence": "measured",
+                "evidence": ["E-SHOT-FULL-768"]
+              },
+              "lineHeight": {
+                "value": "1.35",
+                "confidence": "estimated",
+                "note": "Leading estimated from the stacked label/value pairs."
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "sec-header",
+      "order": 0,
+      "name": "Header",
+      "type": "header",
+      "background": {
+        "value": "transparent",
+        "confidence": "estimated",
+        "note": "The header sits on the hero photograph."
+      },
+      "layout": {
+        "structure": {
+          "value": "single row with the wordmark at the left and Work / About / Contact at the right",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "contentAlignment": {
+          "value": "space-between",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "columns": [],
+        "spacing": {
+          "value": "0px 24px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-LAYOUT"]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "spacing": {
+              "value": "0px 16px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            }
+          }
+        }
+      ],
+      "dimensions": {
+        "height": {
+          "value": "72px",
+          "confidence": "estimated",
+          "note": "Header block estimated from the hero capture."
+        }
+      },
+      "components": ["cmp-header-nav"],
+      "confidence": "measured",
+      "evidence": ["E-SHOT-HERO"]
+    },
+    {
+      "id": "sec-hero",
+      "order": 1,
+      "name": "Hero",
+      "type": "hero",
+      "background": {
+        "value": "#111111",
+        "confidence": "estimated",
+        "note": "The photograph is the hero surface; a dark fallback covers loading."
+      },
+      "layout": {
+        "structure": {
+          "value": "full-bleed photograph with the wordmark overlaid at the lower left",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "contentAlignment": {
+          "value": "bottom-left",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "columns": [
+          {
+            "name": "hero-copy",
+            "proportion": {
+              "value": "55%",
+              "confidence": "estimated",
+              "note": "Copy column estimated from the headline measure."
+            }
+          }
+        ],
+        "spacing": {
+          "value": "0px 24px 24px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-LAYOUT"]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "spacing": {
+              "value": "0px 16px 24px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            }
+          }
+        }
+      ],
+      "dimensions": {
+        "height": {
+          "value": "900px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        }
+      },
+      "components": [],
+      "confidence": "measured",
+      "evidence": ["E-SHOT-HERO"]
+    },
+    {
+      "id": "sec-intro",
+      "order": 2,
+      "name": "Introduction",
+      "type": "content",
+      "background": {
+        "value": "#EFEDE8",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      },
+      "layout": {
+        "structure": {
+          "value": "centred serif statement, full-width photograph, then metadata and body copy in two columns",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "contentAlignment": {
+          "value": "centre",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "columns": [
+          {
+            "name": "metadata",
+            "proportion": {
+              "value": "28%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          },
+          {
+            "name": "body",
+            "proportion": {
+              "value": "58%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          }
+        ],
+        "spacing": {
+          "value": "120px 24px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-LAYOUT"]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "columns": {
+              "value": "single column",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            }
+          }
+        }
+      ],
+      "components": ["cmp-meta-list"],
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"]
+    },
+    {
+      "id": "sec-approach",
+      "order": 3,
+      "name": "Approach",
+      "type": "content",
+      "background": {
+        "value": "#EFEDE8",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      },
+      "layout": {
+        "structure": {
+          "value": "editorial statement at the left, supporting process copy and ordered steps at the right, wide interior photograph beneath",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "contentAlignment": {
+          "value": "left",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "columns": [
+          {
+            "name": "statement",
+            "proportion": {
+              "value": "58%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          },
+          {
+            "name": "process",
+            "proportion": {
+              "value": "33%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          }
+        ],
+        "spacing": {
+          "value": "120px 24px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-LAYOUT"]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "columns": {
+              "value": "single column",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            }
+          }
+        }
+      ],
+      "components": [],
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"]
+    },
+    {
+      "id": "sec-projects",
+      "order": 4,
+      "name": "Selected Work",
+      "type": "image-led",
+      "background": {
+        "value": "#EFEDE8",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      },
+      "layout": {
+        "structure": {
+          "value": "asymmetric editorial grid: large landscape image, offset portrait image, centred portrait image, each with a caption below",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "contentAlignment": {
+          "value": "left",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "columns": [
+          {
+            "name": "featured",
+            "proportion": {
+              "value": "58%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          },
+          {
+            "name": "offset",
+            "proportion": {
+              "value": "33%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          },
+          {
+            "name": "centred",
+            "proportion": {
+              "value": "42%",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-FULL-768"]
+            }
+          }
+        ],
+        "spacing": {
+          "value": "120px 24px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-LAYOUT"]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "columns": {
+              "value": "single column",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            }
+          }
+        }
+      ],
+      "components": ["cmp-project-card"],
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"]
+    },
+    {
+      "id": "sec-quote",
+      "order": 5,
+      "name": "Studio Note",
+      "type": "testimonial",
+      "background": {
+        "value": "#111111",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      },
+      "layout": {
+        "structure": {
+          "value": "centred serif quotation with a small attribution",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "contentAlignment": {
+          "value": "centre",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "columns": [],
+        "spacing": {
+          "value": "120px 24px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-LAYOUT"]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "spacing": {
+              "value": "96px 16px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            }
+          }
+        }
+      ],
+      "components": [],
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"]
+    },
+    {
+      "id": "sec-footer",
+      "order": 6,
+      "name": "Footer",
+      "type": "footer",
+      "background": {
+        "value": "#111111",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      },
+      "layout": {
+        "structure": {
+          "value": "contact call to action, footer navigation, oversized wordmark and a single-row legal bar",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "contentAlignment": {
+          "value": "space-between",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "columns": [],
+        "spacing": {
+          "value": "96px 24px",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-LAYOUT"]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "spacing": {
+              "value": "64px 16px",
+              "confidence": "measured",
+              "evidence": ["E-SHOT-MOBILE"]
+            }
+          }
+        }
+      ],
+      "components": [],
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"]
+    }
+  ],
+  "images": [
+    {
+      "id": "img-hero",
+      "sectionId": "sec-hero",
+      "role": "full-bleed-background",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.52,
+          "y": 0.46,
+          "description": {
+            "value": "the house mass and the mature tree occupy the centre, just above the midline",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-HERO"]
+          }
+        },
+        "textSafeArea": {
+          "x": 0.03,
+          "y": 0.76,
+          "width": 0.55,
+          "height": 0.18,
+          "description": {
+            "value": "lower-left lawn, clear of the house and the tree",
+            "confidence": "measured",
+            "evidence": ["E-CROP-HERO-TEXT"]
+          }
+        },
+        "negativeSpace": {
+          "value": "dusk sky across the upper third and the foreground lawn at the lower left",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "aspectRatio": {
+          "value": "16:10",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "originalDimensions": { "width": 1440, "height": 900 },
+        "imageToContainer": {
+          "value": "cover at 52% 46%",
+          "confidence": "estimated",
+          "evidence": ["E-CSS-DOM"],
+          "note": "Cover behaviour was confirmed from the live DOM; the exact position is estimated from the capture."
+        },
+        "secondarySubjects": [
+          {
+            "value": "lit interior at the right wing",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-HERO"]
+          }
+        ]
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "52% 46%",
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-HERO"],
+          "note": "Position chosen so the house centre and lower-left lawn match the reference framing."
+        },
+        "containerLayer": {
+          "value": "absolute inset-0 z-0",
+          "confidence": "estimated",
+          "note": "Layer model inferred from the full-bleed presentation."
+        },
+        "textLayer": {
+          "value": "relative z-2",
+          "confidence": "estimated",
+          "note": "Text sits above the photograph without altering it."
+        }
+      },
+      "overlays": [
+        {
+          "kind": "none",
+          "layer": "none",
+          "purpose": {
+            "value": "the dusk photograph already supplies a dark lower-left region; no scrim is used",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-HERO", "E-MEASURE-CONTRAST"]
+          },
+          "preservesImage": true
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "52% 46%",
+            "confidence": "estimated",
+            "note": "The 375px capture keeps the house centred with the copy at the bottom left."
+          },
+          "textSafeArea": {
+            "x": 0.05,
+            "y": 0.78,
+            "width": 0.9,
+            "height": 0.16
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "hero at 1440×900 and 390×844",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO", "E-SHOT-MOBILE"]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "gradientDirection": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "gradientStrength": {
+          "value": "none",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-HERO"]
+        },
+        "textContrast": {
+          "value": "reference headline measures 1.65–2.1:1 over the light grass; the demo's dusk lawn measures 5.0:1 or better",
+          "confidence": "measured",
+          "evidence": ["E-MEASURE-CONTRAST"],
+          "note": "The demo improves contrast by asset choice and copy placement, not by fading the photograph."
+        },
+        "notes": [
+          "No overlay is used; the photograph keeps full opacity and detail.",
+          "The copy avoids the house and tree, sitting on the darker lawn."
+        ]
+      },
+      "confidence": "measured",
+      "evidence": ["E-SHOT-HERO", "E-CROP-HERO-TEXT"],
+      "assetRef": "examples/design-intelligence-demo/reference/hero-1440.webp",
+      "referenceDescription": {
+        "value": "Modern house and mature tree at dusk, sky above, lawn below; white wordmark at the lower left.",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-HERO"]
+      }
+    },
+    {
+      "id": "img-intro",
+      "sectionId": "sec-intro",
+      "role": "inline-editorial-photography",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.5,
+          "y": 0.46,
+          "description": {
+            "value": "centre of the residence, with the roof line just above the midline",
+            "confidence": "estimated",
+            "note": "Estimated from the introduction crop; the exact source asset is unavailable."
+          }
+        },
+        "textSafeArea": {
+          "x": 0.05,
+          "y": 0.82,
+          "width": 0.9,
+          "height": 0.14,
+          "description": {
+            "value": "no copy sits on the photograph; this lower band is unused and the caption is outside the frame",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          }
+        },
+        "negativeSpace": {
+          "value": "pale sky above the roof",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "aspectRatio": {
+          "value": "2:1",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "originalDimensions": { "width": 768, "height": 384 },
+        "imageToContainer": {
+          "value": "cover at 50% 50%",
+          "confidence": "estimated",
+          "note": "Rendered slot measured on the 768px capture; source dimensions unavailable."
+        }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "50% 50%",
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "containerLayer": {
+          "value": "block image at full container width",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textLayer": {
+          "value": "caption below the frame; no text over the image",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "overlays": [
+        {
+          "kind": "none",
+          "layer": "none",
+          "purpose": {
+            "value": "no overlay; the image carries no text",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          },
+          "preservesImage": true
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "50% 50%",
+            "confidence": "estimated",
+            "evidence": ["E-SHOT-MOBILE"]
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "introduction image at 768px and 375px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768", "E-SHOT-MOBILE"]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientDirection": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientStrength": {
+          "value": "none",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textContrast": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"],
+      "assetRef": "examples/design-intelligence-demo/reference/full-768.webp",
+      "referenceDescription": {
+        "value": "Wide dusk photograph of a modern house with a parked car and planting.",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      }
+    },
+    {
+      "id": "img-approach",
+      "sectionId": "sec-approach",
+      "role": "inline-editorial-photography",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.5,
+          "y": 0.52,
+          "description": {
+            "value": "the living space and its window wall at the centre of the frame",
+            "confidence": "estimated",
+            "note": "Estimated from the interior crop."
+          }
+        },
+        "textSafeArea": {
+          "x": 0.05,
+          "y": 0.82,
+          "width": 0.9,
+          "height": 0.14,
+          "description": {
+            "value": "no copy sits on the photograph; the caption is below the frame",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          }
+        },
+        "negativeSpace": {
+          "value": "pale ceiling and floor edges around the seating",
+          "confidence": "estimated",
+          "note": "Estimated from the interior crop."
+        },
+        "aspectRatio": {
+          "value": "16:9",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "originalDimensions": { "width": 1600, "height": 900 },
+        "imageToContainer": {
+          "value": "cover at 50% 55%",
+          "confidence": "estimated",
+          "note": "Position estimated to keep the seating centred in the wide frame."
+        }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "50% 55%",
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "containerLayer": {
+          "value": "block image at full container width",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textLayer": {
+          "value": "caption below the frame; no text over the image",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "overlays": [
+        {
+          "kind": "none",
+          "layer": "none",
+          "purpose": {
+            "value": "no overlay; the image carries no text",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          },
+          "preservesImage": true
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "50% 55%",
+            "confidence": "estimated",
+            "evidence": ["E-SHOT-MOBILE"]
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "process image at 768px and 375px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768", "E-SHOT-MOBILE"]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientDirection": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientStrength": {
+          "value": "none",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textContrast": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"],
+      "assetRef": "examples/design-intelligence-demo/reference/full-768.webp",
+      "referenceDescription": {
+        "value": "Interior with warm timber, pale seating and a full-height window.",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      }
+    },
+    {
+      "id": "img-project-1",
+      "sectionId": "sec-projects",
+      "role": "inline-editorial-photography",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.5,
+          "y": 0.5,
+          "description": {
+            "value": "the house and terrace at the centre of the frame",
+            "confidence": "estimated",
+            "note": "Estimated from the project-grid crop."
+          }
+        },
+        "textSafeArea": {
+          "x": 0.05,
+          "y": 0.84,
+          "width": 0.9,
+          "height": 0.12,
+          "description": {
+            "value": "no copy sits on the photograph; the caption is below the frame",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          }
+        },
+        "negativeSpace": {
+          "value": "paving and pool edge around the building",
+          "confidence": "estimated",
+          "note": "Estimated from the project-grid crop."
+        },
+        "aspectRatio": {
+          "value": "4:3",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "originalDimensions": { "width": 1200, "height": 800 },
+        "imageToContainer": {
+          "value": "cover at 50% 50%",
+          "confidence": "estimated",
+          "note": "Centred crop estimated from the project grid."
+        }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "50% 50%",
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "containerLayer": {
+          "value": "block image inside the project card",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textLayer": {
+          "value": "caption below the frame",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "overlays": [
+        {
+          "kind": "none",
+          "layer": "none",
+          "purpose": {
+            "value": "no overlay; the image carries no text",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          },
+          "preservesImage": true
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "50% 50%",
+            "confidence": "estimated",
+            "evidence": ["E-SHOT-MOBILE"]
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "featured project at 768px and 375px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768", "E-SHOT-MOBILE"]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientDirection": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientStrength": {
+          "value": "none",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textContrast": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"],
+      "assetRef": "examples/design-intelligence-demo/reference/full-768.webp",
+      "referenceDescription": {
+        "value": "White residence with a terrace and reflecting pool.",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      }
+    },
+    {
+      "id": "img-project-2",
+      "sectionId": "sec-projects",
+      "role": "inline-editorial-photography",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.5,
+          "y": 0.45,
+          "description": {
+            "value": "the courtyard house and pool at the centre of the frame",
+            "confidence": "estimated",
+            "note": "Estimated from the project-grid crop."
+          }
+        },
+        "textSafeArea": {
+          "x": 0.05,
+          "y": 0.84,
+          "width": 0.9,
+          "height": 0.12,
+          "description": {
+            "value": "no copy sits on the photograph; the caption is below the frame",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          }
+        },
+        "negativeSpace": {
+          "value": "pool surface and paving in the lower half",
+          "confidence": "estimated",
+          "note": "Estimated from the project-grid crop."
+        },
+        "aspectRatio": {
+          "value": "4:5",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "originalDimensions": { "width": 1200, "height": 800 },
+        "imageToContainer": {
+          "value": "cover at 50% 45%",
+          "confidence": "estimated",
+          "note": "Vertical position estimated to keep the house and pool in frame."
+        }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "50% 45%",
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "containerLayer": {
+          "value": "block image inside the project card",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textLayer": {
+          "value": "caption below the frame",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "overlays": [
+        {
+          "kind": "none",
+          "layer": "none",
+          "purpose": {
+            "value": "no overlay; the image carries no text",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          },
+          "preservesImage": true
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "50% 45%",
+            "confidence": "estimated",
+            "evidence": ["E-SHOT-MOBILE"]
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "offset project at 768px and 375px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768", "E-SHOT-MOBILE"]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientDirection": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientStrength": {
+          "value": "none",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textContrast": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"],
+      "assetRef": "examples/design-intelligence-demo/reference/full-768.webp",
+      "referenceDescription": {
+        "value": "Courtyard house with a deep canopy over a pool and terrace.",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      }
+    },
+    {
+      "id": "img-project-3",
+      "sectionId": "sec-projects",
+      "role": "inline-editorial-photography",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.5,
+          "y": 0.5,
+          "description": {
+            "value": "the pavilion, terrace and pool at the centre of the portrait frame",
+            "confidence": "estimated",
+            "note": "Estimated from the project-grid crop."
+          }
+        },
+        "textSafeArea": {
+          "x": 0.05,
+          "y": 0.84,
+          "width": 0.9,
+          "height": 0.12,
+          "description": {
+            "value": "no copy sits on the photograph; the caption is below the frame",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          }
+        },
+        "negativeSpace": {
+          "value": "sky in the upper third and water in the lower third",
+          "confidence": "estimated",
+          "note": "Estimated from the project-grid crop."
+        },
+        "aspectRatio": {
+          "value": "4:5",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "originalDimensions": { "width": 1200, "height": 1800 },
+        "imageToContainer": {
+          "value": "cover at 50% 50%",
+          "confidence": "estimated",
+          "note": "Portrait source kept in a portrait frame to avoid cropping the building to a sky strip."
+        }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "50% 50%",
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "containerLayer": {
+          "value": "block image inside the project card",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textLayer": {
+          "value": "caption below the frame",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "overlays": [
+        {
+          "kind": "none",
+          "layer": "none",
+          "purpose": {
+            "value": "no overlay; the image carries no text",
+            "confidence": "measured",
+            "evidence": ["E-SHOT-FULL-768"]
+          },
+          "preservesImage": true
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "50% 50%",
+            "confidence": "estimated",
+            "evidence": ["E-SHOT-MOBILE"]
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "centred project at 768px and 375px",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768", "E-SHOT-MOBILE"]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "estimated",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientDirection": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "gradientStrength": {
+          "value": "none",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        },
+        "textContrast": {
+          "value": "not applicable",
+          "confidence": "measured",
+          "evidence": ["E-SHOT-FULL-768"]
+        }
+      },
+      "confidence": "measured",
+      "evidence": ["E-SHOT-FULL-768"],
+      "assetRef": "examples/design-intelligence-demo/reference/full-768.webp",
+      "referenceDescription": {
+        "value": "Narrow house with a pale screen facade, pool and planted terrace.",
+        "confidence": "measured",
+        "evidence": ["E-SHOT-FULL-768"]
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-SHOT-HERO",
+      "kind": "screenshot-region",
+      "ref": "hero viewport at 1440×900",
+      "coordinates": { "x": 0, "y": 0, "width": 1440, "height": 900 },
+      "viewport": { "width": 1440, "height": 900 },
+      "cropFile": "examples/design-intelligence-demo/reference/hero-1440.webp",
+      "cropScale": 1
+    },
+    {
+      "id": "E-SHOT-FULL-768",
+      "kind": "screenshot-region",
+      "ref": "full-page capture at 768px",
+      "coordinates": { "x": 0, "y": 0, "width": 768, "height": 10151 },
+      "viewport": { "width": 768, "height": 10151 },
+      "cropFile": "examples/design-intelligence-demo/reference/full-768.webp",
+      "cropScale": 1
+    },
+    {
+      "id": "E-SHOT-MOBILE",
+      "kind": "screenshot-region",
+      "ref": "full-page capture at 375px",
+      "coordinates": { "x": 0, "y": 0, "width": 375, "height": 10939 },
+      "viewport": { "width": 375, "height": 10939 },
+      "cropFile": "examples/design-intelligence-demo/reference/mobile-full.png",
+      "cropScale": 1
+    },
+    {
+      "id": "E-CROP-HERO-TEXT",
+      "kind": "crop",
+      "ref": "hero headline and text-safe region",
+      "coordinates": { "x": 0, "y": 740, "width": 560, "height": 160 },
+      "viewport": { "width": 1440, "height": 900 },
+      "cropFile": "examples/design-intelligence-demo/reference/hero-1440.webp",
+      "cropScale": 1
+    },
+    {
+      "id": "E-CSS-DOM",
+      "kind": "css-declaration",
+      "ref": "Live DOM inspection: section order and heights; hero and project images render with object-fit: cover",
+      "note": "No stylesheet or token export was available; only rendered declarations were observed."
+    },
+    {
+      "id": "E-MEASURE-HERO",
+      "kind": "measurement",
+      "ref": "Hero wordmark measured at 50px with a 49px baseline distance on the 1440×900 capture"
+    },
+    {
+      "id": "E-MEASURE-LAYOUT",
+      "kind": "measurement",
+      "ref": "24px page insets, 24px grid gutter and a 120px section rhythm measured on the 1440 and 768 captures"
+    },
+    {
+      "id": "E-MEASURE-CONTRAST",
+      "kind": "measurement",
+      "ref": "White headline contrast measured over the reference grass (1.65–2.1:1) and over the demo's dusk lawn (5.0:1 or better)",
+      "note": "The reference's own hero does not meet WCAG AA; the demo improves contrast by choosing a darker text region rather than fading the photograph."
+    },
+    {
+      "id": "E-INFER-TYPE",
+      "kind": "inference",
+      "ref": "High-contrast Didone display plus a neutral grotesque for labels, consistent with a contemporary architecture practice"
+    }
+  ],
+  "unresolved": [
+    "The licensed display typeface and its variable axes cannot be identified from captures; the demo uses a local serif stack.",
+    "The reference's statistics and client-wall regions were deliberately excluded because reproducing them would require invented metrics and client identities.",
+    "Hover, focus and loading states were not captured and are not claimed as reference behaviour.",
+    "Reference photography is not licensed for reuse; the demo substitutes Unsplash photographs and records the new composition in the implementation spec."
+  ]
+}

@@ -1,0 +1,1675 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kumite.dev/schemas/design-memory-1.1.0.json",
+  "title": "Kumite Design Memory Map",
+  "description": "Machine-readable record of an extracted design reference. Every extracted visual property is a traced value carrying confidence and optional evidence. Version 1.1.0 adds an optional motion section; 1.0.0 documents remain valid.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "mapId",
+    "source",
+    "foundations",
+    "components",
+    "sections",
+    "images",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "enum": [
+        "1.0.0",
+        "1.1.0"
+      ]
+    },
+    "mapId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "foundations": {
+      "$ref": "#/$defs/foundations"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component"
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/section"
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/image"
+      }
+    },
+    "motion": {
+      "$ref": "#/$defs/motion"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceRef"
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "exact",
+        "measured",
+        "estimated",
+        "unknown"
+      ]
+    },
+    "traced": {
+      "type": "object",
+      "required": [
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "array",
+            "object",
+            "null"
+          ]
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tracedMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/traced"
+      }
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "coordinates": {
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "viewport": {
+      "type": "object",
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidenceRef": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "figma-node",
+            "screenshot-region",
+            "crop",
+            "css-declaration",
+            "measurement",
+            "documentation",
+            "inference"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinates": {
+          "$ref": "#/$defs/coordinates"
+        },
+        "viewport": {
+          "$ref": "#/$defs/viewport"
+        },
+        "cropFile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cropScale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "unavailableItem": {
+      "type": "object",
+      "required": [
+        "property",
+        "reason"
+      ],
+      "properties": {
+        "property": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "sourceType",
+        "identity",
+        "access",
+        "unavailable"
+      ],
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": [
+            "figma",
+            "screenshot",
+            "image",
+            "webpage",
+            "other"
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/sourceIdentity"
+        },
+        "access": {
+          "$ref": "#/$defs/sourceAccess"
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/unavailableItem"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "required": [
+        "title",
+        "author",
+        "licence"
+      ],
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/traced"
+        },
+        "author": {
+          "$ref": "#/$defs/traced"
+        },
+        "licence": {
+          "$ref": "#/$defs/traced"
+        },
+        "communityUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "communityId": {
+          "type": "string",
+          "pattern": "^[0-9]{15,25}$"
+        },
+        "designUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fileKey": {
+          "type": "string",
+          "minLength": 22,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9]+$"
+        },
+        "originalUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date"
+        },
+        "attribution": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sourceAccess": {
+      "type": "object",
+      "required": [
+        "status",
+        "extractionMethod",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "direct-mcp",
+            "duplicated-drafts",
+            "screenshot-only",
+            "denied",
+            "not-applicable"
+          ]
+        },
+        "extractionMethod": {
+          "$ref": "#/$defs/traced"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "foundations": {
+      "type": "object",
+      "required": [
+        "colours",
+        "typography",
+        "spacing",
+        "borders",
+        "radii",
+        "shadows",
+        "backgrounds",
+        "layout"
+      ],
+      "properties": {
+        "colours": {
+          "type": "object",
+          "required": [
+            "palette",
+            "semantic"
+          ],
+          "properties": {
+            "palette": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "semantic": {
+              "$ref": "#/$defs/tracedMap"
+            }
+          },
+          "additionalProperties": false
+        },
+        "typography": {
+          "type": "object",
+          "required": [
+            "families",
+            "sizes",
+            "weights",
+            "lineHeights",
+            "letterSpacing"
+          ],
+          "properties": {
+            "families": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "sizes": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "weights": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "lineHeights": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "letterSpacing": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "spacing": {
+          "type": "object",
+          "required": [
+            "scale",
+            "sectionRhythm"
+          ],
+          "properties": {
+            "scale": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "sectionRhythm": {
+              "$ref": "#/$defs/traced"
+            }
+          },
+          "additionalProperties": false
+        },
+        "borders": {
+          "type": "object",
+          "required": [
+            "widths",
+            "colours"
+          ],
+          "properties": {
+            "widths": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "colours": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            },
+            "styles": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "radii": {
+          "type": "object",
+          "required": [
+            "scale"
+          ],
+          "properties": {
+            "scale": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/traced"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "shadows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "backgrounds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "layout": {
+          "type": "object",
+          "required": [
+            "maxWidth",
+            "breakpoints",
+            "grid"
+          ],
+          "properties": {
+            "maxWidth": {
+              "$ref": "#/$defs/traced"
+            },
+            "breakpoints": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/breakpoint"
+              }
+            },
+            "grid": {
+              "$ref": "#/$defs/traced"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "breakpoint": {
+      "type": "object",
+      "required": [
+        "name",
+        "width"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "width": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "column": {
+      "type": "object",
+      "required": [
+        "name",
+        "proportion"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "proportion": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "changeMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/traced"
+      }
+    },
+    "stateChange": {
+      "type": "object",
+      "required": [
+        "state",
+        "changes"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "default",
+            "hover",
+            "focus",
+            "active",
+            "disabled"
+          ]
+        },
+        "changes": {
+          "$ref": "#/$defs/changeMap"
+        }
+      },
+      "additionalProperties": false
+    },
+    "responsiveChange": {
+      "type": "object",
+      "required": [
+        "breakpoint",
+        "changes"
+      ],
+      "properties": {
+        "breakpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changes": {
+          "$ref": "#/$defs/changeMap"
+        }
+      },
+      "additionalProperties": false
+    },
+    "component": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "variants",
+        "sourceLocation",
+        "confidence",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "button",
+            "card",
+            "input",
+            "navigation",
+            "menu",
+            "icon",
+            "badge",
+            "form",
+            "product",
+            "testimonial",
+            "footer",
+            "other"
+          ]
+        },
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/componentVariant"
+          }
+        },
+        "sourceLocation": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "$ref": "#/$defs/traced"
+            }
+          ]
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceIds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "componentVariant": {
+      "type": "object",
+      "required": [
+        "name",
+        "properties"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "$ref": "#/$defs/componentProperties"
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stateChange"
+          }
+        },
+        "responsive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/responsiveChange"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "componentProperties": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/traced"
+        },
+        "foreground": {
+          "$ref": "#/$defs/traced"
+        },
+        "width": {
+          "$ref": "#/$defs/traced"
+        },
+        "height": {
+          "$ref": "#/$defs/traced"
+        },
+        "padding": {
+          "$ref": "#/$defs/traced"
+        },
+        "margin": {
+          "$ref": "#/$defs/traced"
+        },
+        "gap": {
+          "$ref": "#/$defs/traced"
+        },
+        "radius": {
+          "$ref": "#/$defs/traced"
+        },
+        "shadow": {
+          "$ref": "#/$defs/traced"
+        },
+        "border": {
+          "type": "object",
+          "required": [
+            "width",
+            "colour"
+          ],
+          "properties": {
+            "width": {
+              "$ref": "#/$defs/traced"
+            },
+            "colour": {
+              "$ref": "#/$defs/traced"
+            }
+          },
+          "additionalProperties": false
+        },
+        "typography": {
+          "type": "object",
+          "required": [
+            "family",
+            "size",
+            "weight"
+          ],
+          "properties": {
+            "family": {
+              "$ref": "#/$defs/traced"
+            },
+            "size": {
+              "$ref": "#/$defs/traced"
+            },
+            "weight": {
+              "$ref": "#/$defs/traced"
+            },
+            "lineHeight": {
+              "$ref": "#/$defs/traced"
+            },
+            "letterSpacing": {
+              "$ref": "#/$defs/traced"
+            }
+          },
+          "additionalProperties": false
+        },
+        "icon": {
+          "type": "object",
+          "required": [
+            "size",
+            "placement"
+          ],
+          "properties": {
+            "size": {
+              "$ref": "#/$defs/traced"
+            },
+            "placement": {
+              "$ref": "#/$defs/traced"
+            }
+          },
+          "additionalProperties": false
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stateChange"
+          }
+        },
+        "responsive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/responsiveChange"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "section": {
+      "type": "object",
+      "required": [
+        "id",
+        "order",
+        "name",
+        "type",
+        "background",
+        "layout",
+        "responsive",
+        "confidence",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "header",
+            "hero",
+            "content",
+            "product",
+            "image-led",
+            "testimonial",
+            "newsletter",
+            "footer",
+            "other"
+          ]
+        },
+        "background": {
+          "$ref": "#/$defs/traced"
+        },
+        "layout": {
+          "$ref": "#/$defs/sectionLayout"
+        },
+        "responsive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/responsiveChange"
+          }
+        },
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "height": {
+              "$ref": "#/$defs/traced"
+            }
+          },
+          "additionalProperties": false
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "decorativeAssets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceIds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sectionLayout": {
+      "type": "object",
+      "required": [
+        "structure",
+        "contentAlignment",
+        "columns",
+        "spacing"
+      ],
+      "properties": {
+        "structure": {
+          "$ref": "#/$defs/traced"
+        },
+        "contentAlignment": {
+          "$ref": "#/$defs/traced"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/column"
+          }
+        },
+        "spacing": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "required": [
+        "id",
+        "sectionId",
+        "role",
+        "composition",
+        "css",
+        "overlays",
+        "responsive",
+        "qa",
+        "confidence",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sectionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "full-bleed-background",
+            "blended-photographic-background",
+            "split-composition",
+            "floating-photography",
+            "product-photography",
+            "decorative-photography",
+            "inline-editorial-photography"
+          ]
+        },
+        "composition": {
+          "$ref": "#/$defs/imageComposition"
+        },
+        "css": {
+          "$ref": "#/$defs/imageCss"
+        },
+        "overlays": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/overlay"
+          }
+        },
+        "responsive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imageResponsive"
+          }
+        },
+        "qa": {
+          "$ref": "#/$defs/imageQa"
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceIds"
+        },
+        "assetRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "referenceDescription": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "imageComposition": {
+      "type": "object",
+      "required": [
+        "primaryFocalPoint",
+        "textSafeArea",
+        "negativeSpace",
+        "aspectRatio",
+        "originalDimensions",
+        "imageToContainer"
+      ],
+      "properties": {
+        "primaryFocalPoint": {
+          "$ref": "#/$defs/focalPoint"
+        },
+        "textSafeArea": {
+          "$ref": "#/$defs/textSafeArea"
+        },
+        "negativeSpace": {
+          "$ref": "#/$defs/traced"
+        },
+        "aspectRatio": {
+          "$ref": "#/$defs/traced"
+        },
+        "originalDimensions": {
+          "$ref": "#/$defs/originalDimensions"
+        },
+        "imageToContainer": {
+          "$ref": "#/$defs/traced"
+        },
+        "secondarySubjects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "crop": {
+          "$ref": "#/$defs/crop"
+        }
+      },
+      "additionalProperties": false
+    },
+    "focalPoint": {
+      "type": "object",
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "description": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "textSafeArea": {
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "description": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "crop": {
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "originalDimensions": {
+      "type": "object",
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "imageCss": {
+      "type": "object",
+      "required": [
+        "objectFit",
+        "objectPosition",
+        "containerLayer",
+        "textLayer"
+      ],
+      "properties": {
+        "objectFit": {
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill",
+            "none",
+            "scale-down"
+          ]
+        },
+        "objectPosition": {
+          "$ref": "#/$defs/traced"
+        },
+        "containerLayer": {
+          "$ref": "#/$defs/traced"
+        },
+        "textLayer": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "overlay": {
+      "type": "object",
+      "required": [
+        "kind",
+        "layer",
+        "purpose",
+        "preservesImage"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "none",
+            "linear-gradient",
+            "radial-gradient",
+            "solid"
+          ]
+        },
+        "layer": {
+          "type": "string",
+          "enum": [
+            "none",
+            "independent",
+            "embedded"
+          ]
+        },
+        "purpose": {
+          "$ref": "#/$defs/traced"
+        },
+        "preservesImage": {
+          "type": "boolean"
+        },
+        "direction": {
+          "$ref": "#/$defs/traced"
+        },
+        "stops": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/overlayStop"
+          }
+        },
+        "justification": {
+          "$ref": "#/$defs/traced"
+        },
+        "cssValue": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "overlayStop": {
+      "type": "object",
+      "required": [
+        "colour",
+        "position"
+      ],
+      "properties": {
+        "colour": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "imageResponsive": {
+      "type": "object",
+      "required": [
+        "breakpoint"
+      ],
+      "properties": {
+        "breakpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objectPosition": {
+          "$ref": "#/$defs/traced"
+        },
+        "crop": {
+          "$ref": "#/$defs/crop"
+        },
+        "textSafeArea": {
+          "$ref": "#/$defs/textSafeArea"
+        }
+      },
+      "additionalProperties": false
+    },
+    "imageQa": {
+      "type": "object",
+      "required": [
+        "coverage",
+        "focalPointPreserved",
+        "gradientDirection",
+        "gradientStrength",
+        "subjectVisibility",
+        "textContrast"
+      ],
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/traced"
+        },
+        "focalPointPreserved": {
+          "$ref": "#/$defs/traced"
+        },
+        "gradientDirection": {
+          "$ref": "#/$defs/traced"
+        },
+        "gradientStrength": {
+          "$ref": "#/$defs/traced"
+        },
+        "subjectVisibility": {
+          "$ref": "#/$defs/traced"
+        },
+        "textContrast": {
+          "$ref": "#/$defs/traced"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "motion": {
+      "type": "object",
+      "required": [
+        "status",
+        "identity",
+        "components",
+        "sourceSupported",
+        "functionalAdditions",
+        "intentionallyOmitted",
+        "reducedMotion",
+        "performance",
+        "confidence",
+        "evidence"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "observed",
+            "static",
+            "partial",
+            "unknown"
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/motionIdentity"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/motionComponent"
+          }
+        },
+        "sourceSupported": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "functionalAdditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "intentionallyOmitted": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "responsiveDifferences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/responsiveChange"
+          }
+        },
+        "reducedMotion": {
+          "$ref": "#/$defs/motionReduced"
+        },
+        "performance": {
+          "$ref": "#/$defs/motionPerformance"
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceIds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionIdentity": {
+      "type": "object",
+      "required": [
+        "style",
+        "personality"
+      ],
+      "properties": {
+        "style": {
+          "$ref": "#/$defs/traced"
+        },
+        "personality": {
+          "$ref": "#/$defs/traced"
+        },
+        "principles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "context": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionComponent": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "trigger",
+        "classification",
+        "confidence",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "componentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "$ref": "#/$defs/traced"
+        },
+        "trigger": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "mount",
+              "unmount",
+              "load",
+              "hover",
+              "focus",
+              "click",
+              "pointer",
+              "keyboard",
+              "scroll",
+              "state-change",
+              "timer",
+              "gesture",
+              "none"
+            ]
+          }
+        },
+        "interactionStates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/motionState"
+          }
+        },
+        "duration": {
+          "$ref": "#/$defs/traced"
+        },
+        "delay": {
+          "$ref": "#/$defs/traced"
+        },
+        "easing": {
+          "$ref": "#/$defs/traced"
+        },
+        "spring": {
+          "$ref": "#/$defs/motionSpring"
+        },
+        "stagger": {
+          "$ref": "#/$defs/motionStagger"
+        },
+        "enter": {
+          "$ref": "#/$defs/motionTransition"
+        },
+        "exit": {
+          "$ref": "#/$defs/motionTransition"
+        },
+        "scroll": {
+          "$ref": "#/$defs/motionScroll"
+        },
+        "hover": {
+          "$ref": "#/$defs/motionTransition"
+        },
+        "focus": {
+          "$ref": "#/$defs/motionTransition"
+        },
+        "loading": {
+          "$ref": "#/$defs/motionTransition"
+        },
+        "responsive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/responsiveChange"
+          }
+        },
+        "reducedMotion": {
+          "$ref": "#/$defs/traced"
+        },
+        "performance": {
+          "$ref": "#/$defs/motionPerformance"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "source-supported",
+            "design-system-supported",
+            "functional-requirement",
+            "intentionally-omitted"
+          ]
+        },
+        "justification": {
+          "$ref": "#/$defs/traced"
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceIds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionState": {
+      "type": "object",
+      "required": [
+        "state",
+        "changes"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changes": {
+          "$ref": "#/$defs/changeMap"
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionTransition": {
+      "type": "object",
+      "properties": {
+        "properties": {
+          "$ref": "#/$defs/tracedMap"
+        },
+        "from": {
+          "$ref": "#/$defs/traced"
+        },
+        "to": {
+          "$ref": "#/$defs/traced"
+        },
+        "duration": {
+          "$ref": "#/$defs/traced"
+        },
+        "delay": {
+          "$ref": "#/$defs/traced"
+        },
+        "easing": {
+          "$ref": "#/$defs/traced"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionSpring": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/traced"
+        },
+        "stiffness": {
+          "$ref": "#/$defs/traced"
+        },
+        "damping": {
+          "$ref": "#/$defs/traced"
+        },
+        "mass": {
+          "$ref": "#/$defs/traced"
+        },
+        "bounce": {
+          "$ref": "#/$defs/traced"
+        },
+        "duration": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionStagger": {
+      "type": "object",
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/traced"
+        },
+        "interval": {
+          "$ref": "#/$defs/traced"
+        },
+        "order": {
+          "$ref": "#/$defs/traced"
+        },
+        "limit": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionScroll": {
+      "type": "object",
+      "properties": {
+        "triggerPosition": {
+          "$ref": "#/$defs/traced"
+        },
+        "progressMapping": {
+          "$ref": "#/$defs/traced"
+        },
+        "pin": {
+          "$ref": "#/$defs/traced"
+        },
+        "once": {
+          "$ref": "#/$defs/traced"
+        },
+        "reducedMotionAlternative": {
+          "$ref": "#/$defs/traced"
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionReduced": {
+      "type": "object",
+      "required": [
+        "strategy"
+      ],
+      "properties": {
+        "strategy": {
+          "$ref": "#/$defs/traced"
+        },
+        "mediaQuery": {
+          "$ref": "#/$defs/traced"
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "motionPerformance": {
+      "type": "object",
+      "required": [
+        "propertiesAnimated"
+      ],
+      "properties": {
+        "propertiesAnimated": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traced"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

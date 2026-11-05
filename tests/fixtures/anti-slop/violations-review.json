@@ -1,0 +1,228 @@
+{
+  "schemaVersion": "1.0.0",
+  "subject": "Example page with unsupported AI decoration",
+  "referenceEvidenceAvailable": true,
+  "indicators": [
+    {
+      "id": "AS-01",
+      "detected": true,
+      "pattern": "Row of decorative tag pills below the hero heading",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "remove",
+      "note": "The reference has no tag row and the pills convey no state."
+    },
+    {
+      "id": "AS-02",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No italics."
+    },
+    {
+      "id": "AS-03",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No fashionable display typeface."
+    },
+    {
+      "id": "AS-04",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No negative tracking."
+    },
+    {
+      "id": "AS-05",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No invented chrome."
+    },
+    {
+      "id": "AS-06",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No excess dividers."
+    },
+    {
+      "id": "AS-07",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No extra shades."
+    },
+    {
+      "id": "AS-08",
+      "detected": true,
+      "pattern": "Borders around every text block and nested card",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "remove",
+      "note": "The reference separates these blocks with spacing only."
+    },
+    {
+      "id": "AS-09",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No diagrams."
+    },
+    {
+      "id": "AS-10",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Copy is not repeated."
+    },
+    {
+      "id": "AS-11",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No code breadcrumbs."
+    },
+    {
+      "id": "AS-12",
+      "detected": true,
+      "pattern": "01 / 02 / 03 labels on unordered benefit sections",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "remove",
+      "note": "The sections have no reading sequence."
+    },
+    {
+      "id": "AS-13",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No eyebrows."
+    },
+    {
+      "id": "AS-14",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No dithering."
+    },
+    {
+      "id": "AS-15",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No ASCII images."
+    },
+    {
+      "id": "AS-16",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No squircle masks."
+    },
+    {
+      "id": "AS-17",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No monospace outside code."
+    },
+    {
+      "id": "AS-18",
+      "detected": true,
+      "pattern": "ALL-CAPS subtitle under every section heading",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "replace",
+      "note": "The reference uses sentence-case subheads."
+    },
+    {
+      "id": "AS-19",
+      "detected": true,
+      "pattern": "Radial gradient glow behind the hero",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "remove",
+      "note": "No gradient exists in the reference."
+    },
+    {
+      "id": "AS-20",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "No periods on titles."
+    }
+  ],
+  "verdict": "fail"
+}

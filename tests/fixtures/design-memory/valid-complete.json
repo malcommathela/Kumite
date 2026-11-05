@@ -1,0 +1,1648 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapId": "map-northwind-landing-001",
+  "source": {
+    "sourceType": "figma",
+    "identity": {
+      "title": {
+        "value": "Northwind Studio Landing",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-HERO-FRAME"
+        ]
+      },
+      "author": {
+        "value": "Northwind Studio",
+        "confidence": "exact",
+        "evidence": [
+          "E-DOC-NOTES"
+        ]
+      },
+      "licence": {
+        "value": "CC BY 4.0",
+        "confidence": "exact",
+        "evidence": [
+          "E-DOC-NOTES"
+        ]
+      },
+      "designUrl": "https://www.figma.com/design/Aa1Bb2Cc3Dd4Ee5Ff6Gg7H/Northwind-Studio-Landing",
+      "fileKey": "Aa1Bb2Cc3Dd4Ee5Ff6Gg7H",
+      "capturedAt": "2026-02-14",
+      "attribution": "Design by Northwind Studio; fixture data for Kumite tests."
+    },
+    "access": {
+      "status": "direct-mcp",
+      "extractionMethod": {
+        "value": "Figma MCP get_variable_defs plus get_design_context on targeted nodes",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-TOKENS",
+          "E-FIGMA-HERO-FRAME"
+        ]
+      },
+      "limitations": [
+        "Hover and focus states were not exported for the newsletter form."
+      ]
+    },
+    "unavailable": [
+      {
+        "property": "Dark theme tokens",
+        "reason": "The fixture file publishes only a light variable collection."
+      }
+    ]
+  },
+  "foundations": {
+    "colours": {
+      "palette": [
+        {
+          "value": "#F7F5F0",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "#111827",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "#E8E2D6",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "#C2410C",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        },
+        {
+          "value": "#FFFFFF",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        }
+      ],
+      "semantic": {
+        "background": {
+          "value": "#F7F5F0",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        "foreground": {
+          "value": "#111827",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        "muted": {
+          "value": "#6B7280",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        },
+        "accent": {
+          "value": "#C2410C",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        },
+        "border": {
+          "value": "#E8E2D6",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        }
+      }
+    },
+    "typography": {
+      "families": [
+        {
+          "value": "Fraunces, Georgia, serif",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "Inter, system-ui, sans-serif",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        }
+      ],
+      "sizes": [
+        {
+          "value": "64px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "20px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "16px",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        },
+        {
+          "value": "14px",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        }
+      ],
+      "weights": [
+        {
+          "value": 400,
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": 500,
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": 600,
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        }
+      ],
+      "lineHeights": [
+        {
+          "value": "1.05",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "1.5",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        }
+      ],
+      "letterSpacing": [
+        {
+          "value": "-0.02em",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        },
+        {
+          "value": null,
+          "confidence": "unknown",
+          "note": "The letter-spacing token for body text was not published."
+        }
+      ]
+    },
+    "spacing": {
+      "scale": [
+        {
+          "value": "8px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "16px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "24px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "48px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "96px",
+          "confidence": "measured",
+          "evidence": [
+            "E-MEASURE-GRID"
+          ]
+        }
+      ],
+      "sectionRhythm": {
+        "value": "96px",
+        "confidence": "measured",
+        "evidence": [
+          "E-MEASURE-GRID"
+        ]
+      }
+    },
+    "borders": {
+      "widths": [
+        {
+          "value": "1px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "2px",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        }
+      ],
+      "colours": [
+        {
+          "value": "#E8E2D6",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        }
+      ],
+      "styles": [
+        {
+          "value": "solid",
+          "confidence": "exact",
+          "evidence": [
+            "E-DOC-NOTES"
+          ]
+        }
+      ]
+    },
+    "radii": {
+      "scale": [
+        {
+          "value": "0px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "4px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        },
+        {
+          "value": "999px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TOKENS"
+          ]
+        }
+      ]
+    },
+    "shadows": [
+      {
+        "value": "0 1px 2px rgba(17, 24, 39, 0.08)",
+        "confidence": "estimated",
+        "evidence": [
+          "E-INFER-SHADOW"
+        ],
+        "note": "Elevation approximated from the 2x screenshot; no shadow token was published."
+      }
+    ],
+    "backgrounds": [
+      {
+        "value": "#F7F5F0",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-TOKENS"
+        ]
+      },
+      {
+        "value": "#111827",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-TOKENS"
+        ]
+      }
+    ],
+    "layout": {
+      "maxWidth": {
+        "value": "1280px",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-NAV-FRAME"
+        ]
+      },
+      "breakpoints": [
+        {
+          "name": "mobile",
+          "width": {
+            "value": "390px",
+            "confidence": "measured",
+            "evidence": [
+              "E-SHOT-MOBILE"
+            ]
+          }
+        },
+        {
+          "name": "tablet",
+          "width": {
+            "value": "768px",
+            "confidence": "measured",
+            "evidence": [
+              "E-MEASURE-GRID"
+            ]
+          }
+        },
+        {
+          "name": "desktop",
+          "width": {
+            "value": "1440px",
+            "confidence": "measured",
+            "evidence": [
+              "E-SHOT-HERO"
+            ]
+          }
+        }
+      ],
+      "grid": {
+        "value": "12-column grid with 24px gutters",
+        "confidence": "measured",
+        "evidence": [
+          "E-MEASURE-GRID"
+        ]
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "cmp-nav",
+      "name": "Site Header",
+      "type": "navigation",
+      "sourceLocation": "Header / Navigation",
+      "confidence": "exact",
+      "evidence": [
+        "E-FIGMA-NAV-FRAME"
+      ],
+      "variants": [
+        {
+          "name": "Desktop",
+          "properties": {
+            "background": {
+              "value": "transparent",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-NAV-FRAME"
+              ]
+            },
+            "foreground": {
+              "value": "#FFFFFF",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-NAV-FRAME"
+              ]
+            },
+            "gap": {
+              "value": "32px",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-NAV-FRAME"
+              ]
+            },
+            "typography": {
+              "family": {
+                "value": "Inter, system-ui, sans-serif",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "size": {
+                "value": "14px",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "weight": {
+                "value": 500,
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "lineHeight": {
+                "value": "1.4",
+                "confidence": "measured",
+                "evidence": [
+                  "E-SHOT-HERO"
+                ]
+              }
+            },
+            "states": [
+              {
+                "state": "focus",
+                "changes": {
+                  "foreground": {
+                    "value": "#C2410C",
+                    "confidence": "estimated",
+                    "note": "Focus colour estimated from the accent token; no focused state was exported."
+                  }
+                }
+              }
+            ],
+            "responsive": [
+              {
+                "breakpoint": "mobile",
+                "changes": {
+                  "gap": {
+                    "value": "16px",
+                    "confidence": "measured",
+                    "evidence": [
+                      "E-SHOT-MOBILE"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Mobile",
+          "properties": {
+            "foreground": {
+              "value": "#FFFFFF",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-NAV-FRAME"
+              ]
+            },
+            "gap": {
+              "value": "16px",
+              "confidence": "measured",
+              "evidence": [
+                "E-SHOT-MOBILE"
+              ]
+            },
+            "icon": {
+              "size": {
+                "value": "24px",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-NAV-FRAME"
+                ]
+              },
+              "placement": {
+                "value": "trailing",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-NAV-FRAME"
+                ]
+              }
+            },
+            "typography": {
+              "family": {
+                "value": "Inter, system-ui, sans-serif",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "size": {
+                "value": "14px",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "weight": {
+                "value": 500,
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmp-button",
+      "name": "Primary Button",
+      "type": "button",
+      "sourceLocation": "Hero / Actions / Button",
+      "confidence": "exact",
+      "evidence": [
+        "E-FIGMA-HERO-FRAME"
+      ],
+      "variants": [
+        {
+          "name": "Default",
+          "properties": {
+            "background": {
+              "value": "#111827",
+              "confidence": "exact",
+              "evidence": [
+                "E-CSS-BUTTON"
+              ]
+            },
+            "foreground": {
+              "value": "#FFFFFF",
+              "confidence": "exact",
+              "evidence": [
+                "E-CSS-BUTTON"
+              ]
+            },
+            "padding": {
+              "value": "14px 24px",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-HERO-FRAME"
+              ]
+            },
+            "margin": {
+              "value": "0px",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-HERO-FRAME"
+              ]
+            },
+            "radius": {
+              "value": "999px",
+              "confidence": "exact",
+              "evidence": [
+                "E-CSS-BUTTON"
+              ]
+            },
+            "typography": {
+              "family": {
+                "value": "Inter, system-ui, sans-serif",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "size": {
+                "value": "16px",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "weight": {
+                "value": 500,
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              }
+            },
+            "states": [
+              {
+                "state": "hover",
+                "changes": {
+                  "background": {
+                    "value": "#1F2937",
+                    "confidence": "estimated",
+                    "note": "Hover shade estimated one step lighter; the hover state was not exported."
+                  }
+                }
+              }
+            ],
+            "responsive": [
+              {
+                "breakpoint": "mobile",
+                "changes": {
+                  "padding": {
+                    "value": "12px 20px",
+                    "confidence": "measured",
+                    "evidence": [
+                      "E-SHOT-MOBILE"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "Compact",
+          "properties": {
+            "background": {
+              "value": "#111827",
+              "confidence": "exact",
+              "evidence": [
+                "E-CSS-BUTTON"
+              ]
+            },
+            "foreground": {
+              "value": "#FFFFFF",
+              "confidence": "exact",
+              "evidence": [
+                "E-CSS-BUTTON"
+              ]
+            },
+            "padding": {
+              "value": "10px 16px",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-HERO-FRAME"
+              ]
+            },
+            "radius": {
+              "value": "999px",
+              "confidence": "exact",
+              "evidence": [
+                "E-CSS-BUTTON"
+              ]
+            },
+            "typography": {
+              "family": {
+                "value": "Inter, system-ui, sans-serif",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "size": {
+                "value": "14px",
+                "confidence": "measured",
+                "evidence": [
+                  "E-SHOT-HERO"
+                ]
+              },
+              "weight": {
+                "value": 500,
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cmp-card-testimonial",
+      "name": "Testimonial Card",
+      "type": "testimonial",
+      "sourceLocation": "Testimonials / Card",
+      "confidence": "estimated",
+      "evidence": [
+        "E-DOC-NOTES"
+      ],
+      "variants": [
+        {
+          "name": "Default",
+          "properties": {
+            "background": {
+              "value": "#FFFFFF",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TOKENS"
+              ]
+            },
+            "border": {
+              "width": {
+                "value": "1px",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              },
+              "colour": {
+                "value": "#E8E2D6",
+                "confidence": "exact",
+                "evidence": [
+                  "E-FIGMA-TOKENS"
+                ]
+              }
+            },
+            "radius": {
+              "value": "4px",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TOKENS"
+              ]
+            },
+            "padding": {
+              "value": "24px",
+              "confidence": "estimated",
+              "note": "Standard card inset derived from the documentation; the variant was not exported."
+            },
+            "gap": {
+              "value": "16px",
+              "confidence": "estimated",
+              "note": "Card content rhythm derived from the documentation; the variant was not exported."
+            }
+          }
+        },
+        {
+          "name": "Compact",
+          "properties": {
+            "background": {
+              "value": "#FFFFFF",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TOKENS"
+              ]
+            },
+            "radius": {
+              "value": "4px",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TOKENS"
+              ]
+            },
+            "padding": {
+              "value": "16px",
+              "confidence": "estimated",
+              "note": "Compact inset estimated by scaling the standard card padding."
+            }
+          }
+        },
+        {
+          "name": "Featured",
+          "properties": {
+            "background": {
+              "value": "#111827",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TOKENS"
+              ]
+            },
+            "foreground": {
+              "value": "#FFFFFF",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TOKENS"
+              ]
+            },
+            "radius": {
+              "value": "4px",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TOKENS"
+              ]
+            },
+            "shadow": {
+              "value": "0 1px 2px rgba(17, 24, 39, 0.08)",
+              "confidence": "estimated",
+              "evidence": [
+                "E-INFER-SHADOW"
+              ],
+              "note": "Elevation approximated from the 2x screenshot; no shadow token was published."
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "sec-header",
+      "order": 0,
+      "name": "Header",
+      "type": "header",
+      "background": {
+        "value": "transparent",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-NAV-FRAME"
+        ]
+      },
+      "layout": {
+        "structure": {
+          "value": "single-row flex with the wordmark left and navigation right",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-NAV-FRAME"
+          ]
+        },
+        "contentAlignment": {
+          "value": "space-between",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-NAV-FRAME"
+          ]
+        },
+        "columns": [],
+        "spacing": {
+          "value": "32px 48px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-NAV-FRAME"
+          ]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "spacing": {
+              "value": "16px 24px",
+              "confidence": "measured",
+              "evidence": [
+                "E-SHOT-MOBILE"
+              ]
+            }
+          }
+        }
+      ],
+      "dimensions": {
+        "height": {
+          "value": "80px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-NAV-FRAME"
+          ]
+        }
+      },
+      "components": [
+        "cmp-nav"
+      ],
+      "confidence": "exact",
+      "evidence": [
+        "E-FIGMA-NAV-FRAME"
+      ]
+    },
+    {
+      "id": "sec-hero",
+      "order": 1,
+      "name": "Hero",
+      "type": "hero",
+      "background": {
+        "value": "#111827",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-HERO-FRAME"
+        ]
+      },
+      "layout": {
+        "structure": {
+          "value": "full-bleed photograph with a single column of content overlaid at the lower left",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-HERO-FRAME"
+          ]
+        },
+        "contentAlignment": {
+          "value": "bottom-left",
+          "confidence": "exact",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        },
+        "columns": [
+          {
+            "name": "hero-content",
+            "proportion": {
+              "value": "100%",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-HERO-FRAME"
+              ]
+            }
+          }
+        ],
+        "spacing": {
+          "value": "96px 48px 128px",
+          "confidence": "measured",
+          "evidence": [
+            "E-MEASURE-GRID"
+          ]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "spacing": {
+              "value": "64px 24px 96px",
+              "confidence": "measured",
+              "evidence": [
+                "E-SHOT-MOBILE"
+              ]
+            }
+          }
+        }
+      ],
+      "dimensions": {
+        "height": {
+          "value": "760px",
+          "confidence": "measured",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        }
+      },
+      "components": [
+        "cmp-button"
+      ],
+      "confidence": "exact",
+      "evidence": [
+        "E-FIGMA-HERO-FRAME",
+        "E-SHOT-HERO"
+      ]
+    },
+    {
+      "id": "sec-testimonials",
+      "order": 2,
+      "name": "Testimonials",
+      "type": "testimonial",
+      "background": {
+        "value": "#F7F5F0",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-TOKENS"
+        ]
+      },
+      "layout": {
+        "structure": {
+          "value": "two-column testimonial card grid",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "contentAlignment": {
+          "value": "top",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "columns": [
+          {
+            "name": "testimonial-a",
+            "proportion": {
+              "value": "50%",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TESTIMONIAL-FRAME"
+              ]
+            }
+          },
+          {
+            "name": "testimonial-b",
+            "proportion": {
+              "value": "50%",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-TESTIMONIAL-FRAME"
+              ]
+            }
+          }
+        ],
+        "spacing": {
+          "value": "96px 48px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "columns": {
+              "value": "single column",
+              "confidence": "measured",
+              "evidence": [
+                "E-SHOT-MOBILE"
+              ]
+            }
+          }
+        }
+      ],
+      "components": [
+        "cmp-card-testimonial"
+      ],
+      "confidence": "exact",
+      "evidence": [
+        "E-FIGMA-TESTIMONIAL-FRAME"
+      ]
+    },
+    {
+      "id": "sec-footer",
+      "order": 3,
+      "name": "Footer",
+      "type": "footer",
+      "background": {
+        "value": "#111827",
+        "confidence": "exact",
+        "evidence": [
+          "E-FIGMA-TOKENS"
+        ]
+      },
+      "layout": {
+        "structure": {
+          "value": "four-column link grid above a single-row legal bar",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-FOOTER-FRAME"
+          ]
+        },
+        "contentAlignment": {
+          "value": "space-between",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-FOOTER-FRAME"
+          ]
+        },
+        "columns": [
+          {
+            "name": "brand",
+            "proportion": {
+              "value": "40%",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-FOOTER-FRAME"
+              ]
+            }
+          },
+          {
+            "name": "links",
+            "proportion": {
+              "value": "60%",
+              "confidence": "exact",
+              "evidence": [
+                "E-FIGMA-FOOTER-FRAME"
+              ]
+            }
+          }
+        ],
+        "spacing": {
+          "value": "64px 48px 32px",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-FOOTER-FRAME"
+          ]
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "columns": {
+              "value": "stacked groups",
+              "confidence": "measured",
+              "evidence": [
+                "E-SHOT-MOBILE"
+              ]
+            }
+          }
+        }
+      ],
+      "components": [],
+      "confidence": "exact",
+      "evidence": [
+        "E-FIGMA-FOOTER-FRAME"
+      ]
+    }
+  ],
+  "images": [
+    {
+      "id": "img-hero-facade",
+      "sectionId": "sec-hero",
+      "role": "full-bleed-background",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.62,
+          "y": 0.44,
+          "description": {
+            "value": "concrete facade and meadow horizon",
+            "confidence": "exact",
+            "evidence": [
+              "E-CROP-HERO-FOCAL"
+            ]
+          }
+        },
+        "textSafeArea": {
+          "x": 0.04,
+          "y": 0.62,
+          "width": 0.5,
+          "height": 0.3,
+          "description": {
+            "value": "lower-left grass and sky area kept clear of the building",
+            "confidence": "exact",
+            "evidence": [
+              "E-SHOT-HERO"
+            ]
+          }
+        },
+        "negativeSpace": {
+          "value": "upper-left sky",
+          "confidence": "exact",
+          "evidence": [
+            "E-SHOT-HERO"
+          ]
+        },
+        "aspectRatio": {
+          "value": "16:9",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-HERO-FRAME"
+          ]
+        },
+        "originalDimensions": {
+          "width": 2400,
+          "height": 1350
+        },
+        "imageToContainer": {
+          "value": "cover at 62% 44%",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-HERO-FRAME"
+          ]
+        },
+        "secondarySubjects": [
+          {
+            "value": "larch trees at the left edge",
+            "confidence": "exact",
+            "evidence": [
+              "E-SHOT-HERO"
+            ]
+          }
+        ],
+        "crop": {
+          "x": 0.05,
+          "y": 0.08,
+          "width": 0.9,
+          "height": 0.84
+        }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "62% 44%",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-HERO-FRAME"
+          ]
+        },
+        "containerLayer": {
+          "value": "absolute inset-0 z-0",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-HERO-FRAME"
+          ]
+        },
+        "textLayer": {
+          "value": "relative z-10",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-HERO-FRAME"
+          ]
+        }
+      },
+      "overlays": [
+        {
+          "kind": "linear-gradient",
+          "layer": "independent",
+          "purpose": {
+            "value": "darken the lower third so the white display type keeps contrast",
+            "confidence": "exact",
+            "evidence": [
+              "E-CSS-HERO-GRADIENT"
+            ]
+          },
+          "preservesImage": true,
+          "direction": {
+            "value": "bottom to top",
+            "confidence": "exact",
+            "evidence": [
+              "E-CSS-HERO-GRADIENT"
+            ]
+          },
+          "stops": [
+            {
+              "colour": "rgba(17, 24, 39, 0)",
+              "position": 0
+            },
+            {
+              "colour": "rgba(17, 24, 39, 0.72)",
+              "position": 1
+            }
+          ],
+          "justification": {
+            "value": "only the lower text region is darkened; the photograph is never blurred",
+            "confidence": "exact",
+            "evidence": [
+              "E-CSS-HERO-GRADIENT"
+            ]
+          },
+          "cssValue": {
+            "value": "linear-gradient(to top, rgba(17,24,39,0.72), rgba(17,24,39,0) 62%)",
+            "confidence": "exact",
+            "evidence": [
+              "E-CSS-HERO-GRADIENT"
+            ]
+          }
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "70% 45%",
+            "confidence": "measured",
+            "evidence": [
+              "E-SHOT-MOBILE"
+            ]
+          },
+          "crop": {
+            "x": 0.2,
+            "y": 0.1,
+            "width": 0.7,
+            "height": 0.8
+          },
+          "textSafeArea": {
+            "x": 0.06,
+            "y": 0.55,
+            "width": 0.88,
+            "height": 0.36
+          }
+        },
+        {
+          "breakpoint": "desktop",
+          "objectPosition": {
+            "value": "62% 44%",
+            "confidence": "exact",
+            "evidence": [
+              "E-FIGMA-HERO-FRAME"
+            ]
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "full-bleed hero region at 1440x900 and 390x844",
+          "confidence": "exact",
+          "evidence": [
+            "E-SHOT-HERO",
+            "E-SHOT-MOBILE"
+          ]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "exact",
+          "evidence": [
+            "E-CROP-HERO-FOCAL"
+          ]
+        },
+        "gradientDirection": {
+          "value": "bottom to top",
+          "confidence": "exact",
+          "evidence": [
+            "E-CSS-HERO-GRADIENT"
+          ]
+        },
+        "gradientStrength": {
+          "value": "72% opacity at the bottom edge, fading to 0% at 62% height",
+          "confidence": "measured",
+          "evidence": [
+            "E-CSS-HERO-GRADIENT"
+          ]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "estimated",
+          "note": "Facade and meadow remain readable beneath the gradient; checked visually at both viewports."
+        },
+        "textContrast": {
+          "value": "7.8:1",
+          "confidence": "estimated",
+          "note": "Estimated from sampled pixels of the white heading against the darkened lower third; verify with a contrast tool."
+        },
+        "notes": [
+          "The overlay is independent; the photograph itself is not blurred or tinted."
+        ]
+      },
+      "confidence": "exact",
+      "evidence": [
+        "E-SHOT-HERO",
+        "E-FIGMA-HERO-FRAME"
+      ],
+      "assetRef": "crops/hero-1440.png",
+      "referenceDescription": {
+        "value": "Architectural hero: a low concrete facade across a wild meadow under a pale sky.",
+        "confidence": "exact",
+        "evidence": [
+          "E-SHOT-HERO"
+        ]
+      }
+    },
+    {
+      "id": "img-testimonial-portrait",
+      "sectionId": "sec-testimonials",
+      "role": "floating-photography",
+      "composition": {
+        "primaryFocalPoint": {
+          "x": 0.5,
+          "y": 0.38,
+          "description": {
+            "value": "sitter's face in the upper third",
+            "confidence": "exact",
+            "evidence": [
+              "E-FIGMA-TESTIMONIAL-FRAME"
+            ]
+          }
+        },
+        "textSafeArea": {
+          "x": 0.55,
+          "y": 0.55,
+          "width": 0.4,
+          "height": 0.35,
+          "description": {
+            "value": "card surface to the right of the portrait",
+            "confidence": "estimated",
+            "note": "Safe area estimated from the card layout; the portrait fill was not exported."
+          }
+        },
+        "negativeSpace": {
+          "value": "right-hand wall behind the sitter",
+          "confidence": "estimated",
+          "note": "Negative space estimated from the screenshot; the fill was not exported."
+        },
+        "aspectRatio": {
+          "value": "4:5",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "originalDimensions": {
+          "width": 1200,
+          "height": 1500
+        },
+        "imageToContainer": {
+          "value": "cover at 50% 38%",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "crop": {
+          "x": 0.08,
+          "y": 0.06,
+          "width": 0.84,
+          "height": 0.88
+        }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": {
+          "value": "50% 38%",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "containerLayer": {
+          "value": "relative aspect-[4/5] overflow-hidden",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "textLayer": {
+          "value": "absolute inset-x-0 bottom-0",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        }
+      },
+      "overlays": [
+        {
+          "kind": "none",
+          "layer": "none",
+          "purpose": {
+            "value": "no overlay is used; the card surface carries the contrast",
+            "confidence": "exact",
+            "evidence": [
+              "E-FIGMA-TESTIMONIAL-FRAME"
+            ]
+          },
+          "preservesImage": true
+        }
+      ],
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "objectPosition": {
+            "value": "50% 30%",
+            "confidence": "estimated",
+            "note": "Mobile framing estimated to keep the sitter's face in view."
+          },
+          "textSafeArea": {
+            "x": 0.5,
+            "y": 0.5,
+            "width": 0.44,
+            "height": 0.4
+          }
+        }
+      ],
+      "qa": {
+        "coverage": {
+          "value": "card portrait at desktop and mobile",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "focalPointPreserved": {
+          "value": true,
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "gradientDirection": {
+          "value": "not applicable",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "gradientStrength": {
+          "value": "none",
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "subjectVisibility": {
+          "value": true,
+          "confidence": "exact",
+          "evidence": [
+            "E-FIGMA-TESTIMONIAL-FRAME"
+          ]
+        },
+        "textContrast": {
+          "value": "12.4:1",
+          "confidence": "estimated",
+          "note": "Estimated from the near-black caption on the card surface; verify with a contrast tool."
+        }
+      },
+      "confidence": "exact",
+      "evidence": [
+        "E-FIGMA-TESTIMONIAL-FRAME"
+      ],
+      "assetRef": "crops/testimonial-portrait.png",
+      "referenceDescription": {
+        "value": "Studio portrait beside a testimonial quote in the card layout.",
+        "confidence": "estimated",
+        "note": "Portrait content inferred from the card documentation; the fill was not exported."
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-FIGMA-HERO-FRAME",
+      "kind": "figma-node",
+      "ref": "12:34"
+    },
+    {
+      "id": "E-FIGMA-TOKENS",
+      "kind": "figma-node",
+      "ref": "8:12"
+    },
+    {
+      "id": "E-FIGMA-NAV-FRAME",
+      "kind": "figma-node",
+      "ref": "12:35"
+    },
+    {
+      "id": "E-FIGMA-TESTIMONIAL-FRAME",
+      "kind": "figma-node",
+      "ref": "20:44"
+    },
+    {
+      "id": "E-FIGMA-FOOTER-FRAME",
+      "kind": "figma-node",
+      "ref": "22:60"
+    },
+    {
+      "id": "E-SHOT-HERO",
+      "kind": "screenshot-region",
+      "ref": "hero viewport at 1440x900",
+      "coordinates": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "cropFile": "crops/hero-1440.png",
+      "cropScale": 1
+    },
+    {
+      "id": "E-SHOT-MOBILE",
+      "kind": "screenshot-region",
+      "ref": "mobile viewport at 390x844",
+      "coordinates": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "cropFile": "crops/hero-390.png",
+      "cropScale": 1
+    },
+    {
+      "id": "E-CROP-HERO-FOCAL",
+      "kind": "crop",
+      "ref": "focal crop around the facade",
+      "coordinates": {
+        "x": 684,
+        "y": 270,
+        "width": 504,
+        "height": 360
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "cropFile": "crops/hero-focal.png",
+      "cropScale": 2
+    },
+    {
+      "id": "E-CSS-BUTTON",
+      "kind": "css-declaration",
+      "ref": ".button--primary { background: #111827; color: #ffffff; border-radius: 999px; }"
+    },
+    {
+      "id": "E-CSS-HERO-GRADIENT",
+      "kind": "css-declaration",
+      "ref": ".hero::after { background: linear-gradient(to top, rgba(17,24,39,0.72), rgba(17,24,39,0) 62%); }"
+    },
+    {
+      "id": "E-MEASURE-GRID",
+      "kind": "measurement",
+      "ref": "12-column grid measured with 24px gutters on a 1440px viewport"
+    },
+    {
+      "id": "E-DOC-NOTES",
+      "kind": "documentation",
+      "ref": "Northwind fixture design notes, sections 2.1-2.4"
+    },
+    {
+      "id": "E-INFER-SHADOW",
+      "kind": "inference",
+      "ref": "soft card elevation inferred from the 2x screenshot"
+    }
+  ],
+  "unresolved": [
+    "Licence attribution wording must be confirmed with the fixture author before publication.",
+    "Focus styling for the primary button was not exported; only the base and estimated hover states are recorded."
+  ]
+}

@@ -104,6 +104,39 @@ Present evaluated recommendations:
 - Licence terms and required attribution.
 - Handoff instructions for the `kumite-figma-integration` skill.
 
+### 8. Handoff to design intelligence
+
+Once a resource is accepted, hand the discovery record to
+`kumite-design-intelligence` before any implementation begins. The record must
+contain:
+
+| Field | Required content |
+|-------|------------------|
+| Source identity | Resource name, author and canonical URL |
+| Community URL / ID | Exact Community resource URL and its numeric ID |
+| Resolved design URL / file key | The `figma.com/design/:key` URL and 22-character key, if resolved |
+| Author / licence | Licence name, attribution requirement, commercial-use status |
+| Accessibility status | Direct access, requires duplication, or inaccessible |
+| Extraction method | Direct MCP, duplicated draft, structured export, or none |
+| Evidence | What was verified and where |
+| Explicitly unavailable | Anything not obtained, stated as unavailable — not inferred |
+
+The receiving skill decides whether to proceed, downgrade confidence or stop.
+
+### Source-identity separation warning
+
+Community resource IDs, design file keys, node IDs and screenshot paths are
+different identifiers and are never interchangeable:
+
+- A **Community ID** cannot be queried by Figma MCP.
+- A **file key** identifies a file, not a node or a screen.
+- A **node ID** identifies one frame or component inside that file.
+- A **screenshot** identifies no structured node at all.
+
+Never substitute one for another, and never derive a file key or node ID from a
+URL pattern you have not verified. A screenshot is still **not** structured
+data, even when it came from a Community preview or an accepted resource.
+
 ---
 
 ## Detailed Reference
