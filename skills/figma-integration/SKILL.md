@@ -110,6 +110,44 @@ Figma MCP enforces rate limits (Starter/Viewers: 20/month; Pro/Edu/Org Full/Dev:
 
 ---
 
+## Output contract: Design Memory Map
+
+Extraction is not finished until its results are written into the Design Memory
+Map defined by
+[`references/design-memory-schema.json`](../../references/design-memory-schema.json)
+and described by
+[`references/design-memory-guide.md`](../../references/design-memory-guide.md).
+The map is the source of truth consumed by `kumite-design-intelligence`,
+`kumite-component-first` and `kumite-design-quality`.
+
+Every entry this skill contributes must include:
+
+| Field | Content |
+|-------|---------|
+| Node ID and location | `fileKey`, node id, page, parent frame, path in the layer tree |
+| Variable collections | Collection name, mode, token name and resolved value |
+| Component sets and variants | Component set id, variant properties and their values |
+| Layout properties | Auto-layout direction, alignment, gap, padding, sizing, constraints |
+| Assets | Node id, export format, local path, intrinsic dimensions |
+| Confidence | `exact` for all node-derived values |
+| Unavailable | Fields the file or plan does not expose, stated explicitly |
+
+Rules:
+
+- Record `exact` only for values returned by node data, variables or source
+  tokens. Never label a value `exact` because it looks correct in a screenshot.
+- A node that cannot be queried is recorded as `unknown` with the access reason;
+  it is not reconstructed from a preview image.
+- Component variants are recorded individually. Do not collapse a component set
+  into a single default variant.
+- Screenshots support **rendered appearance and verification only**. They cannot
+  establish node identity, variable names, auto-layout parameters or variant
+  membership, and must not be presented as node-derived data.
+- Asset exports are saved locally and referenced by path; temporary download
+  URLs are not durable evidence.
+
+---
+
 ## Translation to Code
 
 Follow `kumite-component-first` principles:

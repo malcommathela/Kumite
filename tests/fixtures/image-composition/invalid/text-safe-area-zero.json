@@ -1,0 +1,102 @@
+{
+  "id": "img-zero-text-area",
+  "sectionId": "hero-zero-area",
+  "role": "full-bleed-background",
+  "composition": {
+    "primaryFocalPoint": {
+      "x": 0.3,
+      "y": 0.4,
+      "description": {
+        "value": "Stair newel.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      }
+    },
+    "textSafeArea": {
+      "x": 0.55,
+      "y": 0.5,
+      "width": 0,
+      "height": 0.3,
+      "description": {
+        "value": "Copy column.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      }
+    },
+    "negativeSpace": {
+      "value": "Right wall.",
+      "confidence": "measured",
+      "evidence": ["ev-shot"]
+    },
+    "aspectRatio": {
+      "value": "16:9",
+      "confidence": "exact",
+      "evidence": ["ev-shot"]
+    },
+    "originalDimensions": { "width": 6000, "height": 3375 },
+    "imageToContainer": {
+      "value": "Cover into 1600x900.",
+      "confidence": "measured",
+      "evidence": ["ev-spec"]
+    }
+  },
+  "css": {
+    "objectFit": "cover",
+    "objectPosition": {
+      "value": "50% 40%",
+      "confidence": "measured",
+      "evidence": ["ev-spec"]
+    },
+    "containerLayer": {
+      "value": "section.hero > .hero__media, inset: 0",
+      "confidence": "exact",
+      "evidence": ["ev-code"]
+    },
+    "textLayer": {
+      "value": ".hero__copy, z-index: 2",
+      "confidence": "exact",
+      "evidence": ["ev-code"]
+    }
+  },
+  "overlays": [
+    {
+      "kind": "linear-gradient",
+      "layer": "independent",
+      "purpose": {
+        "value": "Text contrast on the right.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      },
+      "preservesImage": true,
+      "direction": {
+        "value": "to right",
+        "confidence": "measured",
+        "evidence": ["ev-spec"]
+      },
+      "stops": [
+        { "colour": "rgba(0, 0, 0, 0)", "position": 0 },
+        { "colour": "rgba(0, 0, 0, 0.7)", "position": 1 }
+      ]
+    }
+  ],
+  "responsive": [
+    {
+      "breakpoint": "tablet",
+      "objectPosition": {
+        "value": "50% 40%",
+        "confidence": "measured",
+        "evidence": ["ev-spec"]
+      }
+    }
+  ],
+  "qa": {
+    "coverage": { "value": "full", "confidence": "measured", "evidence": ["ev-qa"] },
+    "focalPointPreserved": { "value": true, "confidence": "measured", "evidence": ["ev-qa"] },
+    "gradientDirection": { "value": "to right", "confidence": "measured", "evidence": ["ev-qa"] },
+    "gradientStrength": { "value": "0.7 peak", "confidence": "measured", "evidence": ["ev-qa"] },
+    "subjectVisibility": { "value": "visible", "confidence": "measured", "evidence": ["ev-qa"] },
+    "textContrast": { "value": "7.2:1", "confidence": "measured", "evidence": ["ev-qa"] }
+  },
+  "confidence": "measured",
+  "evidence": ["ev-shot", "ev-spec", "ev-code", "ev-qa"]
+}

@@ -1,0 +1,240 @@
+{
+  "schemaVersion": "1.0.0",
+  "subject": "Atelier Kōhaku demonstration page",
+  "reference": "examples/design-intelligence-demo/design-memory.json and reference captures (1440×900, 768, 375)",
+  "referenceEvidenceAvailable": true,
+  "viewportsCompared": "375, 768, 1440 CSS px",
+  "reviewer": "OpenCode agent (Kumite)",
+  "date": "2026-11-05",
+  "indicators": [
+    {
+      "id": "AS-01",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No tags, chips or status pills; project metadata is plain text."
+    },
+    {
+      "id": "AS-02",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No italic text."
+    },
+    {
+      "id": "AS-03",
+      "detected": true,
+      "pattern": "High-contrast Didone serif for section statements, paired with a grotesque for the hero and labels",
+      "classification": "source-supported",
+      "justification": "The reference uses this exact pairing: an all-sans hero wordmark and a high-contrast Didone serif for the large section statements. The serif stack is a substitution for an unidentified licensed family, not a fashionable choice.",
+      "referenceEvidence": [
+        "1440×900 hero capture (E-SHOT-HERO): wordmark is an all-sans grotesque",
+        "768 full-page capture, introduction and concept sections (E-SHOT-FULL-768): large statements are set in a high-contrast Didone serif"
+      ],
+      "justified": true,
+      "action": "keep",
+      "note": "Family is estimated; the substitution is recorded in the Design Memory Map and implementation spec."
+    },
+    {
+      "id": "AS-04",
+      "detected": true,
+      "pattern": "Negative tracking on hero and section display type (−0.035em and −0.02em)",
+      "classification": "source-supported",
+      "justification": "The reference display is set tight: the hero wordmark and the large section statements both show reduced sidebearings rather than default or positive tracking. The demo matches that optical setting.",
+      "referenceEvidence": [
+        "Hero wordmark measured at 50px with a 49px baseline distance (E-MEASURE-HERO); tracking estimated at −0.03em from the 1440 capture",
+        "Section statements in E-SHOT-FULL-768 show the same tight, high-contrast setting"
+      ],
+      "justified": true,
+      "action": "keep",
+      "note": "Tracking values are estimated; the direction and magnitude are reference-led."
+    },
+    {
+      "id": "AS-05",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No simulated dashboards, status bars, invented metrics or decorative 3D objects."
+    },
+    {
+      "id": "AS-06",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. Unsupported metadata, step and project-caption borders were removed during review. Only the footer email and wordmark hairlines remain, both visible in the reference footer."
+    },
+    {
+      "id": "AS-07",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. The palette is limited to the five measured reference colours plus two on-dark opacities used only over the dark bands."
+    },
+    {
+      "id": "AS-08",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. Unsupported card and metadata borders were removed; project cards are image-led with no container."
+    },
+    {
+      "id": "AS-09",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No diagrams or charts."
+    },
+    {
+      "id": "AS-10",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. Copy is short and specific; no filler lorem ipsum."
+    },
+    {
+      "id": "AS-11",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No code-style breadcrumbs or path labels."
+    },
+    {
+      "id": "AS-12",
+      "detected": true,
+      "pattern": "Ordered step numbering (01, 02, 03) in the approach section",
+      "classification": "functional-requirement",
+      "justification": "The numbers express a real three-stage sequence — brief and context, concept and spatial logic, documentation and delivery — not arbitrary section decoration. They are rendered as list content and hidden from assistive technology.",
+      "requirementReference": "Approach section must communicate an ordered three-stage design process; numbers carry the order.",
+      "referenceEvidence": [],
+      "justified": true,
+      "action": "keep",
+      "note": "The reference uses numbered process steps in the same section."
+    },
+    {
+      "id": "AS-13",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. Section headings have no small labels above them; the footer kicker is a field label, not an eyebrow."
+    },
+    {
+      "id": "AS-14",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No dithering or noise textures."
+    },
+    {
+      "id": "AS-15",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No ASCII art."
+    },
+    {
+      "id": "AS-16",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. Radius is 0 everywhere; no squircles."
+    },
+    {
+      "id": "AS-17",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. No monospace type."
+    },
+    {
+      "id": "AS-18",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. Labels and navigation use sentence case, not all-caps subtitles."
+    },
+    {
+      "id": "AS-19",
+      "detected": true,
+      "pattern": "Top-only header scrim: linear-gradient(rgba(0,0,0,.42), transparent)",
+      "classification": "functional-requirement",
+      "justification": "The white navigation sits directly on the hero photograph. The scrim is limited to the header band, fades to fully transparent, leaves the photograph untouched elsewhere, and exists only to meet text-contrast requirements. It is not a decorative section background.",
+      "requirementReference": "Navigation text must meet WCAG AA contrast over the hero photograph without fading or blurring the whole image.",
+      "referenceEvidence": [],
+      "justified": true,
+      "action": "keep",
+      "note": "The reference has no header scrim; this is a documented functional deviation in the discrepancy report."
+    },
+    {
+      "id": "AS-20",
+      "detected": false,
+      "pattern": "",
+      "classification": "unsupported",
+      "justification": "",
+      "referenceEvidence": [],
+      "justified": false,
+      "action": "keep",
+      "note": "Not detected. Trailing periods were removed from the introduction and approach headings during review."
+    }
+  ],
+  "verdict": "pass"
+}

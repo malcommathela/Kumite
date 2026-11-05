@@ -1,0 +1,118 @@
+{
+  "id": "img-gallery-focal-out",
+  "sectionId": "gallery-architecture",
+  "role": "split-composition",
+  "assetRef": "pexels:concrete-gallery-358482",
+  "composition": {
+    "primaryFocalPoint": {
+      "x": 1.24,
+      "y": 0.41,
+      "description": {
+        "value": "Aperture cut through the concrete wall.",
+        "confidence": "estimated",
+        "evidence": ["ev-gallery-screenshot"]
+      }
+    },
+    "textSafeArea": {
+      "x": 0.62,
+      "y": 0.56,
+      "width": 0.3,
+      "height": 0.3,
+      "description": {
+        "value": "Right-hand wall, clear of the aperture.",
+        "confidence": "estimated",
+        "evidence": ["ev-gallery-screenshot"]
+      }
+    },
+    "negativeSpace": {
+      "value": "Right-hand wall.",
+      "confidence": "estimated",
+      "evidence": ["ev-gallery-screenshot"]
+    },
+    "aspectRatio": {
+      "value": "3:2",
+      "confidence": "exact",
+      "evidence": ["ev-gallery-screenshot"]
+    },
+    "originalDimensions": { "width": 5400, "height": 3600 },
+    "imageToContainer": {
+      "value": "Cover into a 3:2 gallery figure.",
+      "confidence": "measured",
+      "evidence": ["ev-design-spec"]
+    }
+  },
+  "css": {
+    "objectFit": "cover",
+    "objectPosition": {
+      "value": "50% 41%",
+      "confidence": "measured",
+      "evidence": ["ev-design-spec"]
+    },
+    "containerLayer": {
+      "value": "figure.gallery__media, aspect-ratio: 3 / 2",
+      "confidence": "exact",
+      "evidence": ["ev-implementation"]
+    },
+    "textLayer": {
+      "value": ".gallery__copy in the adjacent column",
+      "confidence": "exact",
+      "evidence": ["ev-implementation"]
+    }
+  },
+  "overlays": [
+    {
+      "kind": "none",
+      "layer": "none",
+      "purpose": {
+        "value": "No overlay.",
+        "confidence": "exact",
+        "evidence": ["ev-design-spec"]
+      },
+      "preservesImage": true
+    }
+  ],
+  "responsive": [
+    {
+      "breakpoint": "tablet",
+      "objectPosition": {
+        "value": "50% 41%",
+        "confidence": "measured",
+        "evidence": ["ev-design-spec"]
+      }
+    }
+  ],
+  "qa": {
+    "coverage": {
+      "value": "Fills the figure at 768 CSS px.",
+      "confidence": "measured",
+      "evidence": ["ev-responsive-check"]
+    },
+    "focalPointPreserved": {
+      "value": true,
+      "confidence": "estimated",
+      "evidence": ["ev-responsive-check"]
+    },
+    "gradientDirection": {
+      "value": "Not applicable.",
+      "confidence": "exact",
+      "evidence": ["ev-design-spec"]
+    },
+    "gradientStrength": {
+      "value": "Not applicable.",
+      "confidence": "exact",
+      "evidence": ["ev-design-spec"]
+    },
+    "subjectVisibility": {
+      "value": "Aperture visible.",
+      "confidence": "estimated",
+      "evidence": ["ev-gallery-screenshot"]
+    },
+    "textContrast": {
+      "value": "Copy on page surface; 11.2:1.",
+      "confidence": "measured",
+      "evidence": ["ev-contrast-check"]
+    }
+  },
+  "confidence": "estimated",
+  "evidence": ["ev-gallery-screenshot", "ev-design-spec", "ev-implementation"]
+}

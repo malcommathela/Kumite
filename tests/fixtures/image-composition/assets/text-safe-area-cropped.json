@@ -1,0 +1,8 @@
+{
+  "case": "text-safe-area-cropped-away",
+  "description": "The copy plate was measured near the top edge, but a 16:9 cover crop removes that band.",
+  "asset": { "id": "pexels-conference-room-1181406", "width": 6000, "height": 4000 },
+  "container": { "width": 1600, "height": 900 },
+  "focalPoint": { "x": 0.55, "y": 0.52 },
+  "textSafeArea": { "x": 0.08, "y": 0.02, "width": 0.4, "height": 0.1 }
+}

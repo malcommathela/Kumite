@@ -1,0 +1,243 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapId": "map-unknown-estimated",
+  "source": {
+    "sourceType": "screenshot",
+    "identity": {
+      "title": {
+        "value": "Reference capture",
+        "confidence": "measured",
+        "evidence": [
+          "E-NOTES"
+        ],
+        "note": "Title transcribed from the capture filename."
+      },
+      "author": {
+        "value": "Unknown studio",
+        "confidence": "estimated",
+        "note": "Author name was not visible in the captured region."
+      },
+      "licence": {
+        "value": null,
+        "confidence": "unknown",
+        "note": "No licence statement was visible in the capture."
+      }
+    },
+    "access": {
+      "status": "screenshot-only",
+      "extractionMethod": {
+        "value": "Manual review of a 1440x900 screenshot",
+        "confidence": "measured",
+        "evidence": [
+          "E-NOTES"
+        ]
+      },
+      "limitations": [
+        "No live page, stylesheet or source file was available."
+      ]
+    },
+    "unavailable": [
+      {
+        "property": "Design tokens",
+        "reason": "Only a raster screenshot was supplied."
+      }
+    ]
+  },
+  "foundations": {
+    "colours": {
+      "palette": [
+        {
+          "value": "#EAE7E0",
+          "confidence": "estimated",
+          "note": "Warm off-white estimated from the capture."
+        },
+        {
+          "value": null,
+          "confidence": "unknown",
+          "note": "Exact muted grey could not be sampled from the compressed image."
+        }
+      ],
+      "semantic": {
+        "background": {
+          "value": "#EAE7E0",
+          "confidence": "estimated",
+          "note": "Page background estimated from the largest flat area."
+        }
+      }
+    },
+    "typography": {
+      "families": [
+        {
+          "value": "Neue Haas Grotesk, Helvetica, sans-serif",
+          "confidence": "estimated",
+          "note": "Neutral grotesque; the exact licensed family is not identifiable from pixels."
+        }
+      ],
+      "sizes": [
+        {
+          "value": null,
+          "confidence": "unknown",
+          "note": "Display size could not be measured without the original layout."
+        },
+        {
+          "value": "48px",
+          "confidence": "estimated",
+          "note": "Heading size estimated from the line box in the capture."
+        }
+      ],
+      "weights": [
+        {
+          "value": 400,
+          "confidence": "estimated",
+          "note": "Body weight estimated from stroke contrast."
+        }
+      ],
+      "lineHeights": [
+        {
+          "value": "1.4",
+          "confidence": "estimated",
+          "note": "Line-height estimated from baseline distance."
+        }
+      ],
+      "letterSpacing": [
+        {
+          "value": null,
+          "confidence": "unknown",
+          "note": "Tracking could not be measured from the capture."
+        }
+      ]
+    },
+    "spacing": {
+      "scale": [
+        {
+          "value": "8px",
+          "confidence": "estimated",
+          "note": "Spacing appears to follow an 8px rhythm."
+        }
+      ],
+      "sectionRhythm": {
+        "value": null,
+        "confidence": "unknown",
+        "note": "Section rhythm was not visible in the captured region."
+      }
+    },
+    "borders": {
+      "widths": [],
+      "colours": [
+        {
+          "value": "#DDD8CE",
+          "confidence": "estimated",
+          "note": "Divider colour estimated from the capture."
+        }
+      ]
+    },
+    "radii": {
+      "scale": [
+        {
+          "value": null,
+          "confidence": "unknown",
+          "note": "Corner radius could not be measured from the capture."
+        }
+      ]
+    },
+    "shadows": [
+      {
+        "value": "0 2px 8px rgba(0, 0, 0, 0.08)",
+        "confidence": "estimated",
+        "note": "Possible card shadow; compression makes the falloff unreliable."
+      }
+    ],
+    "backgrounds": [
+      {
+        "value": "#FFFFFF",
+        "confidence": "estimated",
+        "note": "Card surface estimated as white."
+      }
+    ],
+    "layout": {
+      "maxWidth": {
+        "value": "1200px",
+        "confidence": "measured",
+        "note": "Measured from the 1440px capture using the visible page margins."
+      },
+      "breakpoints": [
+        {
+          "name": "desktop",
+          "width": {
+            "value": "1440px",
+            "confidence": "measured",
+            "evidence": [
+              "E-NOTES"
+            ]
+          }
+        }
+      ],
+      "grid": {
+        "value": null,
+        "confidence": "unknown",
+        "note": "Column grid could not be confirmed from the screenshot alone."
+      }
+    }
+  },
+  "components": [],
+  "sections": [
+    {
+      "id": "sec-hero",
+      "order": 0,
+      "name": "Hero",
+      "type": "hero",
+      "background": {
+        "value": "#111111",
+        "confidence": "estimated",
+        "note": "Dark hero surface estimated behind the photograph."
+      },
+      "layout": {
+        "structure": {
+          "value": "full-bleed image with overlaid heading",
+          "confidence": "estimated",
+          "note": "Structure inferred from the capture."
+        },
+        "contentAlignment": {
+          "value": "bottom-left",
+          "confidence": "measured",
+          "evidence": [
+            "E-NOTES"
+          ]
+        },
+        "columns": [],
+        "spacing": {
+          "value": "64px",
+          "confidence": "estimated",
+          "note": "Hero padding estimated from the capture."
+        }
+      },
+      "responsive": [
+        {
+          "breakpoint": "mobile",
+          "changes": {
+            "spacing": {
+              "value": "40px",
+              "confidence": "estimated",
+              "note": "Mobile padding estimated from the capture."
+            }
+          }
+        }
+      ],
+      "confidence": "estimated",
+      "evidence": [
+        "E-NOTES"
+      ]
+    }
+  ],
+  "images": [],
+  "evidence": [
+    {
+      "id": "E-NOTES",
+      "kind": "documentation",
+      "ref": "capture-review-notes.md"
+    }
+  ],
+  "unresolved": [
+    "Exact typeface and colour tokens could not be recovered from the screenshot."
+  ]
+}

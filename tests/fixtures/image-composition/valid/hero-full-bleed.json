@@ -1,0 +1,174 @@
+{
+  "id": "img-atrium-hero",
+  "sectionId": "hero-atrium",
+  "role": "full-bleed-background",
+  "assetRef": "pexels:architectural-atrium-1181396",
+  "referenceDescription": {
+    "value": "Double-height hotel atrium with a pale stone staircase sweeping across the left third and warm daylight falling on the right.",
+    "confidence": "measured",
+    "evidence": ["ev-hero-screenshot"]
+  },
+  "composition": {
+    "primaryFocalPoint": {
+      "x": 0.31,
+      "y": 0.46,
+      "description": {
+        "value": "The curved stair balustrade where it catches the daylight.",
+        "confidence": "measured",
+        "evidence": ["ev-hero-screenshot"]
+      }
+    },
+    "secondarySubjects": [
+      {
+        "value": "Two seated figures at the base of the stair.",
+        "confidence": "estimated",
+        "evidence": ["ev-hero-screenshot"]
+      }
+    ],
+    "textSafeArea": {
+      "x": 0.52,
+      "y": 0.48,
+      "width": 0.4,
+      "height": 0.38,
+      "description": {
+        "value": "Right-hand sky-lit wall: low detail, even tone, no faces.",
+        "confidence": "measured",
+        "evidence": ["ev-hero-screenshot"]
+      }
+    },
+    "negativeSpace": {
+      "value": "Upper right third is open wall and daylight.",
+      "confidence": "measured",
+      "evidence": ["ev-hero-screenshot"]
+    },
+    "aspectRatio": {
+      "value": "16:9",
+      "confidence": "exact",
+      "evidence": ["ev-hero-screenshot"]
+    },
+    "originalDimensions": { "width": 6000, "height": 3375 },
+    "imageToContainer": {
+      "value": "Cover-cropped from 6000x3375 into 1600x900; lower 12% removed at tablet.",
+      "confidence": "measured",
+      "evidence": ["ev-design-spec"]
+    }
+  },
+  "css": {
+    "objectFit": "cover",
+    "objectPosition": {
+      "value": "50% 46%",
+      "confidence": "measured",
+      "evidence": ["ev-design-spec"]
+    },
+    "containerLayer": {
+      "value": "section.hero > .hero__media, position: absolute; inset: 0; z-index: 0",
+      "confidence": "exact",
+      "evidence": ["ev-implementation"]
+    },
+    "textLayer": {
+      "value": ".hero__content, position: relative; z-index: 2",
+      "confidence": "exact",
+      "evidence": ["ev-implementation"]
+    }
+  },
+  "overlays": [
+    {
+      "kind": "linear-gradient",
+      "layer": "independent",
+      "purpose": {
+        "value": "Text contrast over the right-hand copy column.",
+        "confidence": "measured",
+        "evidence": ["ev-hero-screenshot"]
+      },
+      "preservesImage": true,
+      "direction": {
+        "value": "to right",
+        "confidence": "measured",
+        "evidence": ["ev-design-spec"]
+      },
+      "stops": [
+        { "colour": "rgba(12, 14, 16, 0)", "position": 0 },
+        { "colour": "rgba(12, 14, 16, 0.55)", "position": 0.55 },
+        { "colour": "rgba(12, 14, 16, 0.82)", "position": 1 }
+      ],
+      "justification": {
+        "value": "Copy occupies the right 40%; the gradient darkens only that side and leaves the stair untouched.",
+        "confidence": "measured",
+        "evidence": ["ev-design-spec"]
+      },
+      "cssValue": {
+        "value": "linear-gradient(to right, rgba(12,14,16,0) 0%, rgba(12,14,16,.55) 55%, rgba(12,14,16,.82) 100%)",
+        "confidence": "exact",
+        "evidence": ["ev-implementation"]
+      }
+    }
+  ],
+  "responsive": [
+    {
+      "breakpoint": "desktop",
+      "objectPosition": {
+        "value": "50% 46%",
+        "confidence": "measured",
+        "evidence": ["ev-design-spec"]
+      }
+    },
+    {
+      "breakpoint": "tablet",
+      "objectPosition": {
+        "value": "38% 44%",
+        "confidence": "measured",
+        "evidence": ["ev-design-spec"]
+      },
+      "crop": { "x": 0.06, "y": 0, "width": 0.88, "height": 1 }
+    },
+    {
+      "breakpoint": "mobile",
+      "objectPosition": {
+        "value": "32% 40%",
+        "confidence": "measured",
+        "evidence": ["ev-design-spec"]
+      },
+      "textSafeArea": { "x": 0.08, "y": 0.58, "width": 0.84, "height": 0.34 }
+    }
+  ],
+  "qa": {
+    "coverage": {
+      "value": "Full section at 360, 768 and 1440 CSS px.",
+      "confidence": "measured",
+      "evidence": ["ev-responsive-check"]
+    },
+    "focalPointPreserved": {
+      "value": true,
+      "confidence": "measured",
+      "evidence": ["ev-responsive-check"]
+    },
+    "gradientDirection": {
+      "value": "Left-to-right, darkest behind the copy column.",
+      "confidence": "measured",
+      "evidence": ["ev-hero-screenshot"]
+    },
+    "gradientStrength": {
+      "value": "Peak alpha 0.82; headline contrast 7.9:1.",
+      "confidence": "measured",
+      "evidence": ["ev-contrast-check"]
+    },
+    "subjectVisibility": {
+      "value": "Stair and both figures remain visible at every breakpoint.",
+      "confidence": "measured",
+      "evidence": ["ev-responsive-check"]
+    },
+    "textContrast": {
+      "value": "7.9:1 headline, 6.2:1 body copy.",
+      "confidence": "measured",
+      "evidence": ["ev-contrast-check"]
+    }
+  },
+  "confidence": "measured",
+  "evidence": [
+    "ev-hero-screenshot",
+    "ev-design-spec",
+    "ev-implementation",
+    "ev-responsive-check",
+    "ev-contrast-check"
+  ]
+}

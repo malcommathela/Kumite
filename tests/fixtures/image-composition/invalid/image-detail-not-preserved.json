@@ -1,0 +1,102 @@
+{
+  "id": "img-flattened-photo",
+  "sectionId": "story-flattened-photo",
+  "role": "full-bleed-background",
+  "composition": {
+    "primaryFocalPoint": {
+      "x": 0.42,
+      "y": 0.5,
+      "description": {
+        "value": "Foundry crucible being poured.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      }
+    },
+    "textSafeArea": {
+      "x": 0.6,
+      "y": 0.45,
+      "width": 0.34,
+      "height": 0.4,
+      "description": {
+        "value": "Right-hand brick wall.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      }
+    },
+    "negativeSpace": {
+      "value": "Right wall and upper foreground.",
+      "confidence": "measured",
+      "evidence": ["ev-shot"]
+    },
+    "aspectRatio": {
+      "value": "16:9",
+      "confidence": "exact",
+      "evidence": ["ev-shot"]
+    },
+    "originalDimensions": { "width": 6000, "height": 3375 },
+    "imageToContainer": {
+      "value": "Cover into 1600x900.",
+      "confidence": "measured",
+      "evidence": ["ev-spec"]
+    }
+  },
+  "css": {
+    "objectFit": "cover",
+    "objectPosition": {
+      "value": "42% 50%",
+      "confidence": "measured",
+      "evidence": ["ev-spec"]
+    },
+    "containerLayer": {
+      "value": "section.story > .story__media, inset: 0",
+      "confidence": "exact",
+      "evidence": ["ev-code"]
+    },
+    "textLayer": {
+      "value": ".story__copy, z-index: 2",
+      "confidence": "exact",
+      "evidence": ["ev-code"]
+    }
+  },
+  "overlays": [
+    {
+      "kind": "linear-gradient",
+      "layer": "independent",
+      "purpose": {
+        "value": "A decorative colour wash for brand consistency.",
+        "confidence": "estimated",
+        "evidence": ["ev-shot"]
+      },
+      "preservesImage": false,
+      "direction": {
+        "value": "to bottom",
+        "confidence": "estimated",
+        "evidence": ["ev-spec"]
+      },
+      "stops": [
+        { "colour": "#1d2a33", "position": 0 },
+        { "colour": "#c9a227", "position": 1 }
+      ]
+    }
+  ],
+  "responsive": [
+    {
+      "breakpoint": "mobile",
+      "objectPosition": {
+        "value": "42% 50%",
+        "confidence": "measured",
+        "evidence": ["ev-spec"]
+      }
+    }
+  ],
+  "qa": {
+    "coverage": { "value": "full", "confidence": "estimated", "evidence": ["ev-qa"] },
+    "focalPointPreserved": { "value": true, "confidence": "estimated", "evidence": ["ev-qa"] },
+    "gradientDirection": { "value": "to bottom", "confidence": "estimated", "evidence": ["ev-qa"] },
+    "gradientStrength": { "value": "opaque", "confidence": "measured", "evidence": ["ev-qa"] },
+    "subjectVisibility": { "value": "not checked", "confidence": "unknown" },
+    "textContrast": { "value": "9.9:1", "confidence": "measured", "evidence": ["ev-qa"] }
+  },
+  "confidence": "estimated",
+  "evidence": ["ev-shot", "ev-spec", "ev-code", "ev-qa"]
+}

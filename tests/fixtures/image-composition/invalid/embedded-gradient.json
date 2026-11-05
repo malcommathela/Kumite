@@ -1,0 +1,102 @@
+{
+  "id": "img-embedded-gradient",
+  "sectionId": "hero-embedded-gradient",
+  "role": "full-bleed-background",
+  "composition": {
+    "primaryFocalPoint": {
+      "x": 0.62,
+      "y": 0.44,
+      "description": {
+        "value": "Glass curtain wall reflecting the courtyard.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      }
+    },
+    "textSafeArea": {
+      "x": 0.06,
+      "y": 0.5,
+      "width": 0.38,
+      "height": 0.36,
+      "description": {
+        "value": "Left concrete pier in shadow.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      }
+    },
+    "negativeSpace": {
+      "value": "Left pier and lower foreground.",
+      "confidence": "measured",
+      "evidence": ["ev-shot"]
+    },
+    "aspectRatio": {
+      "value": "16:9",
+      "confidence": "exact",
+      "evidence": ["ev-shot"]
+    },
+    "originalDimensions": { "width": 5120, "height": 2880 },
+    "imageToContainer": {
+      "value": "Cover into 1600x900.",
+      "confidence": "measured",
+      "evidence": ["ev-spec"]
+    }
+  },
+  "css": {
+    "objectFit": "cover",
+    "objectPosition": {
+      "value": "58% 46%",
+      "confidence": "measured",
+      "evidence": ["ev-spec"]
+    },
+    "containerLayer": {
+      "value": "section.hero > .hero__media, inset: 0; background-image: linear-gradient(...), url(hero.jpg)",
+      "confidence": "exact",
+      "evidence": ["ev-code"]
+    },
+    "textLayer": {
+      "value": ".hero__copy, z-index: 2",
+      "confidence": "exact",
+      "evidence": ["ev-code"]
+    }
+  },
+  "overlays": [
+    {
+      "kind": "linear-gradient",
+      "layer": "embedded",
+      "purpose": {
+        "value": "Text contrast baked into the background-image declaration.",
+        "confidence": "measured",
+        "evidence": ["ev-shot"]
+      },
+      "preservesImage": true,
+      "direction": {
+        "value": "to right",
+        "confidence": "measured",
+        "evidence": ["ev-spec"]
+      },
+      "stops": [
+        { "colour": "rgba(10, 12, 14, 0.8)", "position": 0 },
+        { "colour": "rgba(10, 12, 14, 0)", "position": 1 }
+      ]
+    }
+  ],
+  "responsive": [
+    {
+      "breakpoint": "tablet",
+      "objectPosition": {
+        "value": "58% 46%",
+        "confidence": "measured",
+        "evidence": ["ev-spec"]
+      }
+    }
+  ],
+  "qa": {
+    "coverage": { "value": "full", "confidence": "measured", "evidence": ["ev-qa"] },
+    "focalPointPreserved": { "value": true, "confidence": "measured", "evidence": ["ev-qa"] },
+    "gradientDirection": { "value": "to right", "confidence": "measured", "evidence": ["ev-qa"] },
+    "gradientStrength": { "value": "0.8 peak", "confidence": "measured", "evidence": ["ev-qa"] },
+    "subjectVisibility": { "value": "visible", "confidence": "measured", "evidence": ["ev-qa"] },
+    "textContrast": { "value": "8.6:1", "confidence": "measured", "evidence": ["ev-qa"] }
+  },
+  "confidence": "estimated",
+  "evidence": ["ev-shot", "ev-spec", "ev-code", "ev-qa"]
+}

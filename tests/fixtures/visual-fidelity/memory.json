@@ -1,0 +1,216 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapId": "fixture-fidelity-map",
+  "source": {
+    "sourceType": "screenshot",
+    "identity": {
+      "title": { "value": "Fidelity fixture", "confidence": "unknown", "evidence": [] },
+      "author": { "value": "Fixture author", "confidence": "unknown", "evidence": [] },
+      "licence": { "value": "Reference only", "confidence": "unknown", "evidence": [] }
+    },
+    "access": {
+      "status": "screenshot-only",
+      "extractionMethod": { "value": "Screenshot inspection", "confidence": "measured", "evidence": [] },
+      "limitations": ["No structured node data"]
+    },
+    "unavailable": []
+  },
+  "foundations": {
+    "colours": { "palette": [], "semantic": {} },
+    "typography": { "families": [], "sizes": [], "weights": [], "lineHeights": [], "letterSpacing": [] },
+    "spacing": { "scale": [], "sectionRhythm": { "value": "120px", "confidence": "estimated", "evidence": [] } },
+    "borders": { "widths": [], "colours": [] },
+    "radii": { "scale": [] },
+    "shadows": [],
+    "backgrounds": [],
+    "layout": {
+      "maxWidth": { "value": "1440px", "confidence": "estimated", "evidence": [] },
+      "breakpoints": [],
+      "grid": { "value": "12 column", "confidence": "estimated", "evidence": [] }
+    }
+  },
+  "components": [
+    {
+      "id": "nav-primary",
+      "name": "Primary navigation",
+      "type": "navigation",
+      "sourceLocation": { "value": "hero top", "confidence": "measured", "evidence": [] },
+      "confidence": "measured",
+      "evidence": [],
+      "variants": [
+        {
+          "name": "default",
+          "properties": {
+            "background": { "value": "transparent", "confidence": "measured", "evidence": [] },
+            "height": { "value": 56, "confidence": "measured", "evidence": [] },
+            "border": { "width": { "value": 0, "confidence": "exact", "evidence": [] }, "colour": { "value": "transparent", "confidence": "exact", "evidence": [] } },
+            "typography": {
+              "family": { "value": "sans", "confidence": "measured", "evidence": [] },
+              "size": { "value": 13, "confidence": "measured", "evidence": [] },
+              "weight": { "value": 400, "confidence": "measured", "evidence": [] }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "hero-heading",
+      "name": "Hero heading",
+      "type": "other",
+      "sourceLocation": { "value": "hero bottom-left", "confidence": "measured", "evidence": [] },
+      "confidence": "measured",
+      "evidence": [],
+      "variants": [
+        {
+          "name": "display",
+          "properties": {
+            "foreground": { "value": "#ffffff", "confidence": "measured", "evidence": [] },
+            "fontSize": { "value": 64, "confidence": "measured", "evidence": [] },
+            "typography": {
+              "family": { "value": "serif", "confidence": "measured", "evidence": [] },
+              "size": { "value": 64, "confidence": "measured", "evidence": [] },
+              "weight": { "value": 400, "confidence": "measured", "evidence": [] }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "intro-heading",
+      "name": "Intro heading",
+      "type": "other",
+      "sourceLocation": { "value": "intro centre", "confidence": "measured", "evidence": [] },
+      "confidence": "measured",
+      "evidence": [],
+      "variants": [
+        {
+          "name": "display",
+          "properties": {
+            "foreground": { "value": "#1c1c1a", "confidence": "measured", "evidence": [] },
+            "fontSize": { "value": 56, "confidence": "measured", "evidence": [] },
+            "typography": {
+              "family": { "value": "sans", "confidence": "measured", "evidence": [] },
+              "size": { "value": 56, "confidence": "measured", "evidence": [] },
+              "weight": { "value": 400, "confidence": "measured", "evidence": [] }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "footer-nav",
+      "name": "Footer navigation",
+      "type": "footer",
+      "sourceLocation": { "value": "footer", "confidence": "measured", "evidence": [] },
+      "confidence": "measured",
+      "evidence": [],
+      "variants": [
+        {
+          "name": "default",
+          "properties": {
+            "background": { "value": "#111111", "confidence": "measured", "evidence": [] },
+            "foreground": { "value": "#ffffff", "confidence": "measured", "evidence": [] },
+            "height": { "value": 200, "confidence": "estimated", "evidence": [] }
+          }
+        }
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "hero",
+      "order": 1,
+      "name": "Hero",
+      "type": "hero",
+      "background": { "value": "#111111", "confidence": "measured", "evidence": [] },
+      "layout": {
+        "structure": { "value": "full-bleed image with overlay", "confidence": "measured", "evidence": [] },
+        "contentAlignment": { "value": "bottom-left", "confidence": "measured", "evidence": [] },
+        "columns": [],
+        "spacing": { "value": "100svh", "confidence": "measured", "evidence": [] }
+      },
+      "components": ["nav-primary", "hero-heading"],
+      "responsive": [],
+      "confidence": "measured",
+      "evidence": []
+    },
+    {
+      "id": "intro",
+      "order": 2,
+      "name": "Introduction",
+      "type": "content",
+      "background": { "value": "#f4f3ef", "confidence": "measured", "evidence": [] },
+      "layout": {
+        "structure": { "value": "centred heading and image", "confidence": "measured", "evidence": [] },
+        "contentAlignment": { "value": "centre", "confidence": "measured", "evidence": [] },
+        "columns": [],
+        "spacing": { "value": "120px", "confidence": "estimated", "evidence": [] }
+      },
+      "components": ["intro-heading"],
+      "responsive": [],
+      "confidence": "measured",
+      "evidence": []
+    },
+    {
+      "id": "footer",
+      "order": 3,
+      "name": "Footer",
+      "type": "footer",
+      "background": { "value": "#111111", "confidence": "measured", "evidence": [] },
+      "layout": {
+        "structure": { "value": "wordmark and link columns", "confidence": "measured", "evidence": [] },
+        "contentAlignment": { "value": "left", "confidence": "measured", "evidence": [] },
+        "columns": [],
+        "spacing": { "value": "96px", "confidence": "estimated", "evidence": [] }
+      },
+      "components": ["footer-nav"],
+      "responsive": [],
+      "confidence": "measured",
+      "evidence": []
+    }
+  ],
+  "images": [
+    {
+      "id": "hero-image",
+      "sectionId": "hero",
+      "role": "full-bleed-background",
+      "composition": {
+        "primaryFocalPoint": { "x": 0.72, "y": 0.55, "description": { "value": "building mass right of centre", "confidence": "measured", "evidence": [] } },
+        "textSafeArea": { "x": 0.04, "y": 0.66, "width": 0.42, "height": 0.26 },
+        "negativeSpace": { "value": "lawn and sky", "confidence": "measured", "evidence": [] },
+        "aspectRatio": { "value": "16:10", "confidence": "measured", "evidence": [] },
+        "originalDimensions": { "width": 1440, "height": 900 },
+        "imageToContainer": { "value": "100%", "confidence": "measured", "evidence": [] }
+      },
+      "css": {
+        "objectFit": "cover",
+        "objectPosition": { "value": "50% 45%", "confidence": "measured", "evidence": [] },
+        "containerLayer": { "value": "absolute inset-0", "confidence": "measured", "evidence": [] },
+        "textLayer": { "value": "relative z-10", "confidence": "measured", "evidence": [] }
+      },
+      "overlays": [
+        {
+          "kind": "linear-gradient",
+          "layer": "independent",
+          "direction": "to top",
+          "strength": 0.65,
+          "preservesImage": true,
+          "purpose": { "value": "text contrast over foreground", "confidence": "measured", "evidence": [] }
+        }
+      ],
+      "responsive": [
+        { "breakpoint": "mobile", "objectPosition": { "value": "62% 50%", "confidence": "measured", "evidence": [] } }
+      ],
+      "qa": {
+        "coverage": { "value": "full", "confidence": "measured", "evidence": [] },
+        "focalPointPreserved": { "value": true, "confidence": "measured", "evidence": [] },
+        "gradientDirection": { "value": "to top", "confidence": "measured", "evidence": [] },
+        "gradientStrength": { "value": 0.65, "confidence": "measured", "evidence": [] },
+        "subjectVisibility": { "value": "clear", "confidence": "measured", "evidence": [] },
+        "textContrast": { "value": "AA", "confidence": "estimated", "evidence": [] }
+      },
+      "confidence": "measured",
+      "evidence": []
+    }
+  ]
+}

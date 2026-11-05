@@ -68,6 +68,56 @@ explicit justification:
 - Is it a genuine constraint or a preference?
 - Can the library component be composed or extended instead?
 
+## Consuming the Design Memory Map
+
+When a design reference exists, the component inventory and variants come from
+the validated Design Memory Map
+([`references/design-memory-schema.json`](../../references/design-memory-schema.json),
+[`references/design-memory-guide.md`](../../references/design-memory-guide.md)).
+Do not rebuild the inventory by eye from a screenshot.
+
+Rules:
+
+1. **Map every reference component to a primitive.** Walk the component ladder
+   for each entry. Record the rung selected and the project component used.
+2. **Never collapse distinct reference variants into one.** If the reference has
+   primary, secondary, outline and ghost buttons, implement four visual
+   variants — even when one project component can express all four through
+   props.
+3. **Preserve variants through composition.** Extending an existing component
+   with props, slots or wrapper styles is preferred over replacing it. Do not
+   flatten a variant into a local override that future changes cannot follow.
+4. **Record what was implemented.** For each component, note the variant name,
+   the props and values used, and any state that differs from the reference.
+5. **Evidence every deviation.** A deviation is acceptable only when it is
+   source-supported, design-system-supported or functional. Record the reason
+   and the evidence; otherwise it is a defect.
+
+Missing or ambiguous variants are recorded as `unknown` in the implementation
+spec. They are not invented to make the page look complete.
+
+## States and motion handoff
+
+The memory map records component states (`default`, `hover`, `focus`, `active`,
+`disabled`) separately from motion. Keep that boundary:
+
+1. **Motion is a state treatment, not a new variant.** Do not create a "hover
+   card" variant because the reference animates on hover; implement the state on
+   the existing variant.
+2. **Consume the motion section.** When `motion.components` names a component,
+   pass its triggers, timing, easing and reduced-motion alternative to
+   `kumite-motion-design`. Do not guess a duration from the visual style.
+3. **Invoke the specialist motion skill before animating.** Component-first
+   chooses the primitive; the motion skill decides whether and how it moves.
+4. **Do not add interaction motion by default.** No hover scale, lift, glow or
+   entrance animation on a component merely because it is interactive. Add it
+   only when source-supported, design-system-supported or functionally required.
+5. **Keep states accessible.** Hover is not the only feedback: focus must remain
+   visible, keyboard activation must not be delayed, and reduced-motion users
+   must retain every state change without animation.
+6. **Record deviations.** If an existing component cannot express a reference
+   state, record the gap and the workaround; do not silently drop the state.
+
 ## Anti-patterns to prevent
 
 - Installing a full UI framework for one component.
@@ -75,3 +125,7 @@ explicit justification:
 - Adding multiple icon libraries to the same project.
 - Reimplementing accessible primitives (focus management, ARIA attributes)
   that libraries handle correctly.
+- Adding hover scaling, entrance animation or bouncy springs to every component
+  as a default polish layer.
+- Treating a motion state as a separate visual variant.
+- Shipping interaction motion without a `prefers-reduced-motion` alternative.

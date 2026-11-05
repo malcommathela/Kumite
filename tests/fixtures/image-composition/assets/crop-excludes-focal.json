@@ -1,0 +1,8 @@
+{
+  "case": "crop-excludes-focal-product",
+  "description": "A portrait still life cropped into a wide banner loses the vessel at y 0.85.",
+  "asset": { "id": "pixabay-ceramic-still-life-4417892", "width": 2000, "height": 3000 },
+  "container": { "width": 1600, "height": 600 },
+  "focalPoint": { "x": 0.5, "y": 0.85 },
+  "textSafeArea": { "x": 0.1, "y": 0.4, "width": 0.35, "height": 0.2 }
+}
