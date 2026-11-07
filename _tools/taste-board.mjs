@@ -53,12 +53,12 @@ function parseArgs(args) {
 function renderHtml(boardData, inputRelativeDir) {
   // JSON is embedded inside an HTML script element. Escape HTML-significant
   // characters so untrusted reference notes cannot terminate the script block.
-  const serialized = JSON.stringify(boardData, null, 2).replace(/[<>&\\u2028\\u2029]/g, (char) => ({
-    "<": "\\\\u003c",
-    ">": "\\\\u003e",
-    "&": "\\\\u0026",
-    "\\u2028": "\\\\u2028",
-    "\\u2029": "\\\\u2029"
+  const serialized = JSON.stringify(boardData, null, 2).replace(/[<>&\u2028\u2029]/g, (char) => ({
+    "<": "\\u003c",
+    ">": "\\u003e",
+    "&": "\\u0026",
+    "\u2028": "\\u2028",
+    "\u2029": "\\u2029"
   })[char]);
 
   return `<!DOCTYPE html>
