@@ -1,7 +1,7 @@
 ---
 name: kumite-product-experience
 description: >-
-  Route product frontend work through Kumite's six-stage Product Experience
+  Route product frontend work through Kumite's five-stage Product Experience
   pipeline: frame the product problem, record taste, inventory and extend the
   system, approve a direction, approve interaction motion separately, then build
   and verify. Use for app screens, dashboards, settings, onboarding, data tools,
@@ -27,16 +27,15 @@ editorial features, portfolios and brand sites.
 
 ## The pipeline
 
-Read and run the stages in order:
+Read the router, then run its five stage contracts in order:
 
 | Stage | Contract | Job |
 |---|---|---|
 | `01_brief` | `pipelines/product-experience/01_brief/CONTEXT.md` | Frame the product problem |
-| `02_taste` | `pipelines/product-experience/02_taste/CONTEXT.md` | Record visual and interaction taste |
-| `03_system` | `pipelines/product-experience/03_system/CONTEXT.md` | Inventory and extend the system |
-| `04_direction` | `pipelines/product-experience/04_direction/CONTEXT.md` | Propose and approve the direction |
-| `05_motion` | `pipelines/product-experience/05_motion/CONTEXT.md` | Discover, select and approve interaction motion |
-| `06_build` | `pipelines/product-experience/06_build/CONTEXT.md` | Build at checkpoints, then verify |
+| `02_system` | `pipelines/product-experience/02_system/CONTEXT.md` | Ask for taste, build the selection board and inventory the existing system |
+| `03_flows` | `pipelines/product-experience/03_flows/CONTEXT.md` | Define flows, resolve direction and obtain approval |
+| `04_motion` | `pipelines/product-experience/04_motion/CONTEXT.md` | Discover, select and approve interaction motion |
+| `05_build` | `pipelines/product-experience/05_build/CONTEXT.md` | Build at checkpoints, then verify |
 
 The pipeline router is `pipelines/product-experience/CONTEXT.md`. Read it first,
 then the current stage's contract. Do not load every stage at once.
@@ -45,18 +44,17 @@ then the current stage's contract. Do not load every stage at once.
 
 1. **Brief** — users, jobs, primary task, flows with all states, data,
    permissions, constraints, explicit unknowns.
-2. **Taste** — visual and interaction preferences with evidence, a selection
-   board, anti-preferences, and the user's own words; no repeated questions.
-3. **System** — real tokens, components, variants and states from project files;
-   a component-ladder mapping; a living system extension; a justified gap list.
-4. **Direction** — a concept that fits the product, conflict resolutions, a
-   concept frame, the design-system version, the implementation spec and explicit
-   approval.
-5. **Motion** — specialist resolution, state feedback, frequency gate, separate
+2. **Taste and system** — ask for visual and interaction preferences; preserve
+   the user's words, selection board, anti-preferences, taste profile, real
+   tokens/components/variants, component-ladder mapping and justified gaps.
+3. **Flows and direction** — screen/flow/state specification, conflict
+   resolutions, a concept frame, design-system version, implementation spec and
+   explicit user approval before building.
+4. **Motion** — specialist resolution, state feedback, frequency gate, separate
    motion approval, GSAP skill loaded, Lenis decision, reduced-motion path.
-6. **Build** — checkpointed implementation, captures for each screen and state,
+5. **Build** — checkpointed implementation, captures for each screen and state,
    anti-slop review, fidelity report when a reference exists, flow and motion
-   audit, `check.md`.
+   audit, and `check.md`.
 
 ## Non-negotiables
 
