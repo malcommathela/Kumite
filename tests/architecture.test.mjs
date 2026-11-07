@@ -133,6 +133,37 @@ test("both pipelines have a router and five stage contracts", () => {
   }
 });
 
+test("pipeline skills and routers describe the same five stage contracts", () => {
+  const pipelines = [
+    ["content-experience", ".agents/skills/kumite-content-experience/SKILL.md", ["01_brief", "02_reference", "03_composition", "04_motion", "05_build"]],
+    ["product-experience", ".agents/skills/kumite-product-experience/SKILL.md", ["01_brief", "02_system", "03_flows", "04_motion", "05_build"]],
+  ];
+  for (const [pipeline, skillPath, stages] of pipelines) {
+    const router = read(`pipelines/${pipeline}/CONTEXT.md`);
+    const skill = read(skillPath);
+    for (const stage of stages) {
+      assert.ok(router.includes(stage), `${pipeline} router omits ${stage}`);
+      assert.ok(skill.includes(stage), `${pipeline} skill omits ${stage}`);
+    }
+    assert.doesNotMatch(skill, /six-stage|02_taste|04_direction|06_build/);
+  }
+});
+
+test("taste and direction are mandatory before either pipeline builds", () => {
+  const contentTaste = read("pipelines/content-experience/02_reference/CONTEXT.md");
+  const contentDirection = read("pipelines/content-experience/03_composition/CONTEXT.md");
+  const productTaste = read("pipelines/product-experience/02_system/CONTEXT.md");
+  const productDirection = read("pipelines/product-experience/03_flows/CONTEXT.md");
+  for (const text of [contentTaste, productTaste]) {
+    assert.match(text, /selection board/i);
+    assert.match(text, /user's own words/i);
+  }
+  for (const text of [contentDirection, productDirection]) {
+    assert.match(text, /concept.frame/i);
+    assert.match(text, /explicit user approval/i);
+  }
+});
+
 test("every stage contract follows the ICM format", () => {
   const contracts = [];
   for (const pipeline of ["content-experience", "product-experience"]) {
