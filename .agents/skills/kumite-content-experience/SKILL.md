@@ -1,7 +1,7 @@
 ---
 name: kumite-content-experience
 description: >-
-  Route content-led frontend work through Kumite's six-stage Content Experience
+  Route content-led frontend work through Kumite's five-stage Content Experience
   pipeline: frame the brief, discover and record taste, decompose the selected
   references, approve a direction, approve motion separately, then build and
   verify. Use for marketing pages, landing pages, editorial features, portfolios,
@@ -27,16 +27,15 @@ onboarding and multi-step flows.
 
 ## The pipeline
 
-Read and run the stages in order:
+Read the router, then run its five stage contracts in order:
 
 | Stage | Contract | Job |
 |---|---|---|
 | `01_brief` | `pipelines/content-experience/01_brief/CONTEXT.md` | Frame the content brief |
-| `02_taste` | `pipelines/content-experience/02_taste/CONTEXT.md` | Discover and record taste |
-| `03_reference` | `pipelines/content-experience/03_reference/CONTEXT.md` | Decompose the selected references |
-| `04_direction` | `pipelines/content-experience/04_direction/CONTEXT.md` | Propose and approve the direction |
-| `05_motion` | `pipelines/content-experience/05_motion/CONTEXT.md` | Discover, select and approve motion |
-| `06_build` | `pipelines/content-experience/06_build/CONTEXT.md` | Build at checkpoints, then verify |
+| `02_reference` | `pipelines/content-experience/02_reference/CONTEXT.md` | Ask for taste, build the selection board and decompose selected references |
+| `03_composition` | `pipelines/content-experience/03_composition/CONTEXT.md` | Resolve conflicts, create the concept and obtain direction approval |
+| `04_motion` | `pipelines/content-experience/04_motion/CONTEXT.md` | Discover, select and approve motion |
+| `05_build` | `pipelines/content-experience/05_build/CONTEXT.md` | Build at checkpoints, then verify |
 
 The pipeline router is `pipelines/content-experience/CONTEXT.md`. Read it first,
 then the current stage's contract. Do not load every stage at once.
@@ -45,17 +44,17 @@ then the current stage's contract. Do not load every stage at once.
 
 1. **Brief** — audience, page job, one primary action, real content per section,
    constraints, references with access and licence, explicit unknowns.
-2. **Taste** — `taste/profile.json` and `taste/selection-board.json`, with
-   multi-select qualities, the user's own words, rejected cards and reasons.
-3. **Reference** — source identity, ten-quality decomposition of kept cards,
-   evidence with confidence, motion status, what each source cannot prove.
-4. **Direction** — a coherent concept, conflict resolutions, a concept frame, a
-   living design system, an implementation spec, and explicit user approval.
-5. **Motion** — separate motion discovery, selection and approval; specialist
+2. **Reference and taste** — ask the user to select and annotate references;
+   preserve the user's words, taste profile, rejected cards and selected qualities;
+   decompose the selected references with source identity and evidence.
+3. **Composition and direction** — resolve reference conflicts, produce a
+   proposed concept/frame, living design system and implementation spec; obtain
+   explicit user approval before building.
+4. **Motion** — separate motion discovery, selection and approval; specialist
    resolution; per-element engineering spec; GSAP skill loaded; Lenis decision;
    reduced-motion path.
-6. **Build** — checkpointed implementation, captures, anti-slop review, fidelity
-   report, final verification, `check.md`.
+5. **Build** — checkpointed implementation, captures, anti-slop review, fidelity
+   report, final verification, and `check.md`.
 
 ## Non-negotiables
 
