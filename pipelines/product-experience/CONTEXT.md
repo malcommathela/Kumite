@@ -1,13 +1,14 @@
 # Product Experience — the pipeline
 
-The flow in one line: frame the product problem, inventory the system, design the
-flows and states, plan the interaction motion, then build and audit.
+The flow in one line: frame the product problem, discover taste and inventory
+the system, approve flows and direction, approve interaction motion, then build
+and audit.
 
 | Stage | Job |
 |---|---|
 | `01_brief` | Frame the product problem |
-| `02_system` | Inventory the system |
-| `03_flows` | Design flows and states |
+| `02_system` | Ask for taste, build the selection board and inventory the system |
+| `03_flows` | Resolve direction, define flows and states, and obtain approval |
 | `04_motion` | Plan interaction motion |
 | `05_build` | Build, then audit |
 
@@ -53,8 +54,8 @@ projects/<project-name>/
   input/brief.md                 the user's request
   reference/                     source captures and assets
   pipeline/01_brief/output/      brief.md, check.md
-  pipeline/02_system/output/     system-inventory.md, check.md
-  pipeline/03_flows/output/      implementation-spec.md, check.md
+  pipeline/02_system/output/     taste-profile.json, selection-board.json, system-inventory.md, check.md
+  pipeline/03_flows/output/      conflict-resolution.md, direction-proposal.md, concept-frame.md, design-system.md, implementation-spec.md, direction-approval.md, check.md
   pipeline/04_motion/output/     motion-spec.md, check.md
   pipeline/05_build/output/      implementation-manifest.json, anti-slop-review.json, fidelity-report.md, audit.md, check.md
   site/                          implementation
