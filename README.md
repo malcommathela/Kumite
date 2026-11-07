@@ -1,260 +1,175 @@
 # Kumite
 
-A portable, design-engineering skill system for AI coding agents.
+A portable design-engineering system for AI coding agents. Kumite turns a brief
+or a design reference into an interface that is structurally faithful,
+accessible and visually verifiable — without inventing what the source does not
+show.
 
-Kumite makes coding agents produce professional, intentional and visually
-polished frontend interfaces by discovering real design resources, extracting
-structured design information, reusing established UI libraries and enforcing
-consistent design standards.
+## What it is
 
-## What Kumite is
+- **Two experience pipelines.** Content Experience for marketing pages,
+  editorial sites and portfolios. Product Experience for app screens,
+  dashboards, tools and flows.
+- **One shared factory.** Evidence rules, visual quality policy, image
+  composition, anti-slop rules, fidelity tooling, motion guidance and reference
+  intelligence are shared by both pipelines.
+- **A discoverable skill layer.** `.agents/skills/` holds nine Kumite skills and
+  the eight official GSAP skills, copied verbatim.
+- **A worked example and a finished project.** `examples/design-intelligence-demo/`
+  demonstrates the old reference workflow; `projects/coffee-brand/` is the
+  current single-page validation build.
 
-- A collection of reusable **skills** that teach AI coding agents how to work
-  with design systems, component libraries and visual assets.
-- A **design intelligence pipeline** that turns a screenshot, image, webpage or
-  Figma file into a validated Design Memory Map, an implementation specification
-  and a region-based fidelity review.
-- A set of **quality policies** that prevent common agent anti-patterns: fake
-  metrics, decorative noise, invented UI elements.
-- A **portable system** that works across agent platforms through adapters.
+## What it is not
 
-## What Kumite is not
-
-- A standalone design application, website builder or image generator.
-- A replacement for Figma, a component library or a design token pipeline.
-
-## Status
-
-**Early development.** The project structure, core skills, reference policies,
-and Figma Community discovery and structured extraction methodology are
-established. The Design Intelligence Engine — coordinating skill, Design Memory
-Map, image composition policy, anti-slop rules, validation tooling and mandatory
-motion integration — is established in this milestone. No integrations are
-deployed to production yet, and the validation scripts are not published as a
-package.
+- A website builder, image generator or design application.
+- A replacement for Figma, a component library or a design-token pipeline.
+- A promise that a screenshot is structured data. It is not.
 
 ## Architecture
 
-```
+```text
 kumite/
-├── skills/
-│   ├── design-discovery/       # Web search & community identification
-│   ├── figma-integration/      # Structured extraction via Figma MCP
-│   ├── design-intelligence/    # Coordinating analysis, memory map & fidelity
-│   ├── component-first/        # Component selection & reuse logic
-│   ├── visual-assets/          # Authentic image sourcing & composition fit
-│   ├── design-quality/         # Anti-slop enforcement, visual & motion QA
-│   └── motion-design/          # Specialist motion resolution, Create & Audit
-├── references/
-│   ├── figma-community-discovery.md   # Community ID vs Design File Key & DashStack PoC
-│   ├── design-memory-schema.json      # JSON Schema for the Design Memory Map
-│   ├── design-memory-guide.md         # Categories A–E, evidence & confidence
-│   ├── design-memory-example.json     # Complete worked memory map
-│   ├── image-composition-intelligence.md  # Image roles, crops, overlays & QA
-│   ├── implementation-spec-template.md    # Fill-in specification template
-│   ├── anti-slop-rules.json           # 20 indicators AS-01 … AS-20
-│   ├── anti-slop-review-template.md   # Review table & verdicts
-│   ├── visual-quality-policy.md       # Prohibited patterns and permitted alternatives
-│   └── licensing-policy.md            # Resource licensing terms and usage guidelines
-├── scripts/
-│   ├── validate-memory.mjs     # Design Memory Map validation CLI
-│   ├── anti-slop-check.mjs     # Anti-slop review CLI
-│   ├── fidelity-check.mjs      # Region-based fidelity CLI
-│   └── capture-screenshots.mjs # Zero-dependency headless capture via CDP
-├── tests/                      # Skill and workflow validation
-├── examples/
-│   └── design-intelligence-demo/  # End-to-end workflow demonstration
-├── adapters/
-│   └── antigravity/            # Antigravity IDE/CLI setup & configuration
-├── AGENTS.md                   # Project-wide development instructions
-├── README.md                   # Project overview & documentation
-└── LICENSE                     # MIT
+├── AGENTS.md                     # routing catalog
+├── CONTEXT.md                    # system router
+├── .agents/skills/               # discoverable skills
+│   ├── kumite-content-experience/
+│   ├── kumite-product-experience/
+│   ├── kumite-design-intelligence/
+│   ├── kumite-design-discovery/
+│   ├── kumite-figma-integration/
+│   ├── kumite-component-first/
+│   ├── kumite-visual-assets/
+│   ├── kumite-design-quality/
+│   ├── kumite-motion-design/
+│   └── gsap-core … gsap-frameworks  # eight official GSAP skills
+├── pipelines/
+│   ├── content-experience/       # brief → reference → composition → motion → build
+│   └── product-experience/       # brief → system → flows → motion → build
+├── _shared/
+│   ├── references/               # policies, rules and evidence model
+│   ├── scripts/                  # anti-slop, fidelity and capture CLIs
+│   ├── motion/                   # motion contract, GSAP patterns, Lenis
+│   └── reference-intelligence/   # screenshot, live-page and Figma adapters
+├── _templates/                   # blank artifacts
+├── _tools/                       # workspace utilities
+├── projects/                     # finished, project-specific work
+├── examples/                     # preserved historical example
+├── _archive/design-memory-map/   # archived subsystem, read-only
+└── adapters/                     # platform notes
 ```
 
-## Design Intelligence workflow
+The full routing table is in [`CONTEXT.md`](CONTEXT.md).
 
-`kumite-design-intelligence` is mandatory whenever an agent implements UI from a
-design reference. It coordinates the other six skills and defines the evidence
-that passes between them. The pipeline runs in eleven stages:
+## Pipelines
 
-| # | Stage | Outcome |
-|---|-------|---------|
-| 1 | Source acquisition | Identified source, access status, licence and evidence |
-| 2 | Global design analysis | Page type, hierarchy, grid, density, palette, type roles |
-| 3 | Screenshot decomposition | Region tree: full page, sections, components, fine detail, responsive |
-| 4 | Component-level inspection | Component inventory with variants and states |
-| 5 | Design Memory Map generation | Validated map that becomes the source of truth, including optional motion |
-| 6 | Image Composition Intelligence | Role, focal point, crop, overlay plan per image |
-| 7 | Motion analysis | Specialist motion skill resolved; motion identity, triggers, timing, reduced motion and evidence |
-| 8 | Anti-AI-slop validation | Visual and motion indicator reviews with evidence and verdicts |
-| 9 | Implementation specification | Source-grounded spec, including motion requirements |
-| 10 | Implementation | Interface built from the spec with reused components and evidence-based motion |
-| 11 | Visual and motion audit | Region-by-region discrepancy table, motion findings and verdict |
+Each stage is a folder with a `CONTEXT.md` contract: exact backticked inputs
+split working/reference, a short numbered process, named outputs and exactly one
+check. A stage is complete when `output/` holds its artifact and any `check.md`
+says `pass`.
 
-Motion analysis happens before implementation; motion auditing happens before
-final acceptance. A static reference records the absence of motion and gains no
-invented animation.
+| Pipeline | 01 | 02 | 03 | 04 | 05 |
+|---|---|---|---|---|---|
+| Content Experience | Brief | Reference | Composition | Motion | Build |
+| Product Experience | Brief | System | Flows | Motion | Build |
 
-The full procedure, handoff table, evidence model and stop conditions are in
-[`skills/design-intelligence/SKILL.md`](skills/design-intelligence/SKILL.md).
+### Content Experience
 
-### Design Memory Map
+Use when the work is a page or site whose job is to communicate, persuade or
+present: landing pages, editorial features, portfolios, campaign pages. The
+reference supplies composition and art direction; content must be real or
+explicitly marked `unknown`.
 
-The memory map records what the reference actually shows across six categories:
+Start at
+[`pipelines/content-experience/CONTEXT.md`](pipelines/content-experience/CONTEXT.md).
 
-- **A. Source** — source type, identity, author, licence, access method and
-  unavailable properties.
-- **B. Foundations** — colour, typography, spacing, borders, radii, shadows,
-  backgrounds, layout.
-- **C. Components** — each component, its variants, states, source location and
-  responsive changes.
-- **D. Sections and imagery** — section order and layout; image role,
-  composition, CSS layers, overlays and QA.
-- **E. Evidence and confidence** — global evidence index, traced values,
-  confidence rationale and unresolved questions.
-- **F. Motion (optional)** — motion identity, animated components, triggers,
-  states, duration, delay, easing, springs, stagger, enter/exit, scroll,
-  hover/focus, loading, responsive differences, reduced-motion alternatives,
-  performance, source support and intentional omissions.
+### Product Experience
 
-Schema `1.1.0` adds the optional motion section; documents declaring `1.0.0`
-remain valid. Every value carries a confidence marker — `exact`, `measured`, `estimated` or
-`unknown` — and its evidence. Figma node data is authoritative for measurable
-layout, variables and variants; screenshots are authoritative for rendered
-appearance and verification only. A screenshot can suggest a gap; it cannot
-prove one.
+Use when the work is an application surface: dashboards, settings, onboarding,
+multi-step flows, data tools. The project's design system and states come first;
+a reference supplies visual language, not a screenshot to copy blindly.
 
-- Schema: [`references/design-memory-schema.json`](references/design-memory-schema.json)
-- Guide: [`references/design-memory-guide.md`](references/design-memory-guide.md)
-- Example: [`references/design-memory-example.json`](references/design-memory-example.json)
+Start at
+[`pipelines/product-experience/CONTEXT.md`](pipelines/product-experience/CONTEXT.md).
 
-### Image Composition Intelligence
+## Shared foundations
 
-Images are classified by role before styling. Composition — focal point,
-text-safe area, aspect ratio, crop and overlay — decides whether an image is
-usable, not subject matter alone. Full-bleed sections use three independent
-layers: image, gradient overlay, content. The overlay exists only where text
-needs contrast; the whole photograph is never faded or blurred to darken one
-region, and gradients are never arbitrary. AI-generated photographs are never
-substituted for authentic ones.
+- **Evidence and confidence** — `exact`, `measured`, `estimated`, `unknown`, with
+  a traceable source. See
+  [`_shared/references/evidence-and-confidence.md`](_shared/references/evidence-and-confidence.md).
+- **Reference intelligence** — screenshot, live-page and Figma adapters, each
+  with its own authority and limits. See
+  [`_shared/reference-intelligence/README.md`](_shared/reference-intelligence/README.md).
+- **Image composition** — seven roles, focal points, text-safe areas, layered
+  overlays and nine-point QA. See
+  [`_shared/references/image-composition-intelligence.md`](_shared/references/image-composition-intelligence.md).
+- **Anti-slop** — twenty visual indicators and nine motion indicators, with
+  evidence-based exceptions. See
+  [`_shared/references/anti-slop-rules.json`](_shared/references/anti-slop-rules.json).
+- **Motion** — specialist resolution, Create and Audit modes, the GSAP pattern
+  library and optional Lenis. See [`_shared/motion/README.md`](_shared/motion/README.md).
 
-The seven roles, composition-before-styling questions, crop rules and nine-point
-image QA are in
-[`references/image-composition-intelligence.md`](references/image-composition-intelligence.md).
+## Skills
 
-### Anti-AI-slop policy
+OpenCode and compatible agents discover skills at `.agents/skills/<name>/SKILL.md`
+where the directory name equals the frontmatter `name`.
 
-Kumite checks twenty indicators, `AS-01` to `AS-20`, before implementation and
-again before delivery. The reference wins: a pattern is acceptable only when it
-is source-supported, design-system-supported or a functional requirement;
-otherwise it is removed. Every verdict requires evidence.
+| Skill | Job |
+|---|---|
+| `kumite-content-experience` | Route content-led work into the Content pipeline |
+| `kumite-product-experience` | Route product work into the Product pipeline |
+| `kumite-design-intelligence` | Choose a pipeline and enforce evidence |
+| `kumite-design-discovery` | Find and evaluate public design resources |
+| `kumite-figma-integration` | Extract structured data through Figma MCP |
+| `kumite-component-first` | Reuse components before writing new ones |
+| `kumite-visual-assets` | Source authentic, composition-compatible imagery |
+| `kumite-design-quality` | Anti-slop, fidelity and motion audit |
+| `kumite-motion-design` | Resolve the specialist motion skill and run Create/Audit |
+| `gsap-core` … `gsap-frameworks` | Official GSAP API, timeline, scroll, plugins, utils, performance, React and framework guidance |
 
-- Rules: [`references/anti-slop-rules.json`](references/anti-slop-rules.json)
-- Review template: [`references/anti-slop-review-template.md`](references/anti-slop-review-template.md)
-- Policy: [`references/visual-quality-policy.md`](references/visual-quality-policy.md)
-
-### Motion Intelligence
-
-`kumite-motion-design` makes motion analysis and auditing mandatory and resolves
-the specialist `design-motion-principles` skill instead of duplicating it.
-
-Resolution order:
-
-1. **Discover** an installed `design-motion-principles` skill in the agent skill
-   directories and verify its `SKILL.md` and required references.
-2. **Use it** when complete: read the real files, follow its Create or Audit
-   workflow, and leave the installed copy untouched.
-3. **Fall back** to
-   [`github.com/kylezantos/design-motion-principles`](https://github.com/kylezantos/design-motion-principles)
-   when it is absent, recording the resolved commit and licence.
-4. **Record** the method, skill name, source, version or commit, licence, loaded
-   resources and limitations. Retrieval failure is reported, never hidden.
-
-**Create mode** analyses reference motion, interaction triggers, timing, easing,
-springs, stagger, enter/exit, scroll, hover/focus, loading and responsive
-behaviour, then implements purposeful motion with a reduced-motion path.
-
-**Audit mode** inspects existing motion, finds missing feedback and excess,
-checks accessibility and performance, and reports actionable findings before
-acceptance.
-
-Motion anti-slop `MAS-01` to `MAS-09` prevents unnecessary pulsing, hover scaling
-on everything, excessive stagger, unjustified bouncy springs, identical fade-ins,
-page-load animation, excessive blur entrances, distracting decoration, and motion
-that harms accessibility or performance. Static references stay static.
-
-The workflow and policy are in
-[`skills/motion-design/SKILL.md`](skills/motion-design/SKILL.md).
-
-## Discovery and Extraction Architecture
-
-Kumite couples **Web Search** for discovering public Figma Community files with
-the **Figma Model Context Protocol (MCP)** for structured extraction:
-
-1. **Web Search Discovery**: Locates free Figma Community UI kits and templates.
-2. **Identifier Separation**: Distinguishes Community Resource IDs (`figma.com/community/file/:id`) from Design File Keys (`figma.com/design/:key`).
-3. **Structured Extraction**: Reads component definitions, variants, variable tokens, auto-layout parameters and typography through Figma MCP.
-4. **Drafts Duplication Boundary**: When API tokens lack access to public Community files (403), guides users to duplicate to personal Drafts without guessing from screenshots.
+The GSAP skills are vendored verbatim from
+`greensock/gsap-skills` at commit
+`aed9cfd3277740755f6bfc1155c7aa645403b760`. See
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ## Validation
 
-Run from the repository root.
+Run from the repository root:
 
-| Command | Validates |
-|---------|-----------|
-| `node --test "tests/**/*.test.mjs"` | Skill and workflow validation suite |
-| `node scripts/validate-memory.mjs <file> [--json]` | Design Memory Map against the JSON Schema |
-| `node scripts/anti-slop-check.mjs <review.json> [--rules <path>] [--json]` | Anti-slop review and verdicts |
-| `node scripts/fidelity-check.mjs <memory.json> <implementation.json> [--json]` | Region-based fidelity comparison |
+```sh
+node --test "tests/**/*.test.mjs" "_archive/**/*.test.mjs"
+```
 
-All three scripts print a human-readable result by default and a machine-readable
-result with `--json`. Exit code `0` means pass; non-zero means a violation or an
-input error. Each script's header lists its exact codes.
+Individual tools:
 
-`examples/design-intelligence-demo/` is the end-to-end workflow demonstration:
-reference captures, region crops and a fictional demonstration page built from
-them, with its memory map, implementation spec, anti-slop review and discrepancy
-report. Start at
-[`examples/design-intelligence-demo/README.md`](examples/design-intelligence-demo/README.md).
-It is a worked example, not a test result. The demonstration is built from static
-captures, so its motion section records the absence of evidenced motion; no
-animation was forced into it.
+```sh
+node _shared/scripts/anti-slop-check.mjs <review.json> [--json]
+node _shared/scripts/fidelity-check.mjs <reference.json> <implementation.json> [--json]
+node _shared/scripts/capture-screenshots.mjs --url <url> --out <file.png>
+```
 
-The Design Intelligence milestone was previously verified with 109 passing tests,
-a valid memory map, an anti-slop pass and a fidelity pass. Those results are
-historical. The motion integration is documentation, schema and policy work; it
-does not rerun or replace that verification.
+The archived Design Memory Map keeps its own validator and tests:
+
+```sh
+node _archive/design-memory-map/scripts/validate-memory.mjs <file> [--json]
+```
 
 ## Installation
 
-> **Not yet packaged for distribution.** During early development, clone the
-> repository and follow the adapter-specific instructions.
+> Not yet packaged for distribution. Clone the repository and copy or symlink the
+> skills you need into your agent's skill directory.
 
-### Antigravity (development)
+For OpenCode, the project-local `.agents/skills/` directory is discovered
+automatically. For Antigravity, see
+[`adapters/antigravity/README.md`](adapters/antigravity/README.md).
 
-Skills can be loaded via workspace discovery by symlinking or copying the
-`skills/` directory into your project's `.agents/skills/` directory, or by
-using the native plugin structure once packaging is complete.
+## SitePeel
 
-Antigravity discovers each skill by its frontmatter `name` and `description`, so
-the seven skills — `kumite-design-discovery`, `kumite-figma-integration`,
-`kumite-design-intelligence`, `kumite-component-first`, `kumite-visual-assets`,
-`kumite-design-quality` and `kumite-motion-design` — can be placed individually.
-See [`adapters/antigravity/README.md`](adapters/antigravity/README.md).
-
-## Principles
-
-- **Inspect before building** — read the codebase before introducing anything.
-- **Component-first** — prefer shadcn/ui, established libraries, Hugeicons.
-- **No visual fabrication** — no fake metrics, decorative noise, invented UI.
-- **Authentic assets** — real photography, verified licences, composition fit.
-- **Design fidelity** — preserve typography, spacing, colours, sizing, variants.
-- **Evidence over assumption** — every value has a confidence and a source.
-- **Motion is evidence-based** — analyse before implementing, audit before
-  accepting, and leave static references static.
-- **Never invent capabilities** — distinguish verified from planned.
-- **Minimalism** — follow Ponytail's philosophy: shortest working solution.
+SitePeel is configured as a global OpenCode MCP server at
+`https://sitepeel.dev/mcp`. The endpoint uses OAuth; a one-time browser sign-in
+is required before its tools are available. Kumite treats the connection as
+unverified until that sign-in succeeds and a tool call returns.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Third-party components retain their own licences; see
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

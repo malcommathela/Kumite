@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { compareDesign, toMarkdownReport } from '../scripts/lib/fidelity.mjs';
+import { compareDesign, toMarkdownReport } from '../_shared/scripts/lib/fidelity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,9 +13,9 @@ async function loadFixture(name) {
 }
 
 async function basePair() {
-  const memory = await loadFixture('memory.json');
+  const reference = await loadFixture('reference.json');
   const implementation = await loadFixture('implementation.json');
-  return { memory, implementation };
+  return { memory: reference, implementation };
 }
 
 function codes(result) {
@@ -171,4 +171,39 @@ test('colour comparison accepts equivalent hex and rgb notation', async () => {
   implementation.components.find((component) => component.id === 'hero-heading').foreground = 'rgb(255, 255, 255)';
   const result = compareDesign(memory, implementation);
   assert.ok(!codes(result).includes('COMPONENT_STYLE_MISMATCH'));
+});
+
+test('reference components may record one variant with a values map', async () => {
+  const { memory, implementation } = await basePair();
+  const reference = memory.components.find((component) => component.id === 'hero-heading');
+  const { variants, ...rest } = reference;
+  const singular = {
+    ...rest,
+    variant: variants[0].name,
+    values: { ...variants[0].properties },
+  };
+  memory.components = memory.components.map((component) => (component.id === 'hero-heading' ? singular : component));
+
+  const passing = compareDesign(memory, implementation);
+  assert.deepEqual(passing.issues, []);
+  assert.equal(passing.summary.verdict, 'pass');
+
+  const drifted = structuredClone(implementation);
+  drifted.components.find((component) => component.id === 'hero-heading').fontSize = 48;
+  const failing = compareDesign(memory, drifted);
+  const finding = failing.issues.find((item) => item.code === 'COMPONENT_STYLE_MISMATCH');
+  assert.ok(finding, 'values must be compared like variant properties');
+  assert.equal(finding.region, 'component:hero-heading');
+});
+
+test('a singular reference variant still rejects an undefined implementation variant', async () => {
+  const { memory, implementation } = await basePair();
+  const reference = memory.components.find((component) => component.id === 'hero-heading');
+  const { variants, ...rest } = reference;
+  memory.components = memory.components.map((component) =>
+    component.id === 'hero-heading' ? { ...rest, variant: variants[0].name, values: variants[0].properties } : component
+  );
+  implementation.components.find((component) => component.id === 'hero-heading').variant = 'muted';
+  const result = compareDesign(memory, implementation);
+  assert.ok(codes(result).includes('VARIANT_MISMATCH'));
 });

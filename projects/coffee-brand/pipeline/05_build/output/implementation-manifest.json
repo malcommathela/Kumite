@@ -1,0 +1,180 @@
+{
+  "name": "Hollow Pine Coffee — implementation manifest",
+  "source": "projects/coffee-brand/site/index.html + assets/css/styles.css",
+  "capturedAt": "2026-11-07",
+  "viewports": [
+    { "name": "desktop", "width": 1440, "height": 900 },
+    { "name": "tablet", "width": 768, "height": 1024 },
+    { "name": "mobile", "width": 390, "height": 844 }
+  ],
+  "sections": [
+    {
+      "id": "header",
+      "order": 1,
+      "background": "#F2ECE1",
+      "components": ["site-header"]
+    },
+    {
+      "id": "hero",
+      "order": 2,
+      "background": "#F2ECE1",
+      "components": ["display-headline", "ghost-cta", "solid-cta", "hero-image"]
+    },
+    {
+      "id": "roasts",
+      "order": 3,
+      "background": "#E6DACA",
+      "components": ["product-card", "solid-cta"]
+    },
+    {
+      "id": "craft",
+      "order": 4,
+      "background": "#F2ECE1",
+      "components": ["section-label", "body-copy", "split-image"]
+    },
+    {
+      "id": "roast-day",
+      "order": 5,
+      "background": "#171310",
+      "components": ["display-headline", "ghost-cta", "band-image"]
+    },
+    {
+      "id": "origin",
+      "order": 6,
+      "background": "#F2ECE1",
+      "components": ["display-headline", "body-copy", "origin-image"]
+    },
+    {
+      "id": "method",
+      "order": 7,
+      "background": "#F7F3EA",
+      "components": ["step-item", "method-image"]
+    },
+    {
+      "id": "close",
+      "order": 8,
+      "background": "#241C16",
+      "components": ["display-headline", "solid-cta", "close-image"]
+    },
+    {
+      "id": "footer",
+      "order": 9,
+      "background": "#171310",
+      "components": ["newsletter-form", "footer-columns", "legal-row"]
+    }
+  ],
+  "components": [
+    {
+      "id": "site-header",
+      "variant": "paper, sticky",
+      "height": 64
+    },
+    {
+      "id": "display-headline",
+      "variant": "hero"
+    },
+    {
+      "id": "ghost-cta",
+      "variant": "outlined pill on photography"
+    },
+    {
+      "id": "solid-cta",
+      "variant": "solid block on paper",
+      "radius": 0
+    },
+    {
+      "id": "product-card",
+      "variant": "typographic roast card"
+    },
+    {
+      "id": "section-label",
+      "variant": "small tracked caps"
+    },
+    {
+      "id": "body-copy",
+      "variant": "quiet column"
+    },
+    {
+      "id": "step-item",
+      "variant": "numbered row"
+    },
+    {
+      "id": "newsletter-form",
+      "variant": "footer"
+    },
+    {
+      "id": "footer-columns",
+      "variant": "three columns"
+    },
+    {
+      "id": "legal-row",
+      "variant": "single line"
+    }
+  ],
+  "images": [
+    {
+      "imageId": "hero-image",
+      "role": "half-bleed portrait",
+      "objectFit": "cover",
+      "objectPosition": "center 55%",
+      "focalPoint": { "x": 0.5, "y": 0.55 },
+      "textSafeArea": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "overlays": []
+    },
+    {
+      "imageId": "split-image",
+      "role": "half-bleed",
+      "objectFit": "cover",
+      "objectPosition": "center",
+      "focalPoint": { "x": 0.5, "y": 0.5 },
+      "textSafeArea": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "overlays": []
+    },
+    {
+      "imageId": "band-image",
+      "role": "full-bleed band",
+      "objectFit": "cover",
+      "objectPosition": "center 40%",
+      "focalPoint": { "x": 0.55, "y": 0.45 },
+      "textSafeArea": { "x": 0.06, "y": 0.6, "width": 0.46, "height": 0.3 },
+      "overlays": [
+        { "kind": "linear-gradient", "layer": "independent", "direction": "to top" }
+      ]
+    },
+    {
+      "imageId": "origin-image",
+      "role": "half-bleed",
+      "objectFit": "cover",
+      "objectPosition": "center",
+      "focalPoint": { "x": 0.5, "y": 0.5 },
+      "textSafeArea": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "overlays": []
+    },
+    {
+      "imageId": "method-image",
+      "role": "inset portrait",
+      "objectFit": "cover",
+      "objectPosition": "center 40%",
+      "focalPoint": { "x": 0.5, "y": 0.42 },
+      "textSafeArea": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "overlays": []
+    },
+    {
+      "imageId": "close-image",
+      "role": "full-bleed background",
+      "objectFit": "cover",
+      "objectPosition": "center",
+      "focalPoint": { "x": 0.5, "y": 0.5 },
+      "textSafeArea": { "x": 0.2, "y": 0.3, "width": 0.6, "height": 0.4 },
+      "overlays": [
+        { "kind": "linear-gradient", "layer": "independent", "direction": "to top" }
+      ]
+    }
+  ],
+  "notes": [
+    "Footer uses a four-track grid at desktop: brand, two link columns, newsletter. The reference's 'three columns' describes the link columns; the newsletter is recorded as its own component.",
+    "The hero image uses center 55% rather than a plain center crop so the pour-over and kettle remain in frame at 1440.",
+    "The band image drops to center 35% below 820px; this is an implementation adaptation, not a reference measurement.",
+    "No index numerals on product cards: the cards have no required reading order."
+  ]
+}

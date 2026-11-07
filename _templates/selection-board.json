@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "project": "<project>",
+  "updated": "YYYY-MM-DD",
+  "mode": "guided",
+  "decision": "<the decision this board helps make>",
+  "references": [
+    {
+      "id": "ref-01",
+      "source": {
+        "type": "url",
+        "identity": "https://example.com/reference",
+        "licence": "unknown"
+      },
+      "preview": "reference/ref-01-hero.png",
+      "selected": "keep",
+      "qualities": ["composition", "typography"],
+      "contribution": "<the exact part to borrow>",
+      "notes": "<the user's words>",
+      "confidence": "estimated",
+      "conflictsWith": []
+    }
+  ],
+  "conflicts": [],
+  "questionsAnswered": []
+}

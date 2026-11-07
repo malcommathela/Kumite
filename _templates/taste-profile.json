@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "scope": "project",
+  "project": "<project>",
+  "updated": "YYYY-MM-DD",
+  "inherits": "none",
+  "identity": {
+    "adjectives": [
+      {
+        "value": "<the user's words>",
+        "confidence": "measured",
+        "evidence": ["taste-01"]
+      }
+    ],
+    "antiPreferences": [
+      {
+        "value": "<what the user rejected and why>",
+        "confidence": "measured",
+        "evidence": ["taste-02"]
+      }
+    ]
+  },
+  "dimensions": {
+    "composition": {
+      "preference": "<e.g. asymmetric editorial split>",
+      "strength": "must",
+      "confidence": "measured",
+      "evidence": ["taste-01"]
+    },
+    "layout": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "typography": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "colour": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "identity": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "imagery": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "components": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "interaction": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "motion": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    "responsive": {
+      "preference": "<unknown>",
+      "strength": "nice",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  },
+  "questionsAnswered": [
+    {
+      "id": "q-01",
+      "question": "<question already answered>",
+      "answer": "<answer in the user's words>",
+      "date": "YYYY-MM-DD"
+    }
+  ],
+  "approvals": []
+}

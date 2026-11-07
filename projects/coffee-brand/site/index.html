@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hollow Pine Coffee — roasted in small batches</title>
+  <meta name="description" content="Hollow Pine is a fictional small-batch coffee roaster, built as a Kumite Content Experience demonstration. Three roasts, one method, roasted on Tuesdays.">
+  <meta name="theme-color" content="#F2ECE1">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&display=swap">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+  <script defer src="assets/js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" data-header>
+    <div class="wrap header-inner">
+      <a class="wordmark" href="#top" aria-label="Hollow Pine Coffee, back to top">
+        <span class="wordmark-name">Hollow Pine</span>
+        <span class="wordmark-sub">Coffee Roasters</span>
+      </a>
+
+      <nav class="nav" aria-label="Primary">
+        <a href="#roasts">Roasts</a>
+        <a href="#craft">Craft</a>
+        <a href="#method">Method</a>
+      </nav>
+
+      <button class="bag" type="button" data-bag aria-label="Bag, 0 items">
+        <span class="bag-label">Bag</span>
+        <span class="bag-count" data-bag-count aria-hidden="true">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <h1 id="hero-title">Coffee that tastes like where it grew</h1>
+          <p class="lede">We roast light, name the farm on every bag, and ship the week we roast.</p>
+          <div class="actions">
+            <a class="btn btn-solid" href="#roasts">Shop the roasts</a>
+            <a class="link-arrow" href="#craft">
+              How we roast
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <ul class="hero-meta">
+            <li>Whole bean, 250g</li>
+            <li>Roasted Tuesdays</li>
+            <li>Shipped Thursdays</li>
+          </ul>
+        </div>
+
+        <figure class="hero-media">
+          <img src="assets/images/hero-pour-over.jpg" width="1800" height="2251" fetchpriority="high"
+               alt="A hand pours water from a white kettle over a paper filter filled with coffee, on an oak table.">
+          <figcaption>Pour-over, 1:16</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="roasts" id="roasts" aria-labelledby="roasts-title" data-reveal>
+      <div class="wrap">
+        <div class="section-head">
+          <p class="label">The roasts</p>
+          <h2 id="roasts-title" data-reveal-item="heading">Three ways to start the week</h2>
+        </div>
+
+        <ul class="roast-grid">
+          <li class="roast" data-reveal-item>
+            <h3>Kiln</h3>
+            <p class="roast-origin">Colombia, washed</p>
+            <p class="roast-notes">Red apple, panela, cocoa nib</p>
+            <div class="roast-level" role="img" aria-label="Roast level 2 of 5">
+              <span class="is-filled"></span><span class="is-filled"></span><span></span><span></span><span></span>
+            </div>
+            <div class="roast-buy">
+              <p class="roast-price">£14 <span>/ 250g</span></p>
+              <button class="btn btn-solid btn-small" type="button" data-add="Kiln">Add to bag</button>
+            </div>
+          </li>
+
+          <li class="roast" data-reveal-item>
+            <h3>Understory</h3>
+            <p class="roast-origin">Ethiopia, natural</p>
+            <p class="roast-notes">Blueberry, jasmine, cane sugar</p>
+            <div class="roast-level" role="img" aria-label="Roast level 1 of 5">
+              <span class="is-filled"></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="roast-buy">
+              <p class="roast-price">£16 <span>/ 250g</span></p>
+              <button class="btn btn-solid btn-small" type="button" data-add="Understory">Add to bag</button>
+            </div>
+          </li>
+
+          <li class="roast" data-reveal-item>
+            <h3>Night Shift</h3>
+            <p class="roast-origin">House blend</p>
+            <p class="roast-notes">Dark chocolate, toasted almond, molasses</p>
+            <div class="roast-level" role="img" aria-label="Roast level 4 of 5">
+              <span class="is-filled"></span><span class="is-filled"></span><span class="is-filled"></span><span class="is-filled"></span><span></span>
+            </div>
+            <div class="roast-buy">
+              <p class="roast-price">£13 <span>/ 250g</span></p>
+              <button class="btn btn-solid btn-small" type="button" data-add="Night Shift">Add to bag</button>
+            </div>
+          </li>
+        </ul>
+
+        <p class="fine">Bags are a demonstration. No payment is taken.</p>
+      </div>
+    </section>
+
+    <section class="craft" id="craft" aria-labelledby="craft-title" data-reveal>
+      <div class="wrap split split-media-left">
+        <figure class="split-media" data-reveal-item>
+          <img src="assets/images/craft-pour-over.jpg" width="1800" height="1196" loading="lazy"
+               alt="Water hits a bed of coffee inside a ceramic dripper on a wooden counter.">
+        </figure>
+
+        <div class="split-copy">
+          <p class="label">The craft</p>
+          <h2 id="craft-title" data-reveal-item="heading">We roast to a profile, not a colour</h2>
+          <p data-reveal-item>Light enough to keep the fruit, long enough to lose the grass. Every lot is cupped as a sample, again mid-roast, and once more a week later.</p>
+          <p data-reveal-item>If a coffee needs milk and sugar to be pleasant, we don’t sell it.</p>
+          <a class="link-arrow" href="#roasts" data-reveal-item>
+            See the roasts
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 7h9M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="roast-day" aria-labelledby="band-title" data-band data-reveal>
+      <img class="band-img" data-band-img src="assets/images/roast-day.jpg" width="1800" height="2700" loading="lazy"
+           alt="Roasted coffee beans falling from the door of a drum roaster.">
+      <div class="band-scrim" aria-hidden="true"></div>
+      <div class="wrap band-content">
+        <h2 id="band-title" data-reveal-item="heading">Tuesdays are roast days</h2>
+        <p data-reveal-item>Orders placed before Monday night go out that week. Everything else waits for the next drum.</p>
+        <a class="btn btn-ghost" href="#roasts" data-reveal-item>Shop the roasts</a>
+      </div>
+    </section>
+
+    <section class="origin" id="origin" aria-labelledby="origin-title" data-reveal>
+      <div class="wrap split split-media-right">
+        <div class="split-copy">
+          <p class="label">The source</p>
+          <h2 id="origin-title" data-reveal-item="heading">One farm at a time</h2>
+          <p data-reveal-item>We buy small lots through a single importer and print the farm, the varietal and the harvest on the bag.</p>
+          <p data-reveal-item>When a lot runs out it comes off the shelf. We don’t substitute, even when the replacement is cheaper.</p>
+          <p class="fine" data-reveal-item>Farm names live on the bag, not on this page.</p>
+        </div>
+
+        <figure class="split-media" data-reveal-item>
+          <img src="assets/images/origin-hand.jpg" width="1800" height="2700" loading="lazy"
+               alt="A hand rests among the leaves and unripe cherries of a coffee plant.">
+        </figure>
+      </div>
+    </section>
+
+    <section class="method" id="method" aria-labelledby="method-title" data-reveal>
+      <div class="wrap split split-media-left">
+        <figure class="split-media split-media-portrait" data-reveal-item>
+          <img src="assets/images/method-machine.jpg" width="1800" height="2700" loading="lazy"
+               alt="Water drips through a paper filter into a glass carafe inside a brewing machine.">
+        </figure>
+
+        <div class="split-copy">
+          <p class="label">The method</p>
+          <h2 id="method-title" data-reveal-item="heading">A recipe you can repeat</h2>
+
+          <ol class="steps">
+            <li data-reveal-item>
+              <span class="step-num">01</span>
+              <div>
+                <h3>Dose</h3>
+                <p>20g of coffee, ground medium-fine. Enough for a mug and a second cup.</p>
+              </div>
+            </li>
+            <li data-reveal-item>
+              <span class="step-num">02</span>
+              <div>
+                <h3>Bloom</h3>
+                <p>60g of water at 94°C. Wait forty seconds. The bed should look like wet sand.</p>
+              </div>
+            </li>
+            <li data-reveal-item>
+              <span class="step-num">03</span>
+              <div>
+                <h3>Pour</h3>
+                <p>Top up to 320g in two slow circles. Drawdown should finish around 2:45.</p>
+              </div>
+            </li>
+          </ol>
+
+          <p class="fine" data-reveal-item>Change one variable at a time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="close" id="close" aria-labelledby="close-title" data-reveal>
+      <img class="close-img" src="assets/images/beans-slate.jpg" width="1800" height="2398" loading="lazy"
+           alt="Coffee beans scattered across a dark slate surface.">
+      <div class="close-scrim" aria-hidden="true"></div>
+      <div class="wrap close-content">
+        <h2 id="close-title" data-reveal-item="heading">Start with a bag. Stay for the Tuesday</h2>
+        <p data-reveal-item>One-off bags and a fortnightly subscription, both roasted to order. Pause or cancel whenever.</p>
+        <a class="btn btn-invert" href="#roasts" data-reveal-item>Shop the roasts</a>
+        <p class="fine fine-invert" data-reveal-item>No account needed. This is a demonstration shop.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" aria-labelledby="footer-title">
+    <div class="wrap">
+      <h2 class="visually-hidden" id="footer-title">Footer</h2>
+
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <p class="wordmark-name">Hollow Pine</p>
+          <p class="footer-line">Roasted in small batches.<br>Shipped the week we roast.</p>
+        </div>
+
+        <nav class="footer-col" aria-label="Shop">
+          <h3>Shop</h3>
+          <ul>
+            <li><a href="#roasts">Roasts</a></li>
+            <li><a href="#craft">Craft</a></li>
+            <li><a href="#method">Method</a></li>
+          </ul>
+        </nav>
+
+        <div class="footer-col">
+          <h3>More</h3>
+          <ul>
+            <li><a href="assets/CREDITS.md">Photography credits</a></li>
+            <li><a href="#top">Back to top</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col footer-news">
+          <h3>One email when the new lots land</h3>
+          <form class="newsletter" data-newsletter novalidate>
+            <label class="visually-hidden" for="email">Email address</label>
+            <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+            <button class="btn btn-invert btn-small" type="submit">Join</button>
+          </form>
+          <p class="form-status" data-form-status role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div class="legal">
+        <p>© 2026 Hollow Pine Coffee. A fictional brand, built as a Kumite pipeline demonstration.</p>
+        <p>Photography from Pexels. <a href="assets/CREDITS.md">Credits</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <p class="toast" data-toast role="status" aria-live="polite"></p>
+</body>
+</html>

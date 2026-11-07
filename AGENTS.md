@@ -1,71 +1,48 @@
-# Kumite — Development Instructions
+# Kumite — Agent Routing
 
-You are working on Kumite, a portable design-engineering skill system for AI
-coding agents.
+Kumite is a portable design-engineering system for AI coding agents. It turns a
+brief or a design reference into an evidence-grounded interface through two
+pipelines that share one factory.
 
-## Core principles
+## Start here
 
-1. **Inspect before building.** Read existing project files, dependencies and
-   components before introducing anything new.
-2. **Component-first.** Prefer shadcn/ui for React projects, established
-   accessible component libraries otherwise. Prefer Hugeicons for interface
-   icons. Reuse what exists before adding dependencies.
-3. **No visual fabrication.** Do not introduce fake status bars, invented
-   metrics, unnecessary decorative 3D objects, floating abstract spheres, random
-   gradients, glows or animations without a design purpose.
-4. **Authentic assets only.** Use real photography from Pexels, Unsplash or
-   Pixabay. Verify licences. Prefer a clean layout over an artificial visual
-   replacement.
-5. **Design fidelity.** Preserve discovered design system typography, spacing,
-   colours, sizing and component variants. Every visual element must serve a
-   purpose.
-6. **Never invent tool capabilities.** Do not assume an MCP connection exists or
-   fabricate API responses. Clearly distinguish verified from planned
-   capabilities.
-7. **Licensing and consent.** Verify licences for all external resources. Never
-   store user credentials. Respect Figma access boundaries.
-8. **Minimalism.** Follow the Ponytail ladder: does it need to exist? Is it
-   already here? Can stdlib or the platform do it? Shortest working diff wins.
+- New to the repository: read `CONTEXT.md`.
+- Content page, marketing site, editorial or portfolio:
+  `pipelines/content-experience/CONTEXT.md`.
+- App screen, dashboard, tool or multi-step flow:
+  `pipelines/product-experience/CONTEXT.md`.
+- Shared references, scripts and motion:
+  `_shared/CONTEXT.md`.
+- Discoverable skills: `.agents/skills/` (one directory per skill).
+- Worked example: `examples/design-intelligence-demo/README.md`.
+- Archived Design Memory Map: `_archive/design-memory-map/README.md` (read-only).
 
-## Design intelligence rules
+## Non-negotiables
 
-- **Reference-based frontend work runs `kumite-design-intelligence` first.** It
-  sequences the six other skills; do not code from a full-page glance.
-- **The mandatory sequence is:** source acquisition → visual decomposition →
-  Design Memory Map → image composition → motion analysis → anti-slop review →
-  implementation specification → implementation → visual and motion audit.
-  Motion analysis happens before implementation; motion auditing happens before
-  final acceptance.
-- **The Design Memory Map is the source of truth.** Validate it against
-  `references/design-memory-schema.json` before implementation. The optional
-  `motion` section records observed motion, functional additions and
-  intentionally omitted motion.
-- **Evidence and confidence are explicit.** Every value is `exact`, `measured`,
-  `estimated` or `unknown`. Screenshots are never presented as node-derived data.
-- **Image composition precedes styling.** Full-bleed images use separate image,
-  gradient overlay and content layers; never fade or blur the whole photograph
-  when only one region needs darkening, and never add arbitrary gradients.
-- **Twenty visual anti-slop indicators (AS-01…AS-20) and nine motion indicators
-  (MAS-01…MAS-09) are checked before and after implementation.** The reference
-  wins: an indicator is acceptable only when source-supported,
-  design-system-supported or a functional requirement; otherwise remove it.
-- **Motion is mandatory when it is applicable.** Invoke `kumite-motion-design`,
-  which resolves an installed `design-motion-principles` skill or retrieves the
-  upstream repository when it is absent. Record the method, source, version or
-  commit, licence, loaded resources and limitations. Never claim the specialist
-  skill was loaded when retrieval failed.
-- **Static references must not gain invented animation.** A screenshot, image or
-  design board cannot evidence timing, easing, springs, stagger or scroll
-  behaviour. Record motion as `static` or `unknown` and list the omission.
-- **Motion must respect `prefers-reduced-motion`, keyboard use, focus
-  visibility, touch, performance, timing and easing.** No pulsing indicators,
-  hover scaling everywhere, excessive stagger, unjustified bouncy springs,
-  identical fade-ins, page-load animation, excessive blur entrances or
-  distracting decoration without evidence.
-- **Visual fidelity is region-based**, compared at equivalent viewports with
-  recorded evidence. Pixel diffs alone and working interactions are not proof;
-  motion is audited as a separate, evidence-based check.
-- **Never invent identifiers, measurements or capabilities.** No fabricated file
-  keys, node ids, variants, licences, API responses or tool limits.
-- **Validate with `node --test "tests/**/*.test.mjs"`** before reporting work complete.
-- **Do not commit or push without explicit approval.**
+1. **Inspect before building.** Read the project's files, dependencies and
+   components before introducing anything.
+2. **Component-first.** Reuse what exists; prefer shadcn/ui for React and
+   Hugeicons for interface icons.
+3. **No fabrication.** No invented metrics, testimonials, awards, identifiers,
+   capabilities or evidence. Mark what is unknown.
+4. **Authentic assets.** Real photography from Pexels, Unsplash or Pixabay, with
+   verified licences. Never substitute an AI photograph.
+5. **Evidence over assumption.** Every value is `exact`, `measured`, `estimated`
+   or `unknown`, with a traceable source.
+6. **The reference wins.** A visual or motion device is acceptable only when it
+   is source-supported, design-system-supported or a functional requirement.
+7. **Static references stay static.** A screenshot cannot evidence timing,
+   easing, springs or scroll behaviour.
+8. **Motion is accessible.** Honour `prefers-reduced-motion`, keyboard use,
+   focus visibility, touch and performance in the same change.
+9. **Minimalism.** Use the smallest change that fully solves the task.
+
+## Validation
+
+Run from the repository root:
+
+```sh
+node --test "tests/**/*.test.mjs" "_archive/**/*.test.mjs"
+```
+
+Do not commit, push, merge or discard work without explicit approval.

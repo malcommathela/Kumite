@@ -236,5 +236,6 @@
       "note": "Not detected. Trailing periods were removed from the introduction and approach headings during review."
     }
   ],
+  "motionReview": "Motion was reviewed separately under the Kumite motion anti-slop MAS-01…MAS-09 policy and the installed design-motion-principles skill: PASS. Source-supported: heading and hero-title rises (reference linereveal, 1.109s), hero image settle (scale 1.1→1, 2.4s), photograph fade (opacity, 0.3s), 4px scroll bar (.yap), link underlines and project image hover scale. Functional: 80ms pressed feedback and a 160ms mobile menu enter. MAS-05 (repeated fade-ins) and MAS-06 (page-load animation) are triggered in form but are source-supported exceptions: the reference itself reveals its hero and photography on entry, and the demo reproduces one documented mechanic per element instead of inventing section fades. The per-line SplitText stagger is intentionally not reproduced. No pulsing, universal hover scaling, springs, blur entrances, decorative loops or layout animation, and prefers-reduced-motion removes all of it. See implementation-spec.md section 8 and discrepancy-report.md section 5.",
   "verdict": "pass"
 }
