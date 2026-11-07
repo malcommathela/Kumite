@@ -16,10 +16,10 @@ experience with evidence-based specialist skills.
 - **One shared factory.** Evidence rules, reference decomposition, conflict
   resolution, design-system foundations, visual quality, motion and reference
   intelligence are shared by both pipelines.
-- **A discoverable skill layer.** \`.agents/skills/\` contains twelve Kumite
+- **A discoverable skill layer.** `.agents/skills/` contains twelve Kumite
   skills and eight official GSAP skills.
-- **Worked examples.** \`examples/design-intelligence-demo/\` preserves the
-  original reference workflow; \`projects/coffee-brand/\` preserves a completed
+- **Worked examples.** `examples/design-intelligence-demo/` preserves the
+  original reference workflow; `projects/coffee-brand/` preserves a completed
   validation project.
 
 ## What it is not
@@ -30,7 +30,7 @@ experience with evidence-based specialist skills.
 
 ## Architecture
 
-\`\`\`text
+```text
 kumite/
 ├── AGENTS.md                     # concise agent routing and non-negotiables
 ├── CONTEXT.md                    # system router
@@ -51,9 +51,9 @@ kumite/
 ├── examples/                      # preserved worked example
 ├── _archive/design-memory-map/    # retired subsystem, read-only
 └── adapters/                      # platform integration notes
-\`\`\`
+```
 
-The full routing table is in [\`CONTEXT.md\`](CONTEXT.md).
+The full routing table is in [`CONTEXT.md`](CONTEXT.md).
 
 ## The workflow
 
@@ -77,7 +77,7 @@ Use when the work is a page or site whose job is to communicate, persuade or
 present: landing pages, editorial features, portfolios and campaign pages.
 
 Start at
-[\`pipelines/content-experience/CONTEXT.md\`](pipelines/content-experience/CONTEXT.md).
+[`pipelines/content-experience/CONTEXT.md`](pipelines/content-experience/CONTEXT.md).
 
 ### Product Experience
 
@@ -86,81 +86,81 @@ multi-step flows and data tools. The project's real design system and states
 come first.
 
 Start at
-[\`pipelines/product-experience/CONTEXT.md\`](pipelines/product-experience/CONTEXT.md).
+[`pipelines/product-experience/CONTEXT.md`](pipelines/product-experience/CONTEXT.md).
 
 ## Shared foundations
 
 - **Taste and selection** — project profiles, multi-reference boards and
   user-authored preferences. See
-  [\`_shared/foundations/selection-board.md\`](_shared/foundations/selection-board.md).
+  [`_shared/foundations/selection-board.md`](_shared/foundations/selection-board.md).
 - **Reference intelligence** — screenshot, live-page, Figma, SitePeel and
   component-source adapters, each with defined evidence authority. See
-  [\`_shared/reference-intelligence/README.md\`](_shared/reference-intelligence/README.md).
+  [`_shared/reference-intelligence/README.md`](_shared/reference-intelligence/README.md).
 - **Direction and design system** — conflict resolution, concept approval,
   living tokens and implementation checkpoints. See
-  [\`_shared/foundations/README.md\`](_shared/foundations/README.md).
+  [`_shared/foundations/README.md`](_shared/foundations/README.md).
 - **Evidence and quality** — exact, measured, estimated and unknown values,
   image composition, anti-slop and fidelity checks. See
-  [\`_shared/references/evidence-and-confidence.md\`](_shared/references/evidence-and-confidence.md).
+  [`_shared/references/evidence-and-confidence.md`](_shared/references/evidence-and-confidence.md).
 - **Motion** — specialist resolution, Create and Audit modes, curated GSAP
   patterns and optional Lenis. See
-  [\`_shared/motion/README.md\`](_shared/motion/README.md).
+  [`_shared/motion/README.md`](_shared/motion/README.md).
 
 ## Skills
 
-Agents discover skills at \`.agents/skills/<name>/SKILL.md\`; each directory
-matches its frontmatter \`name\`.
+Agents discover skills at `.agents/skills/<name>/SKILL.md`; each directory
+matches its frontmatter `name`.
 
 | Skill | Job |
 |---|---|
-| \`kumite-content-experience\` | Route content-led work |
-| \`kumite-product-experience\` | Route product work |
-| \`kumite-design-intelligence\` | Coordinate discovery, direction and engineering |
-| \`kumite-design-discovery\` | Find and evaluate public design resources |
-| \`kumite-figma-integration\` | Extract structured data through Figma MCP |
-| \`kumite-component-first\` | Reuse components before writing new ones |
-| \`kumite-visual-assets\` | Source authentic, composition-compatible imagery |
-| \`kumite-design-quality\` | Anti-slop, fidelity and motion audit |
-| \`kumite-motion-design\` | Resolve the specialist motion skill and run Create/Audit |
-| \`kumite-taste\` | Maintain user and project taste profiles |
-| \`kumite-design-system\` | Derive and maintain the living design system |
-| \`kumite-component-intelligence\` | Discover, inspect and adapt component references |
-| \`gsap-core\` … \`gsap-frameworks\` | Official GSAP API, timeline, scroll, plugins, utils, performance, React and framework guidance |
+| `kumite-content-experience` | Route content-led work |
+| `kumite-product-experience` | Route product work |
+| `kumite-design-intelligence` | Coordinate discovery, direction and engineering |
+| `kumite-design-discovery` | Find and evaluate public design resources |
+| `kumite-figma-integration` | Extract structured data through Figma MCP |
+| `kumite-component-first` | Reuse components before writing new ones |
+| `kumite-visual-assets` | Source authentic, composition-compatible imagery |
+| `kumite-design-quality` | Anti-slop, fidelity and motion audit |
+| `kumite-motion-design` | Resolve the specialist motion skill and run Create/Audit |
+| `kumite-taste` | Maintain user and project taste profiles |
+| `kumite-design-system` | Derive and maintain the living design system |
+| `kumite-component-intelligence` | Discover, inspect and adapt component references |
+| `gsap-core` … `gsap-frameworks` | Official GSAP API, timeline, scroll, plugins, utils, performance, React and framework guidance |
 
 The GSAP skills are vendored verbatim from
-[\`greensock/gsap-skills\`](https://github.com/greensock/gsap-skills) at commit
-\`aed9cfd3277740755f6bfc1155c7aa645403b760\`. See
-[\`THIRD-PARTY-NOTICES.md\`](THIRD-PARTY-NOTICES.md).
+[`greensock/gsap-skills`](https://github.com/greensock/gsap-skills) at commit
+`aed9cfd3277740755f6bfc1155c7aa645403b760`. See
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ## Validation
 
 Run from the repository root:
 
-\`\`\`sh
+```sh
 node --test "tests/**/*.test.mjs" "_archive/**/*.test.mjs"
 python _tools/links.py
-\`\`\`
+```
 
 Individual tools:
 
-\`\`\`sh
+```sh
 node _shared/scripts/anti-slop-check.mjs <review.json> [--json]
 node _shared/scripts/fidelity-check.mjs <reference.json> <implementation.json> [--json]
 node _shared/scripts/capture-screenshots.mjs --url <url> --out <file.png>
 node _tools/taste-board.mjs <selection-board.json> [--out <selection-board.html>]
-\`\`\`
+```
 
 ## SitePeel
 
 SitePeel is configured as a global OpenCode MCP server at
-[\`https://sitepeel.dev/mcp\`](https://sitepeel.dev/mcp). The endpoint uses OAuth;
+[`https://sitepeel.dev/mcp`](https://sitepeel.dev/mcp). The endpoint uses OAuth;
 a browser sign-in is required before its tools are available. Kumite treats the
 connection as unverified until sign-in succeeds and a tool call returns.
 
 ## Archived Design Memory Map
 
 The former Design Memory Map is preserved under
-[\`_archive/design-memory-map/\`](_archive/design-memory-map/README.md) for
+[`_archive/design-memory-map/`](_archive/design-memory-map/README.md) for
 historical reference. It is not a required workflow artifact or current source
 of truth. The current source of truth is the project's approved evidence,
 taste profile, direction, design system and implementation specification.
@@ -168,10 +168,10 @@ taste profile, direction, design system and implementation specification.
 ## Installation
 
 Not yet packaged for distribution. Clone the repository and use the
-project-local \`.agents/skills/\` directory. For Antigravity, see
-[\`adapters/antigravity/README.md\`](adapters/antigravity/README.md).
+project-local `.agents/skills/` directory. For Antigravity, see
+[`adapters/antigravity/README.md`](adapters/antigravity/README.md).
 
 ## License
 
 [MIT](LICENSE). Third-party components retain their own licences; see
-[\`THIRD-PARTY-NOTICES.md\`](THIRD-PARTY-NOTICES.md).
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
