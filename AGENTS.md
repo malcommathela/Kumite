@@ -1,41 +1,36 @@
 # Kumite — Agent Routing
 
-Kumite is a portable design-engineering system for AI coding agents. It turns a
-brief or a design reference into an evidence-grounded interface through two
-pipelines that share one factory.
+Kumite is a taste-led design-engineering system for AI coding agents. It turns a
+brief and user-selected references into an evidence-grounded, approved interface.
 
 ## Start here
 
 - New to the repository: read `CONTEXT.md`.
-- Content page, marketing site, editorial or portfolio:
-  `pipelines/content-experience/CONTEXT.md`.
-- App screen, dashboard, tool or multi-step flow:
-  `pipelines/product-experience/CONTEXT.md`.
-- Shared references, scripts and motion:
-  `_shared/CONTEXT.md`.
+- Content-led page: `pipelines/content-experience/CONTEXT.md`.
+- Product interface: `pipelines/product-experience/CONTEXT.md`.
+- Shared foundations, references and tools: `_shared/CONTEXT.md`.
 - Discoverable skills: `.agents/skills/` (one directory per skill).
 - Worked example: `examples/design-intelligence-demo/README.md`.
 - Archived Design Memory Map: `_archive/design-memory-map/README.md` (read-only).
 
 ## Non-negotiables
 
-1. **Inspect before building.** Read the project's files, dependencies and
-   components before introducing anything.
-2. **Component-first.** Reuse what exists; prefer shadcn/ui for React and
-   Hugeicons for interface icons.
-3. **No fabrication.** No invented metrics, testimonials, awards, identifiers,
-   capabilities or evidence. Mark what is unknown.
-4. **Authentic assets.** Real photography from Pexels, Unsplash or Pixabay, with
-   verified licences. Never substitute an AI photograph.
-5. **Evidence over assumption.** Every value is `exact`, `measured`, `estimated`
-   or `unknown`, with a traceable source.
-6. **The reference wins.** A visual or motion device is acceptable only when it
-   is source-supported, design-system-supported or a functional requirement.
-7. **Static references stay static.** A screenshot cannot evidence timing,
-   easing, springs or scroll behaviour.
-8. **Motion is accessible.** Honour `prefers-reduced-motion`, keyboard use,
-   focus visibility, touch and performance in the same change.
-9. **Minimalism.** Use the smallest change that fully solves the task.
+1. **Inspect before building.** Read project files, dependencies and components.
+2. **Ask for taste.** Use references and the selection board; retain the user's
+   choices and words. Do not repeat questions already answered.
+3. **Get direction approval.** Present a concept frame and resolve reference
+   conflicts before implementation. Motion has a separate approval gate.
+4. **Component-first.** Reuse existing components; prefer accessible primitives.
+5. **No fabrication.** No invented metrics, content, identifiers, capabilities
+   or evidence. Mark unknowns explicitly.
+6. **Evidence over assumption.** Every value is exact, measured, estimated or
+   unknown, with a traceable source. Screenshots do not prove structure.
+7. **Reference-led visuals.** Avoid unsupported decoration, random gradients,
+   fake status bars, unnecessary 3D objects and invented imagery.
+8. **Authentic assets.** Verify external asset licences and preserve attribution.
+9. **Accessible motion.** Respect reduced motion, keyboard, focus, touch,
+   performance and lifecycle cleanup. Static references stay static.
+10. **Minimalism.** Reuse first; add only what solves the task.
 
 ## Validation
 
@@ -43,6 +38,7 @@ Run from the repository root:
 
 ```sh
 node --test "tests/**/*.test.mjs" "_archive/**/*.test.mjs"
+python _tools/links.py
 ```
 
-Do not commit, push, merge or discard work without explicit approval.
+Never commit, push or merge without explicit user approval.
