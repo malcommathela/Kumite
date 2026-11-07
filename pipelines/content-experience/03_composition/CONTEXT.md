@@ -1,42 +1,54 @@
-# 03_composition — compose the visual system
+# 03_composition — resolve conflicts and approve the visual direction
 
-One job: turn the evidence into an art direction and a source-grounded
-implementation specification.
+One job: turn the selected reference evidence and the user's taste into a
+coherent concept, living design system and approved implementation direction.
 
 ## Inputs
 
+- Working (this run): `../02_reference/output/taste-profile.json`
+- Working (this run): `../02_reference/output/selection-board.json`
 - Working (this run): `../02_reference/output/reference-evidence.json`
 - Working (this run): `../02_reference/output/decomposition.md`
 - Working (this run): `../01_brief/output/brief.md`
+- Reference (every run): `../../../_shared/foundations/conflict-resolution.md`
+- Reference (every run): `../../../_shared/foundations/direction-approval.md`
+- Reference (every run): `../../../_shared/foundations/design-system.md`
 - Reference (every run): `../../../_shared/references/image-composition-intelligence.md`
 - Reference (every run): `../../../_shared/references/implementation-spec-template.md`
 - Reference (every run): `../../../_shared/references/visual-quality-policy.md`
 - Reference (every run): `../../../_shared/references/anti-slop-rules.json`
 
-Do NOT load: motion patterns yet, other pipelines' references, prior runs.
+Do NOT load motion patterns yet, other pipelines' references or prior runs.
 
 ## Process
 
-1. If an input is missing or empty, stop and name it.
-2. Decide the composition before styling: page type, hierarchy, grid, density,
-   palette structure, type roles and imagery role.
-3. For every image, record role, focal point, text-safe area, aspect ratio, crop
-   and overlay plan. Full-bleed images use separate image, overlay and content
-   layers.
-4. Fill the implementation spec: tokens, components and variants, section
-   structure, responsive behaviour, accessibility and unresolved questions.
-5. Complete the pre-implementation anti-slop table for AS-01 to AS-20. Mark each
-   device source-supported, design-system-supported, functional or unsupported.
-6. Mark every value without evidence as `unknown`; do not fill gaps.
+1. If an input is missing or the user has not expressed a direction preference,
+   stop and ask; do not silently choose taste on the user's behalf.
+2. Resolve contradictions between selected references by dimension. Present the
+   meaningful alternatives and obtain the user's decision; do not average them.
+3. Propose a visual concept and initial design frame before implementation.
+   Show how the selected qualities combine into one coherent direction.
+4. Derive the living design system: tokens, typography, spacing, grid, imagery,
+   component conventions, responsive behaviour and accessibility.
+5. Fill the implementation spec and record unresolved questions. Every token
+   must trace to evidence or an existing project/design-system decision.
+6. Complete the pre-implementation anti-slop table for AS-01 to AS-20.
+7. Present the concept, frame and spec for explicit user approval. Do not build
+   until approval is recorded. Record changes and preserve unaffected decisions.
 
 ## Outputs
 
+- `output/conflict-resolution.md`
+- `output/direction-proposal.md` and `output/concept-frame.md`
+- `output/design-system.md`
 - `output/art-direction.md`
 - `output/implementation-spec.md`
+- `output/direction-approval.md`
 - `output/check.md`
 
 ## Check
 
-A person confirms every image has a role, focal point, text-safe area, crop and
-overlay plan, and every token traces to evidence or the design system. Write
-`pass` or `fail: <why>` as the first line of `output/check.md`.
+A person confirms conflicts were resolved by the user, the initial concept/frame
+was presented before coding, the living design system and spec are evidence-based,
+and explicit direction approval is recorded. Write `pass` or `fail: <why>` as
+the first line of `output/check.md`.
