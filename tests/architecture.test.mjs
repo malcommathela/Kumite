@@ -302,6 +302,35 @@ test("third-party notices record the exact upstream commits", () => {
   assert.match(text, /MIT/);
 });
 
+test("taste board safely embeds untrusted JSON without closing its script element", async () => {
+  const { execSync } = await import("node:child_process");
+  const input = path.join(ROOT, "tests", "fixtures", "temp-taste-board-input.json");
+  const output = path.join(ROOT, "tests", "fixtures", "temp-taste-board-output.html");
+  try {
+    fs.writeFileSync(input, JSON.stringify({
+      project: "Injection test",
+      references: [{
+        id: "ref-x",
+        source: { type: "url", identity: "https://example.com", licence: "unknown" },
+        selected: "keep",
+        qualities: [],
+        notes: "</script><script>globalThis.pwned=true</script>"
+      }]
+    }));
+    execSync(`node _tools/taste-board.mjs "${path.relative(ROOT, input)}" --out "${path.relative(ROOT, output)}"`, {
+      cwd: ROOT,
+      stdio: "pipe"
+    });
+    const html = fs.readFileSync(output, "utf8");
+    assert.match(html, /\\\\u003c\\\\u002fscript\\\\u003e/i);
+    assert.doesNotMatch(html, /<script>globalThis\.pwned/i);
+  } finally {
+    for (const file of [input, output]) {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
+  }
+});
+
 test("taste board tool generates self-contained selection board HTML", async () => {
   const { execSync } = await import("node:child_process");
   const tempOut = path.join(ROOT, "tests", "fixtures", "temp-taste-board.html");
