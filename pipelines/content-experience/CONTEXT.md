@@ -1,13 +1,13 @@
 # Content Experience — the pipeline
 
-The flow in one line: frame the content, read the reference, compose the visual
-system, plan the motion, then build and audit it.
+The flow in one line: frame the content, discover taste and decompose selected
+references, approve a visual direction, approve motion, then build and audit.
 
 | Stage | Job |
 |---|---|
 | `01_brief` | Frame the content brief |
-| `02_reference` | Decompose the reference |
-| `03_composition` | Compose the visual system |
+| `02_reference` | Ask for taste, build the selection board and decompose selected references |
+| `03_composition` | Resolve conflicts, present the concept frame and approve the visual direction |
 | `04_motion` | Plan the motion |
 | `05_build` | Build, then audit |
 
@@ -53,8 +53,8 @@ projects/<project-name>/
   input/brief.md                 the user's request
   reference/                     source captures and assets
   pipeline/01_brief/output/      brief.md, check.md
-  pipeline/02_reference/output/  reference-evidence.json, decomposition.md, check.md
-  pipeline/03_composition/output/ art-direction.md, implementation-spec.md, check.md
+  pipeline/02_reference/output/  taste-profile.json, selection-board.json, reference-evidence.json, decomposition.md, check.md
+  pipeline/03_composition/output/ conflict-resolution.md, direction-proposal.md, concept-frame.md, design-system.md, implementation-spec.md, direction-approval.md, check.md
   pipeline/04_motion/output/     motion-spec.md, check.md
   pipeline/05_build/output/      implementation-manifest.json, anti-slop-review.json, fidelity-report.md, audit.md, check.md
   site/                          implementation
