@@ -4,8 +4,8 @@
 |-------|-------|
 | Subject | `examples/design-intelligence-demo/index.html` |
 | Reference | `https://kononenkogroup.com` (Kononenko Architectural Bureau) |
-| Reference evidence | `design-memory.json` + `reference/hero-1440.webp`, `reference/full-768.webp`, `reference/mobile-full.png` |
-| Implementation evidence | `capture/desktop-hero.png`, `capture/desktop-full.png`, `capture/tablet-full.png`, `capture/mobile-full.png`, `capture/impl-*.png` |
+| Reference evidence | `design-memory.json` + `reference/hero-1440.webp`, `reference/full-768.webp`, `reference/mobile-full.png`; live computed-style inspection on 2026-11-05 |
+| Implementation evidence | `capture/desktop-hero.png`, `capture/desktop-full.png`, `capture/tablet-full.png`, `capture/mobile-full.png`, `capture/impl-*.png`, `capture/motion-*.png` |
 | Viewports compared | 1440×900, 768 (full page), 390×844 (DPR 2) |
 | Capture date | 2026-11-05 |
 | Reviewer | OpenCode agent (Kumite) |
@@ -30,7 +30,7 @@ Compared 7 sections, 3 components and 6 images.
 Command:
 
 ```sh
-node scripts/fidelity-check.mjs \
+node _shared/scripts/fidelity-check.mjs \
   examples/design-intelligence-demo/design-memory.json \
   examples/design-intelligence-demo/implementation-manifest.json
 ```
@@ -76,21 +76,64 @@ No horizontal overflow was observed at 390, 768 or 1440.
 | 6 | Footer | Oversized wordmark is fitted instead of bleeding | minor | Reference footer wordmark runs past the right edge; the demo constrains it to the container | Accepted; prevents clipped glyphs |
 | 7 | Hero / all images | Reference photography replaced with Unsplash photographs | major (content) | Reference photography is not licensed for reuse; `design-memory.json` `unresolved` | Accepted; photos chosen for composition, not subject alone |
 | 8 | Navigation / labels | Target height is ~16px, below the 44px recommendation | major (accessibility) | 11px labels with 3px underline padding; measured from the rendered header | Open. Fix before production by adding vertical padding without changing the visual label size |
-| 9 | Interaction states | Hover and focus are inferred, not captured | minor | Static reference captures expose no states | Accepted; only underline and image zoom are used |
+| 9 | Motion extent | Heading rises, hero settle, photograph fades, the scroll bar, link underlines and the project image scale are reproduced. Lenis inertia, WebGL shader effects, the preloader, page transitions, the custom cursor, the fixed mix-blend header, the caption overlay, the marquee, the drag gallery and scroll-pinned sections are omitted | minor (scope-approved) | `E-MOTION-REF-SOURCE`; `motion.intentionallyOmitted` in `design-memory.json` | Accepted. The omitted effects need a WebGL pipeline or router, intercept native scrolling, or have no equivalent state in the adapted composition |
 | 10 | Licence records | Individual Unsplash photo IDs and photographers were not retained | major (operational) | Image EXIF contains no attribution; `assets/*.jpg` are local copies | Open. Recover download records and attribute before any public use |
+| 11 | Reduced motion | The reference leaves nav and header transitions active under reduced motion; the demo removes the hero and heading animations, resolves every reveal to its final state, disables the image scale and keeps a static caption underline | improvement (accessibility) | `E-MOTION-MEASURE-SCROLL`; CDP emulation at 1440×900 | Accepted as a deliberate accessibility improvement over the reference |
 
 ---
 
-## 5. Functional correctness (reported separately)
+## 5. Motion verification
+
+The motion audit used the installed `design-motion-principles` skill (Create
+mode, Jakub Krehel primary with Emil Kowalski restraint) and the Kumite motion
+anti-slop policy. Reference timing was read from live computed styles and then
+confirmed against the site's shipped bundle and inlined stylesheet, not from the
+static captures. The bundle ships GSAP, ScrollTrigger, SplitText, Lenis and a
+Three.js/WebGL pipeline; only the behaviours that translate faithfully to CSS and
+one small script were carried over.
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| Heading rise matches the reference mechanic | PASS — `translateY(105%→0)` inside a clipped mask, 1109ms, no delay; reference uses `yPercent: 101`, `duration: Si()` | `motion2-work-reveal.png`, `motion2-footer-reveal.png`, `E-MOTION-REF-SOURCE` |
+| Hero title and image entrance | PASS — title rises 31.8px→0; image settles `scale 1.0818→1.00256` over 2.4s; both end at identity | `motion2-hero-load.png`, `motion2-hero-settled.png`, `E-MOTION-MEASURE-SCROLL` |
+| Photograph fade-in | PASS — `opacity 0→1` over 300ms `cubic-bezier(0.17,0.84,0.44,1)`; reference declares the same property and timing on `.qct img` | `motion2-work-reveal.png`, `E-MOTION-REF-SOURCE` |
+| Scroll progress bar | PASS — fixed 4px bar, `scaleX(0.630088)` mid-page and `scaleX(1)` at the bottom, `aria-hidden`, passive listener | `motion2-work-reveal.png`, `motion2-footer-reveal.png`, `E-MOTION-IMPL-JS` |
+| Reveals fire once | PASS — each target reaches `is-inview` with `opacity: 1` and `transform: none`, then is unobserved; scrolling back does not replay | `E-MOTION-MEASURE-SCROLL`, `motion.js` |
+| Link underline matches the reference curve and origin behaviour | PASS — `matrix(1,0,0,1,0,0)`, left origin on hover; `transform 1.109s cubic-bezier(0.17,0.84,0.44,1)` | `motion-desktop-nav-hover.png`, `E-MOTION-MEASURE` |
+| Project image matches the reference scale | PASS — `matrix(1.035,0,0,1.035,0,0)` with the same transition, clipped by `overflow: hidden` | `motion-desktop-project-hover.png`, `E-MOTION-MEASURE` |
+| Pressed feedback | PASS — card opacity `0.86`, links `0.72`, 80ms linear | `motion-desktop-project-pressed.png`, `E-MOTION-MEASURE` |
+| Mobile menu enter | PASS — 160ms opacity/translateY; panel settles at 180×158 | `motion-mobile-menu-open.png` |
+| Keyboard focus parity | PASS — Tab reaches nav links and project cards; `:focus-visible` true; 2px accent outline visible | `motion-desktop-nav-focus.png`, `motion-desktop-project-focus.png`, `motion-mobile-menu-focus.png` |
+| Reduced motion | PASS — hero animations removed (`animation-name: none`), reveals at `opacity: 1`/`transform: none`, durations `1e-05s`, caption underline 3px, `scroll-behavior: auto`, menu opens without animation | `motion2-reduced-work.png`, `motion-reduced-desktop-project-hover.png`, `E-MOTION-MEASURE-SCROLL` |
+| Horizontal overflow / layout shift | PASS — document `scrollWidth` 390 at a 390 viewport; motion is transform/opacity only; clipped masks reserve their own space | `E-MOTION-MEASURE`, `E-MOTION-MEASURE-SCROLL` |
+| Continuous or looping animation | PASS — none; the progress bar only changes when scroll position changes and no rAF loop runs while idle | `E-MOTION-IMPL-JS` |
+| Frame-level recording | NOT PRODUCED — no video or GIF tool was available; timings are measured from the shipped bundle and CDP computed values | `design-memory.json` `motion.performance.notes` |
+| Motion anti-slop MAS-01…MAS-09 | PASS — no pulsing, universal hover scaling, stagger, bouncy springs, uniform section fades, blur entrances or decorative loops. MAS-05/MAS-06 are source-supported exceptions: the reference itself reveals photography and its hero on entry, and the demo reproduces that mechanic rather than inventing it. | `implementation-spec.md` section 8, `anti-slop-review.json` |
+
+The reference itself is not fully reduced-motion compliant: nav and header
+transitions remained active under emulation. The demo deliberately improves on
+it. This is recorded as an improvement, not as a fidelity failure.
+
+Two defects were found and fixed during verification. A specificity collision
+(`.project img.reveal-img` outranking `.reveal-img.is-inview`) left project
+photographs invisible after their fade-in; the rules were split so only the
+transition is overridden. An earlier draft also used an invented `scale(1.035)`
+entrance for photographs; it was replaced with the reference's actual 300ms
+opacity transition after the bundle inspection.
+
+---
+
+## 6. Functional correctness (reported separately)
 
 | Check | Result |
 |-------|--------|
 | Navigation | Plain anchor links to `#work`, `#approach`, `#studio`, `#contact`, `#top`; DOM order is logical |
 | Skip link | First focusable element, targets `#main` |
 | Mobile menu | Native `<details>` disclosure; no script required |
-| Reduced motion | `prefers-reduced-motion` disables smooth scrolling |
-| Keyboard focus | `:focus-visible` outline on all links |
-| Console | No JavaScript is shipped, so there are no script errors; this was not a substitute for a full accessibility audit |
+| Reduced motion | `prefers-reduced-motion` removes the hero and heading animations, resolves every reveal to its final state, disables the image scale, keeps a static caption underline and forces `scroll-behavior: auto` |
+| Keyboard focus | `:focus-visible` outline on all links and project cards; verified by keyboard Tab and CDP |
+| Motion states | Entrance, scroll reveals, hover, focus, pressed and open-menu states verified at 1440×900 and 390×844; see section 5 |
+| Console | No errors from `motion.js` in headless CDP at desktop, mobile and reduced-motion settings; this is not a substitute for a full accessibility audit |
 | Images | All six images report `complete` and non-zero natural width at capture time (`media: { images: 6, failed: 0 }`) |
 
 Functional success does not close any visual deviation above, and the visual
@@ -98,14 +141,16 @@ match does not excuse the open accessibility and licence items.
 
 ---
 
-## 6. Verdict
+## 7. Verdict
 
 **Automated fidelity: PASS.**
 **Manual region fidelity: CONDITIONAL PASS.**
+**Motion audit: PASS.**
 
-Structure, section order, component variants and image composition match the
-reference at 1440, 768 and 390. The conditional status comes from one
+Structure, section order, component variants, image composition and motion match
+the reference at 1440, 768 and 390. The conditional status comes from one
 scope-approved omission (statistics and client wall), a substituted typeface and
 photography, and two open operational items (touch-target size and Unsplash
-attribution). None of these is hidden in the manifest or presented as a
-pixel-level match.
+attribution). Reference motion that does not fit the adapted composition is
+explicitly omitted rather than imitated. None of these is hidden in the
+manifest or presented as a pixel-level match.

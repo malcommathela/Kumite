@@ -17,7 +17,15 @@
   --pad: clamp(16px, 1.7vw, 24px);
   --max: 1440px;
   --section-space: clamp(96px, 11vw, 176px);
-  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease: cubic-bezier(0.17, 0.84, 0.44, 1);
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur-press: 80ms;
+  --dur-link: 1109ms;
+  --dur-menu: 160ms;
+  --dur-image: 1109ms;
+  --dur-reveal: 1109ms;
+  --dur-fade: 300ms;
+  --dur-hero: 2400ms;
 }
 
 *,
@@ -50,6 +58,33 @@ img {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Pressed feedback is intentionally short: it confirms activation without
+   delaying navigation or making repeated use feel animated. */
+.wordmark,
+.desktop-nav a,
+.footer-nav a,
+.text-link,
+.footer-email,
+.mobile-menu summary,
+.mobile-menu nav a,
+.project {
+  transition: opacity var(--dur-press) linear;
+}
+
+.wordmark:active,
+.desktop-nav a:active,
+.footer-nav a:active,
+.text-link:active,
+.footer-email:active,
+.mobile-menu summary:active,
+.mobile-menu nav a:active {
+  opacity: 0.72;
+}
+
+.project:active {
+  opacity: 0.86;
 }
 
 p,
@@ -132,14 +167,17 @@ ol {
 
 .desktop-nav a,
 .footer-nav a,
-.text-link {
+.text-link,
+.mobile-menu nav a {
   position: relative;
   padding-bottom: 3px;
 }
 
 .desktop-nav a::after,
 .footer-nav a::after,
-.text-link::after {
+.text-link::after,
+.mobile-menu nav a::after,
+.mobile-menu summary::after {
   content: "";
   position: absolute;
   left: 0;
@@ -148,17 +186,29 @@ ol {
   height: 1px;
   background: currentColor;
   transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 220ms var(--ease);
+  transform-origin: right;
+  transition: transform var(--dur-link) var(--ease);
 }
 
-.desktop-nav a:hover::after,
 .desktop-nav a:focus-visible::after,
-.footer-nav a:hover::after,
 .footer-nav a:focus-visible::after,
-.text-link:hover::after,
-.text-link:focus-visible::after {
+.text-link:focus-visible::after,
+.mobile-menu nav a:focus-visible::after,
+.mobile-menu summary:focus-visible::after,
+.mobile-menu[open] summary::after {
   transform: scaleX(1);
+  transform-origin: left;
+}
+
+@media (hover: hover) {
+  .desktop-nav a:hover::after,
+  .footer-nav a:hover::after,
+  .text-link:hover::after,
+  .mobile-menu nav a:hover::after,
+  .mobile-menu summary:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
 }
 
 .mobile-menu {
@@ -167,8 +217,10 @@ ol {
 }
 
 .mobile-menu summary {
+  position: relative;
   cursor: pointer;
   list-style: none;
+  padding-bottom: 3px;
   font-size: 12px;
   letter-spacing: 0.04em;
 }
@@ -188,6 +240,24 @@ ol {
   display: grid;
   gap: 12px;
   font-size: 13px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-menu[open] nav {
+    animation: menu-panel-in var(--dur-menu) var(--ease) both;
+  }
+}
+
+@keyframes menu-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Hero ------------------------------------------------------------------- */
@@ -424,16 +494,28 @@ ol {
 
 .project {
   display: block;
+  /* The reference contains its 1.035 image scale inside a clipping wrapper;
+     without this, the photograph grows into the grid gutter. The card's own
+     focus outline is drawn outside the clip and stays visible. */
+  overflow: hidden;
 }
 
 .project img {
   width: 100%;
   object-fit: cover;
-  transition: transform 500ms var(--ease);
+  transition: transform var(--dur-image) var(--ease);
 }
 
-.project:hover img {
-  transform: scale(1.015);
+@media (prefers-reduced-motion: no-preference) {
+  .project:focus-visible img {
+    transform: scale(1.035);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .project:hover img {
+    transform: scale(1.035);
+  }
 }
 
 .project-large {
@@ -532,10 +614,37 @@ ol {
 }
 
 .footer-email {
+  position: relative;
+  display: inline-block;
   font-family: var(--serif);
   font-size: clamp(22px, 2.4vw, 36px);
   letter-spacing: -0.01em;
   border-bottom: 1px solid var(--on-dark-line);
+}
+
+.footer-email::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--dur-link) var(--ease);
+}
+
+.footer-email:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+@media (hover: hover) {
+  .footer-email:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
 }
 
 .footer-nav {
@@ -564,6 +673,98 @@ ol {
   color: var(--on-dark-faint);
   font-size: 10px;
   letter-spacing: 0.02em;
+}
+
+/* Scroll motion -----------------------------------------------------------
+   The reference runs GSAP ScrollTrigger line reveals, a 2.4s hero image
+   settle, 0.3s photograph fades and a 4px scroll-progress bar. These are
+   dependency-free equivalents; timing is recorded in design-memory.json. */
+
+.hero-title {
+  overflow: hidden;
+  padding-block: 0.12em;
+  margin-block: -0.12em;
+}
+
+.hero-rise {
+  display: block;
+}
+
+.reveal-mask {
+  overflow: hidden;
+  padding-block: 0.12em;
+  margin-block: -0.12em;
+}
+
+.reveal-mask > .rise {
+  display: block;
+  transform: translateY(105%);
+  transition: transform var(--dur-reveal) var(--ease-out);
+}
+
+.reveal-mask.is-inview > .rise {
+  transform: translateY(0);
+}
+
+/* The reference fades project photography in over 0.3s while its hover scale
+   runs at 1.109s. Both timings are declared on the reference's .qct img. */
+.reveal-img {
+  opacity: 0;
+  transition: opacity var(--dur-fade) var(--ease);
+}
+
+/* The project image already owns a transform transition, so the reveal must
+   restate both properties without outranking the revealed state below. */
+.project img.reveal-img {
+  transition:
+    opacity var(--dur-fade) var(--ease),
+    transform var(--dur-image) var(--ease);
+}
+
+.reveal-img.is-inview {
+  opacity: 1;
+}
+
+.motion-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: 4px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+  will-change: transform;
+}
+
+@keyframes line-rise {
+  from {
+    transform: translateY(105%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-settle {
+  from {
+    transform: scale(1.1);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-rise {
+    animation: line-rise var(--dur-reveal) var(--ease-out) both;
+  }
+
+  .hero-media {
+    animation: hero-settle var(--dur-hero) var(--ease-out) both;
+  }
 }
 
 /* Responsive ------------------------------------------------------------- */
@@ -721,5 +922,27 @@ ol {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Scroll motion is decorative in this demo: show every element in its
+     final state immediately instead of revealing it on scroll. */
+  .hero-rise,
+  .hero-media {
+    animation: none !important;
+  }
+
+  .reveal-mask > .rise,
+  .reveal-img {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  /* The project image no longer scales, so keep a static affordance on the
+     caption for pointer and keyboard users. */
+  .project:hover .project-name,
+  .project:focus-visible .project-name {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 }

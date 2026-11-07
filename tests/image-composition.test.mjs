@@ -10,7 +10,7 @@ import {
   requiresIndependentOverlay,
   checkAssetSuitability,
   summariseComposition,
-} from '../scripts/lib/image-composition.mjs';
+} from '../_shared/scripts/lib/image-composition.mjs';
 
 const FIXTURES = new URL('./fixtures/image-composition/', import.meta.url);
 const ROLES = COMPOSITION_ROLES.map((entry) => entry.id);
@@ -293,7 +293,7 @@ test('full-bleed must use object-fit cover', () => {
 // Evidence
 // ---------------------------------------------------------------------------
 
-test('evidence identifiers must exist in the Design Memory Map evidence set', () => {
+test('evidence identifiers must exist in the reference evidence set', () => {
   const result = validateImageRecord(load('valid/hero-full-bleed.json'), {
     evidenceIds: new Set(['ev-hero-screenshot']),
   });

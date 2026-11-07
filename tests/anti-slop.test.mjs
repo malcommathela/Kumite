@@ -8,11 +8,11 @@ import {
   evaluateReview,
   loadRules,
   summariseReview,
-} from "../scripts/lib/anti-slop.mjs";
+} from "../_shared/scripts/lib/anti-slop.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FIXTURES = path.join(ROOT, "tests", "fixtures", "anti-slop");
-const CLI = path.join(ROOT, "scripts", "anti-slop-check.mjs");
+const CLI = path.join(ROOT, "_shared", "scripts", "anti-slop-check.mjs");
 
 const rules = loadRules();
 
