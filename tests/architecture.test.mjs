@@ -322,7 +322,7 @@ test("taste board safely embeds untrusted JSON without closing its script elemen
       stdio: "pipe"
     });
     const html = fs.readFileSync(output, "utf8");
-    assert.match(html, /\\\\u003c\\\\u002fscript\\\\u003e/i);
+    assert.match(html, /\\u003c\\u002fscript\\u003e/i);
     assert.doesNotMatch(html, /<script>globalThis\.pwned/i);
   } finally {
     for (const file of [input, output]) {
