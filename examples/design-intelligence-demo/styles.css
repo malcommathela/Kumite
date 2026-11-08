@@ -678,7 +678,7 @@ ol {
 /* Scroll motion -----------------------------------------------------------
    The reference runs GSAP ScrollTrigger line reveals, a 2.4s hero image
    settle, 0.3s photograph fades and a 4px scroll-progress bar. These are
-   dependency-free equivalents; timing is recorded in design-memory.json. */
+   dependency-free equivalents; timing is defined by the CSS custom properties. */
 
 .hero-title {
   overflow: hidden;
