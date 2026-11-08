@@ -5,7 +5,7 @@
    scroll-progress bar (.yap, 4px, scaleX, transform-origin left).
 
    Content is never hidden unless this script runs, and prefers-reduced-motion
-   disables every part of it. All values are recorded in design-memory.json. */
+   disables every part of it. Timing is expressed in the CSS custom properties. */
 
 (() => {
   const reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
