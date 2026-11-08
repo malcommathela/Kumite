@@ -43,10 +43,9 @@ authorises motion.
 
 ## What the pipeline replaces
 
-The old mandatory Design Memory Map is archived at
-`_archive/design-memory-map/`. It is read-only history, not a required artifact.
-Do not recreate it. A project keeps only the evidence it needs, in its own
-`output/`, `reference/` or `taste/` folder.
+The former Design Memory Map is not part of the current architecture. Do not
+recreate it. A project keeps only the evidence it needs, in its own `output/`,
+`reference/` or `taste/` folder.
 
 There is no replacement global schema. The minimum contract is:
 

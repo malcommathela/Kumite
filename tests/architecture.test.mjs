@@ -55,7 +55,6 @@ test("root CONTEXT.md routes both pipelines and the shared factory", () => {
     "pipelines/content-experience/CONTEXT.md",
     "pipelines/product-experience/CONTEXT.md",
     "_shared/CONTEXT.md",
-    "_archive/design-memory-map/README.md",
   ]) {
     assert.ok(text.includes(needle), `CONTEXT.md is missing ${needle}`);
   }
@@ -244,26 +243,6 @@ test("the shared factory exposes the required references, scripts and motion fil
   for (const file of required) {
     assert.ok(exists(file), `missing ${file}`);
   }
-});
-
-test("the archived Design Memory Map is preserved and self-contained", () => {
-  const required = [
-    "_archive/design-memory-map/README.md",
-    "_archive/design-memory-map/references/design-memory-schema.json",
-    "_archive/design-memory-map/references/design-memory-guide.md",
-    "_archive/design-memory-map/references/design-memory-example.json",
-    "_archive/design-memory-map/scripts/validate-memory.mjs",
-    "_archive/design-memory-map/scripts/lib/design-memory.mjs",
-    "_archive/design-memory-map/scripts/lib/schema.mjs",
-    "_archive/design-memory-map/tests/design-memory.test.mjs",
-  ];
-  for (const file of required) {
-    assert.ok(exists(file), `missing ${file}`);
-  }
-  const fixtures = fs.readdirSync(
-    path.join(ROOT, "_archive", "design-memory-map", "tests", "fixtures", "design-memory"),
-  );
-  assert.ok(fixtures.length >= 10, `archive has ${fixtures.length} fixtures`);
 });
 
 test("no pipeline stage requires the archived memory map", () => {

@@ -13,7 +13,6 @@ factory, and a small catalog of discoverable skills routes work into them.
 | Blank artifacts | `_templates/` |
 | Workspace scripts | `_tools/` |
 | A finished example | `projects/coffee-brand/README.md` |
-| The old Design Memory Map | `_archive/design-memory-map/README.md` |
 
 ## Two pipelines
 

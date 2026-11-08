@@ -11,7 +11,6 @@ brief and user-selected references into an evidence-grounded, approved interface
 - Shared foundations, references and tools: `_shared/CONTEXT.md`.
 - Discoverable skills: `.agents/skills/` (one directory per skill).
 - Worked example: `examples/design-intelligence-demo/README.md`.
-- Archived Design Memory Map: `_archive/design-memory-map/README.md` (read-only).
 
 ## Non-negotiables
 
@@ -37,7 +36,7 @@ brief and user-selected references into an evidence-grounded, approved interface
 Run from the repository root:
 
 ```sh
-node --test "tests/**/*.test.mjs" "_archive/**/*.test.mjs"
+node --test "tests/**/*.test.mjs"
 python _tools/links.py
 ```
 

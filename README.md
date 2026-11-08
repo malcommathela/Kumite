@@ -18,9 +18,9 @@ experience with evidence-based specialist skills.
   intelligence are shared by both pipelines.
 - **A discoverable skill layer.** `.agents/skills/` contains twelve Kumite
   skills and eight official GSAP skills.
-- **Worked examples.** `examples/design-intelligence-demo/` preserves the
-  original reference workflow; `projects/coffee-brand/` preserves a completed
-  validation project.
+- **Worked examples.** `examples/design-intelligence-demo/` keeps a compact,
+  runnable page demonstration; `projects/coffee-brand/` preserves a complete
+  validation project and proof of work.
 
 ## What it is not
 
@@ -49,7 +49,6 @@ kumite/
 ├── _tools/                        # validation and selection-board utilities
 ├── projects/                      # project-specific work and evidence
 ├── examples/                      # preserved worked example
-├── _archive/design-memory-map/    # retired subsystem, read-only
 └── adapters/                      # platform integration notes
 ```
 
@@ -137,7 +136,7 @@ The GSAP skills are vendored verbatim from
 Run from the repository root:
 
 ```sh
-node --test "tests/**/*.test.mjs" "_archive/**/*.test.mjs"
+node --test "tests/**/*.test.mjs"
 python _tools/links.py
 ```
 
@@ -157,13 +156,13 @@ SitePeel is configured as a global OpenCode MCP server at
 a browser sign-in is required before its tools are available. Kumite treats the
 connection as unverified until sign-in succeeds and a tool call returns.
 
-## Archived Design Memory Map
+## Project evidence
 
-The former Design Memory Map is preserved under
-[`_archive/design-memory-map/`](_archive/design-memory-map/README.md) for
-historical reference. It is not a required workflow artifact or current source
-of truth. The current source of truth is the project's approved evidence,
-taste profile, direction, design system and implementation specification.
+Project-specific evidence belongs with its project. Kumite has no mandatory
+repository-wide design-memory file or schema; current decisions live in the
+approved brief, reference evidence, taste profile, direction, design system and
+implementation specification.
+
 
 ## Installation
 
