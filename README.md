@@ -34,7 +34,7 @@ experience with evidence-based specialist skills.
 kumite/
 ├── AGENTS.md                     # concise agent routing and non-negotiables
 ├── CONTEXT.md                    # system router
-├── .agents/skills/               # 12 Kumite + 8 GSAP skills
+├── .agents/skills/               # Kumite design skills
 ├── pipelines/
 │   ├── content-experience/       # brief → reference/taste → direction → motion → build
 │   └── product-experience/       # brief → system/taste → flows/direction → motion → build
@@ -58,7 +58,7 @@ The full routing table is in [`CONTEXT.md`](CONTEXT.md).
 Kumite has three connected systems:
 
 1. **Discovery** — understand the brief, find references, ask for the user's
-   taste, and use the interactive selection board to choose and annotate sources.
+   taste, and present concise link options for user selection.
 2. **Direction** — inspect only selected references, resolve contradictions
    with the user, propose a visual concept/frame, derive the living design
    system, and obtain explicit approval. Motion is discovered and approved
@@ -102,8 +102,8 @@ Start at
 - **Evidence and quality** — exact, measured, estimated and unknown values,
   image composition, anti-slop and fidelity checks. See
   [`_shared/references/evidence-and-confidence.md`](_shared/references/evidence-and-confidence.md).
-- **Motion** — specialist resolution, Create and Audit modes, curated GSAP
-  patterns and optional Lenis. See
+- **Motion** — evidence-based, library-neutral motion principles, approval and
+  accessibility. See
   [`_shared/motion/README.md`](_shared/motion/README.md).
 
 ## Skills
@@ -121,11 +121,10 @@ matches its frontmatter `name`.
 | `kumite-component-first` | Reuse components before writing new ones |
 | `kumite-visual-assets` | Source authentic, composition-compatible imagery |
 | `kumite-design-quality` | Anti-slop, fidelity and motion audit |
-| `kumite-motion-design` | Resolve the specialist motion skill and run Create/Audit |
+| `kumite-motion-design` | Coordinate evidence-based, library-neutral motion design |
 | `kumite-taste` | Maintain user and project taste profiles |
 | `kumite-design-system` | Derive and maintain the living design system |
 | `kumite-component-intelligence` | Discover, inspect and adapt component references |
-| `gsap-core` … `gsap-frameworks` | Official GSAP API, timeline, scroll, plugins, utils, performance, React and framework guidance |
 
 
 ## Validation
@@ -142,7 +141,6 @@ Individual tools:
 ```sh
 node _shared/scripts/anti-slop-check.mjs <review.json> [--json]
 node _shared/scripts/fidelity-check.mjs <reference.json> <implementation.json> [--json]
-node _tools/taste-board.mjs <selection-board.json> [--out <selection-board.html>]
 ```
 
 ## Project evidence
