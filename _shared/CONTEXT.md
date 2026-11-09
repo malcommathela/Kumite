@@ -8,9 +8,9 @@ evidence, specs and captures live in that project, never here.
 | Folder | Holds | Read when |
 |---|---|---|
 | `references/` | Policies, rules, evidence model, image composition, licensing, spec template, Figma discovery | A stage names the file |
-| `scripts/` | `anti-slop-check`, `fidelity-check`, `capture-screenshots` and their libraries | A stage names the command |
-| `motion/` | Motion contract, GSAP pattern library, Lenis guidance, vendored GSAP licence | Motion is analysed, planned or audited |
-| `reference-intelligence/` | Screenshot, live-page and Figma adapters | A reference must be decomposed |
+| `scripts/` | `anti-slop-check`, `fidelity-check` and their libraries | A stage names the command |
+| `motion/` | Library-agnostic motion evidence, approval, accessibility and implementation guidance | Motion is analysed, planned or audited |
+| `reference-intelligence/` | Browser-based live-page/source inspection, Figma and component-source guidance | A reference must be decomposed |
 
 ## Reading rule
 
@@ -33,10 +33,8 @@ input list, add the path to that contract rather than guessing.
   code.
 - `references/figma-community-discovery.md` — Community IDs versus file keys.
 - `references/licensing-policy.md` — what may be used and how it is credited.
-- `motion/README.md` — motion contract, specialist resolution, GSAP routing,
-  Lenis.
-- `motion/gsap-patterns.md` — reusable, reduced-motion-safe patterns.
-- `reference-intelligence/README.md` — adapter selection.
+- `motion/README.md` — library-agnostic motion contract and specialist-skill resolution.
+- `reference-intelligence/README.md` — source selection and evidence boundaries.
 - `reference-intelligence/adapters/*.md` — per-source procedure and limits.
 
 ## Commands
@@ -44,7 +42,6 @@ input list, add the path to that contract rather than guessing.
 ```sh
 node _shared/scripts/anti-slop-check.mjs <review.json> [--rules <path>] [--json]
 node _shared/scripts/fidelity-check.mjs <reference.json> <implementation.json> [--json]
-node _shared/scripts/capture-screenshots.mjs --url <url> --out <file.png> [--width 1440] [--height 900] [--full-page] [--mobile]
 ```
 
 Exit `0` means pass; non-zero means a violation or an input error. Each script's
