@@ -1,95 +1,107 @@
 # Selection board
 
-The selection board is the interactive surface where references become choices.
-It supports two modes that share one record:
+The selection board is a lightweight, link-first decision list. It is not a
+moodboard, gallery or screenshot viewer. Its job is to help the user choose
+references without spending tokens or time rendering visual previews.
 
-- **Guided conversation.** The agent presents a small, curated set and asks
-  about specific qualities.
-- **Independent browsing.** The user opens the board, selects and annotates at
-  their own pace, then hands the result back.
+## Two entry paths
 
-The board is not a mood board of unexamined screenshots. Every card has a
-source, a licence status, a preview and a reason it is on the board.
+- **User supplied references:** preserve the supplied URLs and ask what qualities
+  the user wants to borrow.
+- **No reference supplied:** research relevant websites and/or Figma Community
+  resources, then present a curated shortlist of four to six options.
 
-## What the board holds
+A shortlist is a set of candidates, not an approved direction. Never decompose
+or deeply inspect a candidate until the user selects it.
 
-Use [`_templates/selection-board.json`](../../_templates/selection-board.json)
-as the blank shape.
+## Reference record
+
+Use `_templates/selection-board.json` as the blank shape. Each reference
+contains only:
 
 | Field | Meaning |
 |---|---|
-| `id` | Stable card id |
-| `source.type` | `url`, `figma`, `screenshot`, `image`, `video`, `component`, `asset`, `generated` |
-| `source.identity` | Exact URL, file key and node id, file path, or component registry URL |
-| `source.licence` | Verified licence, or `unknown` |
-| `preview` | Project-local preview path or remote preview URL |
-| `selected` | `keep`, `reject`, `undecided` |
-| `qualities` | What the user wants from this card: composition, layout, typography, colour, identity, imagery, components, interaction, motion, responsive |
-| `contribution` | One sentence naming the part to borrow, e.g. "type scale and caption treatment only" |
+| `id` | Stable option id |
+| `title` | Website, design file or resource name |
+| `source.type` | `website`, `figma`, `component`, or `user` |
+| `source.url` | Canonical, clickable URL |
+| `source.author` | Author or publisher when known |
+| `source.licence` | Verified terms or `unknown` |
+| `reason` | One concise reason it is relevant |
+| `evidence` | Short, attributable award/review/community evidence; never invented |
+| `selected` | `keep`, `reject`, or `undecided` |
+| `qualities` | Qualities the user wants: composition, layout, typography, colour, identity, imagery, components, interaction, motion, responsive |
+| `contribution` | The exact part to borrow |
 | `notes` | The user's own words |
-| `confidence` | `exact`, `measured`, `estimated`, `unknown` |
-| `conflictsWith` | Card ids that contradict this card, with the dimension |
 
-A card may be selected for one quality and rejected for another. That is normal;
-record it instead of forcing a single verdict.
+Do not add screenshot URLs, thumbnails, preview images, image prompts or
+generated visual assets to a selection record.
 
-## Collection
+## Discovery quality
 
-Accept every source type the user has: a URL, a live site, a Figma file, page or
-frame, a screenshot, an image, a video or recording, a component from 21st.dev,
-a font file, an icon set or an asset. Keep the original and a local capture in
-the project's `reference/` folder; never hotlink a source into the implementation.
+When no reference is supplied:
 
-Use [`../reference-intelligence/README.md`](../reference-intelligence/README.md)
-to choose the adapter. A source that cannot be opened is recorded as
-`inaccessible`, not reconstructed from memory.
+1. Understand the project, audience, category, platform and constraints.
+2. Search the open web for real, relevant websites and Figma Community files.
+3. Prefer primary sources, recognised design-award publications, independent
+   reviews and credible community discussion.
+4. Evaluate relevance, visual craft, interaction quality, usability,
+   accessibility and performance where evidence exists.
+5. Distinguish verified awards/reviews from subjective assessment. Never invent
+   ratings, traffic, popularity, awards or review consensus.
+6. Present four to six candidates with short reasons and direct links. Include
+   the evidence source when making a reputation claim.
+7. For Figma references, provide the Community page and, when verified, the
+   actual design-file URL. Do not use thumbnails as a substitute for access.
 
-## Discovery
+Useful discovery sources include Awwwards, CSS Design Awards, SiteInspire,
+Godly, Land-book, Figma Community, open-source design systems and general web
+search. These are sources to investigate, not mandatory integrations or a
+ranking in themselves.
 
-Agent-assisted discovery is optional but expected when the user has few
-references. Search by the decision, not by a generic aesthetic word:
+## User choice
 
-- composition and layout: editorial, bento, split, full-bleed, dense dashboard;
-- typography: display serif, grotesk, monospace, mixed editorial;
-- colour and identity: warm monochrome, high-contrast, saturated accent;
-- imagery: documentary, product, abstract, collage;
-- components and interaction: data table, command palette, filter rail;
-- motion: reveal, scroll-linked, state feedback, intentionally still.
+- Let the user keep one or several references.
+- Allow different references to contribute different qualities.
+- Allow the user to reject all options and request another shortlist.
+- Do not repeatedly ask for preferences already expressed.
+- Ask one focused question at a time when a decision is missing.
+- A user-provided reference takes priority; discover complementary options only
+  when they would materially help or the user asks.
 
-Record the search source, query and date. A discovered reference is a candidate,
-not an approved direction.
+## After selection
+
+Only inspect selected references in depth:
+
+- Website: use available browser capabilities to inspect the delivered HTML,
+  loaded DOM, CSS/computed styles, linked JavaScript resources and observed
+  runtime interactions. Use existing browser automation if available. Do not
+  build or require a dedicated inspection engine, MCP service or reverse-
+  engineering subsystem.
+- Figma: use the connected Figma MCP to inspect the selected file and targeted
+  nodes. Community IDs, design-file keys and node ids are distinct identifiers.
+  Do not query a Community ID as though it were a file key.
+- Component: inspect the actual source and dependencies, not a gallery preview.
+
+Record evidence and confidence in the project only when it affects
+implementation. Screenshots may be used internally for verification when useful,
+but never appear in the selection list.
 
 ## Presentation rules
 
-1. Show three to six cards at a time. More is a catalogue, not a choice.
-2. Put the decision on the table: "Which composition should lead?"
-3. Pair each card with a crop that shows the relevant quality, not only the hero.
-4. Ask which quality the user wants, not whether the whole site is "good".
-5. Never repeat a question the taste profile already answers.
-6. Offer a combination explicitly: "type from A, grid from B, motion from C".
-7. Keep rejected cards visible with the reason. They prevent re-litigating the
-   same choice.
-8. Record the selection in `selection-board.json` before decomposing anything.
-
-## The board tool
-
-`_tools/taste-board.mjs` renders the JSON into one self-contained HTML file:
-
-```sh
-node _tools/taste-board.mjs projects/<project>/taste/selection-board.json \
-  --out projects/<project>/taste/selection-board.html
-```
-
-The page supports keyboard selection, quality checkboxes, notes and a JSON
-export. It has no network dependency and no animation beyond a short,
-reduced-motion-safe state change. The JSON remains the source of truth; the HTML
-is a view.
+1. Show four to six text options at a time, not image cards.
+2. Every option has a name, one concise reason and a direct link.
+3. Keep evidence/reputation notes short and attributable.
+4. No screenshots, previews, thumbnails, image grids or generated mockups.
+5. Figma references follow exactly the same link-first presentation.
+6. Keep rejected options and reasons in the small JSON record only when useful
+   to avoid repeating a decision.
 
 ## Acceptance
 
-- Every card has a source identity and licence status.
-- Every kept card names the quality or qualities wanted.
-- Rejected cards say why.
-- The user's own words are recorded, not paraphrased into agent language.
-- The board and the taste profile agree.
-- Conflicts are listed for resolution, not hidden.
+- Every candidate has a working canonical URL.
+- Reputation claims have attributable evidence or are omitted.
+- Reasons are relevant to the user's actual project.
+- The user can select multiple options or request another set.
+- No screenshot or preview asset is generated for the board.
+- Only selected references proceed to deep inspection.
