@@ -32,9 +32,8 @@ using whatever browser capabilities are already available:
 6. Inspect responsive states at available viewports.
 7. Record what is directly observed, inferred or unavailable.
 
-This is an agent workflow, not a new Kumite engine. Do not require SitePeel,
-GSAP Showcase, a custom crawler, a custom browser runtime or a dedicated
-reverse-engineering service. Server-side code and inaccessible resources remain
+This is an agent workflow, not a new Kumite engine. Do not require a vendor-specific inspection MCP, custom crawler, custom browser
+runtime or dedicated reverse-engineering service. Server-side code and inaccessible resources remain
 out of scope.
 
 ## Figma inspection
