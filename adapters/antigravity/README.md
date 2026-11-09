@@ -30,14 +30,6 @@ your-project/
         ├── kumite-visual-assets/
         ├── kumite-design-quality/
         ├── kumite-motion-design/
-        ├── gsap-core/
-        ├── gsap-timeline/
-        ├── gsap-scrolltrigger/
-        ├── gsap-plugins/
-        ├── gsap-utils/
-        ├── gsap-performance/
-        ├── gsap-react/
-        └── gsap-frameworks/
 ```
 
 Each skill is discovered by its frontmatter `name` and `description`. The
@@ -67,15 +59,12 @@ records the commit and licence, and uses the retrieved workflow. A failed
 retrieval stops the motion stage; it is never reported as a successful load.
 Kumite does not vendor or duplicate the specialist skill.
 
-The eight official GSAP skills are vendored verbatim in `.agents/skills/` and
-carry the upstream MIT licence. See
-[`THIRD-PARTY-NOTICES.md`](../../THIRD-PARTY-NOTICES.md).
 
 ## Portability
 
 Skill content is platform-neutral: standard Markdown, relative reference paths
 from each skill directory, and no Antigravity-only tool assumptions. Platform
-capabilities — such as a connected Figma MCP or SitePeel — are checked at runtime
+capabilities — such as a connected Figma MCP — are checked at runtime
 and reported, never assumed.
 
 ## Antigravity-specific considerations
