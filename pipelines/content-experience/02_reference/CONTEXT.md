@@ -1,7 +1,7 @@
 # 02_reference — discover taste and decompose selected references
 
-One job: help the user express taste through an interactive selection board,
-then decompose the references they choose into evidence.
+One job: help the user choose references through a lightweight, link-only shortlist,
+then inspect only the references they choose.
 
 ## Inputs
 
@@ -21,11 +21,13 @@ Do NOT load every adapter at once, other stages' references or prior runs.
 
 ## Process
 
-1. If the brief or all usable references are missing, stop and name what is
-   missing. If the user has no references, offer a small curated discovery set.
-2. Ask the user about taste using visual examples and the selection board; support
-   guided conversation and independent browsing. Do not repeat answered questions.
-3. Record the user's own words, selected and rejected cards, qualities to borrow,
+1. If references are supplied, preserve them. If none are supplied, use
+   `kumite-design-discovery` to research four to six relevant websites and/or
+   Figma resources using reviews, awards and credible community evidence.
+2. Present each option as its name, one concise reason and a direct link. No
+   screenshots, previews, thumbnails or generated mockups. Let the user select
+   one or multiple references, combine qualities, reject all or request another set.
+3. Record the user's own words, selected/rejected links, qualities to borrow,
    anti-preferences and unresolved questions in project-local taste artifacts.
 4. Record each source's type, identity, access status, date and licence.
 5. Run the appropriate adapter. Decompose selected references into composition,
@@ -38,7 +40,7 @@ Do NOT load every adapter at once, other stages' references or prior runs.
 ## Outputs
 
 - `output/taste-profile.json`
-- `output/selection-board.json` and, when useful, a rendered HTML board
+- `output/selection-board.json` (compact link and choice records only)
 - `output/reference-evidence.json`
 - `output/decomposition.md`
 - `output/check.md`
