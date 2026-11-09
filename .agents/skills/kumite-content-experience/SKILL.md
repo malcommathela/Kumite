@@ -51,7 +51,7 @@ then the current stage's contract. Do not load every stage at once.
    proposed concept/frame, living design system and implementation spec; obtain
    explicit user approval before building.
 4. **Motion** — separate motion discovery, selection and approval; specialist
-   resolution; per-element engineering spec; GSAP skill loaded; Lenis decision;
+   resolution; per-element engineering spec; library-neutral motion plan and reduced-motion path;
    reduced-motion path.
 5. **Build** — checkpointed implementation, captures, anti-slop review, fidelity
    report, final verification, and `check.md`.
@@ -94,10 +94,8 @@ Read only what a stage names:
 - `_shared/references/implementation-spec-template.md`
 - `_shared/motion/README.md`
 - `_shared/motion/motion-selection.md`
-- `_shared/patterns/gsap/README.md`
 - `_shared/scripts/anti-slop-check.mjs`
 - `_shared/scripts/fidelity-check.mjs`
-- `_shared/scripts/capture-screenshots.mjs`
 
 ## Stop conditions
 
