@@ -51,7 +51,7 @@ then the current stage's contract. Do not load every stage at once.
    resolutions, a concept frame, design-system version, implementation spec and
    explicit user approval before building.
 4. **Motion** — specialist resolution, state feedback, frequency gate, separate
-   motion approval, GSAP skill loaded, Lenis decision, reduced-motion path.
+   motion approval, library-neutral motion plan and reduced-motion path.
 5. **Build** — checkpointed implementation, captures for each screen and state,
    anti-slop review, fidelity report when a reference exists, flow and motion
    audit, and `check.md`.
@@ -93,10 +93,8 @@ Read only what a stage names:
 - `_shared/references/image-composition-intelligence.md`
 - `_shared/motion/README.md`
 - `_shared/motion/motion-selection.md`
-- `_shared/patterns/gsap/README.md`
 - `_shared/scripts/anti-slop-check.mjs`
 - `_shared/scripts/fidelity-check.mjs`
-- `_shared/scripts/capture-screenshots.mjs`
 
 ## Stop conditions
 
