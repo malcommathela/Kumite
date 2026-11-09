@@ -58,7 +58,8 @@ then the current stage's contract. Do not load every stage at once.
 
 ## Non-negotiables
 
-- **Ask for taste with visual examples.** Not a questionnaire, not a blank page.
+- **Offer references when needed.** If the user has none, research relevant
+  websites and Figma files and present names, concise reasons and direct links.
 - **No invented content.** A metric, testimonial, award or claim without a real
   source is removed or marked `unknown`.
 - **No full-page glance.** Decompose region by region and record coordinates or
