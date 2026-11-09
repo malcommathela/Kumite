@@ -62,7 +62,7 @@ project.
 
 ## Motion
 
-- Implementation: CSS | GSAP | other | none
+- Implementation: CSS | native API | existing project library | none
 - Why this technology:
 - Reduced-motion alternative:
 - Cleanup:
