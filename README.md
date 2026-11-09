@@ -45,7 +45,7 @@ kumite/
 │   ├── motion/                    # library-agnostic motion principles and approval
 │   └── reference-intelligence/    # live-page, Figma and component-source guidance
 ├── _templates/                    # project, reference, taste, direction and review artifacts
-├── _tools/                        # validation and selection-board utilities
+├── _tools/                        # validation utilities
 ├── projects/                      # project-specific work and evidence
 ├── examples/                      # preserved worked example
 └── adapters/                      # platform integration notes
