@@ -16,8 +16,8 @@ experience with evidence-based specialist skills.
 - **One shared factory.** Evidence rules, reference decomposition, conflict
   resolution, design-system foundations, visual quality, motion and reference
   intelligence are shared by both pipelines.
-- **A discoverable skill layer.** `.agents/skills/` contains twelve Kumite
-  skills and eight official GSAP skills.
+- **A discoverable skill layer.** `.agents/skills/` contains the Kumite design skills; animation technology is
+  selected per project rather than prescribed by Kumite.
 - **Worked examples.** `examples/design-intelligence-demo/` keeps a compact,
   runnable page demonstration; `projects/coffee-brand/` preserves a complete
   validation project and proof of work.
@@ -39,12 +39,11 @@ kumite/
 │   ├── content-experience/       # brief → reference/taste → direction → motion → build
 │   └── product-experience/       # brief → system/taste → flows/direction → motion → build
 ├── _shared/
-│   ├── foundations/              # taste, selection, decomposition, approval, design system
+│   ├── foundations/              # taste, link-based selection, decomposition, approval
 │   ├── references/                # policies, evidence and quality rules
-│   ├── scripts/                   # anti-slop, fidelity and capture CLIs
-│   ├── motion/                    # motion contract, GSAP patterns, optional Lenis
-│   ├── patterns/gsap/             # curated implementation patterns
-│   └── reference-intelligence/    # screenshot, live-page, Figma, SitePeel, 21st.dev
+│   ├── scripts/                   # anti-slop and fidelity CLIs
+│   ├── motion/                    # library-agnostic motion principles and approval
+│   └── reference-intelligence/    # live-page, Figma and component-source guidance
 ├── _templates/                    # project, reference, taste, direction and review artifacts
 ├── _tools/                        # validation and selection-board utilities
 ├── projects/                      # project-specific work and evidence
@@ -60,9 +59,10 @@ Kumite has three connected systems:
 
 1. **Discovery** — understand the brief, find references, ask for the user's
    taste, and use the interactive selection board to choose and annotate sources.
-2. **Direction** — decompose references, resolve contradictions with the user,
-   propose a visual concept/frame, derive the living design system, and obtain
-   explicit approval. Motion is discovered and approved separately.
+2. **Direction** — inspect only selected references, resolve contradictions
+   with the user, propose a visual concept/frame, derive the living design
+   system, and obtain explicit approval. Motion is discovered and approved
+   separately.
 3. **Engineering** — build from the approved specifications, show meaningful
    checkpoints, incorporate feedback and direction changes, then verify quality.
 
@@ -92,8 +92,9 @@ Start at
 - **Taste and selection** — project profiles, multi-reference boards and
   user-authored preferences. See
   [`_shared/foundations/selection-board.md`](_shared/foundations/selection-board.md).
-- **Reference intelligence** — screenshot, live-page, Figma, SitePeel and
-  component-source adapters, each with defined evidence authority. See
+- **Reference intelligence** — browser-based live-page/source inspection,
+  Figma MCP extraction and component-source research. No dedicated inspection
+  service or engine is required. See
   [`_shared/reference-intelligence/README.md`](_shared/reference-intelligence/README.md).
 - **Direction and design system** — conflict resolution, concept approval,
   living tokens and implementation checkpoints. See
@@ -126,10 +127,6 @@ matches its frontmatter `name`.
 | `kumite-component-intelligence` | Discover, inspect and adapt component references |
 | `gsap-core` … `gsap-frameworks` | Official GSAP API, timeline, scroll, plugins, utils, performance, React and framework guidance |
 
-The GSAP skills are vendored verbatim from
-[`greensock/gsap-skills`](https://github.com/greensock/gsap-skills) at commit
-`aed9cfd3277740755f6bfc1155c7aa645403b760`. See
-[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ## Validation
 
@@ -145,16 +142,8 @@ Individual tools:
 ```sh
 node _shared/scripts/anti-slop-check.mjs <review.json> [--json]
 node _shared/scripts/fidelity-check.mjs <reference.json> <implementation.json> [--json]
-node _shared/scripts/capture-screenshots.mjs --url <url> --out <file.png>
 node _tools/taste-board.mjs <selection-board.json> [--out <selection-board.html>]
 ```
-
-## SitePeel
-
-SitePeel is configured as a global OpenCode MCP server at
-[`https://sitepeel.dev/mcp`](https://sitepeel.dev/mcp). The endpoint uses OAuth;
-a browser sign-in is required before its tools are available. Kumite treats the
-connection as unverified until sign-in succeeds and a tool call returns.
 
 ## Project evidence
 
