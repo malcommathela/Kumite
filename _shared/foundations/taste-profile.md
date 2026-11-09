@@ -6,10 +6,10 @@ experience. The taste profile is the durable record of that collaboration.
 
 ## Always ask for taste
 
-Ask before choosing a visual direction, and ask with **visual examples**, not a
-long questionnaire. Show three to six concrete references or crops, ask which
-qualities the user wants, and record the answer. A blank page and a list of
-abstract adjectives is not a taste conversation.
+Ask before choosing a visual direction. If the user has no references, research
+four to six real websites and/or Figma designs, then present their names, concise
+reasons and direct links. Do not generate screenshots, thumbnails or previews.
+Ask which qualities the user wants to borrow and record the answer.
 
 Do not repeat a question that the project or global profile already answers. If
 the answer is stale, say what is recorded and ask whether it changed.
@@ -68,9 +68,9 @@ Every dimension uses one of the four evidence labels from
 
 1. **Seed from the brief.** Use the project's goals, audience and constraints.
    Do not ask what the brief already states.
-2. **Show candidates.** Present a small board from the user's links, agent
-   discovery, Figma, 21st.dev or the design library. Group by the decision the
-   board is helping with, not by source.
+2. **Show candidates.** Present four to six concise website/Figma link options.
+   Include a short reason and attributable evidence where relevant. No visual
+   previews or screenshots are needed.
 3. **Ask for qualities, not verdicts.** "Which part of this do you want?" beats
    "Do you like it?" Record composition, type, colour, imagery and motion
    separately.
