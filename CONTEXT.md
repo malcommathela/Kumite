@@ -33,9 +33,10 @@ A stage is complete when `output/` holds its artifact and any `check.md` says
 - `references/` — anti-slop rules, visual quality, image composition, licensing,
   implementation spec, evidence and confidence, reference intelligence.
 - `scripts/` — anti-slop, fidelity and screenshot CLIs plus their libraries.
-- `motion/` — the motion contract, the GSAP pattern library, Lenis guidance and
-  the eight vendored official GSAP skills.
-- `reference-intelligence/` — screenshot, live-page and Figma adapters.
+- `motion/` — library-agnostic motion evidence, approval, accessibility and
+  implementation guidance.
+- `reference-intelligence/` — browser-based live-page/source inspection and
+  Figma/component-source guidance; no dedicated inspection service.
 
 The factory is stable and versioned with the repository. A project's evidence,
 specifications, captures and audits live inside that project, never in
@@ -46,7 +47,8 @@ specifications, captures and audits live inside that project, never in
 `.agents/skills/` contains the discoverable layer. Each directory name equals
 its frontmatter `name`. The seven Kumite skills coordinate the pipelines and
 quality gates; `kumite-content-experience` and `kumite-product-experience` are
-the entry points; the eight `gsap-*` skills are vendored verbatim from GreenSock.
+the entry points; motion work is guided by the user's installed motion/design skills and the
+  selected project's existing libraries.
 
 ## Evidence model
 

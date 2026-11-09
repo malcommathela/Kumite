@@ -13,7 +13,7 @@ dependencies and accessibility, and the weakest for visual direction.
 3. **Dependencies.** Framework, styling, primitives, icon set, animation library
    and peer versions. Do not add a dependency the project does not need.
 4. **Implementation.** Read the real source, not the preview. Identify the
-   animation technology: CSS, WAAPI, GSAP, Framer Motion, Lenis or other. Do not
+   animation technology: CSS, WAAPI, framework-native tools, an installed animation library or other. Do not
    assume every animated component uses GSAP.
 5. **States and behaviour.** Default, hover, focus-visible, pressed, disabled,
    loading, error, empty. Check keyboard and ARIA.

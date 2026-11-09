@@ -20,9 +20,8 @@ serves, not the visual effect it produces.
 
 ## Technology
 
-- Recommended: CSS | native API | GSAP | other
-- GSAP skill:
-- Why not a simpler option:
+- Recommended: CSS | native API | existing project library | other
+- Why this is the simplest suitable option:
 
 ## API and implementation
 

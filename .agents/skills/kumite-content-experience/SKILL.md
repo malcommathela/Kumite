@@ -51,14 +51,15 @@ then the current stage's contract. Do not load every stage at once.
    proposed concept/frame, living design system and implementation spec; obtain
    explicit user approval before building.
 4. **Motion** — separate motion discovery, selection and approval; specialist
-   resolution; per-element engineering spec; GSAP skill loaded; Lenis decision;
+   resolution; per-element engineering spec; library-neutral motion plan and reduced-motion path;
    reduced-motion path.
 5. **Build** — checkpointed implementation, captures, anti-slop review, fidelity
    report, final verification, and `check.md`.
 
 ## Non-negotiables
 
-- **Ask for taste with visual examples.** Not a questionnaire, not a blank page.
+- **Offer references when needed.** If the user has none, research relevant
+  websites and Figma files and present names, concise reasons and direct links.
 - **No invented content.** A metric, testimonial, award or claim without a real
   source is removed or marked `unknown`.
 - **No full-page glance.** Decompose region by region and record coordinates or
@@ -94,10 +95,8 @@ Read only what a stage names:
 - `_shared/references/implementation-spec-template.md`
 - `_shared/motion/README.md`
 - `_shared/motion/motion-selection.md`
-- `_shared/patterns/gsap/README.md`
 - `_shared/scripts/anti-slop-check.mjs`
 - `_shared/scripts/fidelity-check.mjs`
-- `_shared/scripts/capture-screenshots.mjs`
 
 ## Stop conditions
 

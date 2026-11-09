@@ -35,7 +35,7 @@ third for its motion. Record each contribution separately in
 - Identify dependencies: React, Tailwind, shadcn/ui primitives, icon libraries,
   animation libraries, chart libraries.
 - Identify the animation technology. An animated card may use CSS, Framer
-  Motion, GSAP or a canvas library. Use the technology the approved direction and
+  Motion, an installed animation library or a canvas library. Use the technology the approved direction and
   the project need, not the one the component happens to ship.
 - Check accessibility: semantics, keyboard, focus, labels, contrast and reduced
   motion.

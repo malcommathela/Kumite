@@ -1,46 +1,63 @@
-# Reference intelligence adapters
+# Reference intelligence
 
-Reference intelligence is the practice of reading a design source through the
-right adapter, keeping each source's authority separate, and recording what it
-can and cannot prove.
+Reference intelligence is a workflow performed by the design agent using
+capabilities already available in its environment. Kumite does not ship,
+configure or require an independent website-inspection engine or dedicated
+reference-analysis MCP service.
 
-Pick the adapter that matches the source. Read only the adapter you picked.
+## Source handling
 
-| Source | Adapter | Use it when |
+| Source | How to inspect | What it can establish |
 |---|---|---|
-| Screenshot, crop, image, design board | [`adapters/screenshot.md`](adapters/screenshot.md) | You have pixels and no structured file |
-| Live or archived webpage | [`adapters/live-page.md`](adapters/live-page.md) | The page can be loaded and inspected |
-| Figma file, page, frame or prototype | [`adapters/figma.md`](adapters/figma.md) | You have a design file key and MCP access |
-| Video, screen recording or prototype capture | [`adapters/video.md`](adapters/video.md) | Motion or interaction must be evidenced |
-| Component or source code | [`adapters/component-source.md`](adapters/component-source.md) | A component is being discovered, inspected or adapted |
-| 21st.dev component registry | [`adapters/21st-dev.md`](adapters/21st-dev.md) | You need component discovery, preview or multi-selection |
-| GSAP Showcase | [`showcase/gsap.md`](showcase/gsap.md) | You need motion or interaction research, not a site to copy |
-| SitePeel MCP | [`adapters/sitepeel.md`](adapters/sitepeel.md) | Rendered design intelligence is needed and the service is connected |
+| Live website | Existing browser, page source/view-source, DOM and computed styles; browser automation when available | Delivered markup, loaded resources, measured styles and observed interactions at inspected states/viewports |
+| Figma file | Connected Figma MCP | Node structure, variables, variants, auto-layout, component properties and prototype settings |
+| Component/source repository | Existing code browser or repository tools | Actual markup, dependencies, APIs, states and accessibility behaviour |
+| User-provided image or recording | Existing file/image/video inspection capability | Visible appearance or recorded sequence only |
 
-## Rules common to every adapter
+Choose only the source guidance needed for the selected reference. Do not load
+every adapter or invent a missing tool.
 
-1. Record the source identity, access status, date and licence before extraction.
-2. Mark every value `exact`, `measured`, `estimated` or `unknown`.
-3. Keep the rendered view and the structural view separate.
-4. Do not infer motion from a still image.
-5. Do not copy a source's assets, copy, identity or code wholesale.
-6. Stop and report when the source is inaccessible.
+## Website inspection
 
-The evidence model is in
-[`../references/evidence-and-confidence.md`](../references/evidence-and-confidence.md).
-The combination rules are in
-[`../references/reference-intelligence.md`](../references/reference-intelligence.md).
+When a user selects a website, inspect its browser-delivered implementation
+using whatever browser capabilities are already available:
 
-## Connection status
+1. Inspect the rendered page and its URL.
+2. Read the delivered document/source and loaded DOM.
+3. Inspect relevant stylesheets and computed styles.
+4. Inspect loaded JavaScript resources and identify animation or interaction
+   implementations where accessible.
+5. Trigger and observe relevant interactions; use recordings or repeated
+   observations when timing matters.
+6. Inspect responsive states at available viewports.
+7. Record what is directly observed, inferred or unavailable.
 
-- **Figma MCP:** connected and verified on 2026-11-07 through the official
-  `whoami` tool.
-- **SitePeel MCP:** configured globally and exercised on 2026-11-07 with a free
-  `sitepeel_check_allowance` call. It returned a live quota (15 measurements per
-  hour, 40 per day, 0 used) and cost no measurement. The call does not report an
-  account identity, so authentication is inferred from the quota response, not
-  displayed. Re-check at the start of a run rather than assuming it is still
-  connected.
+This is an agent workflow, not a new Kumite engine. Do not require a vendor-specific inspection MCP, custom crawler, custom browser
+runtime or dedicated reverse-engineering service. Server-side code and inaccessible resources remain
+out of scope.
 
-A configured endpoint is not a verified connection. Report the actual tool result,
-and never describe a service's capabilities from documentation alone.
+## Figma inspection
+
+Do not inspect every discovered Figma file. Present Community/design links first
+and wait for the user's selection. Then use the connected Figma MCP to verify
+access and extract only the relevant pages, frames, variables, components,
+variants and prototype settings.
+
+Community resource IDs, file keys and node IDs are different identifiers.
+Never guess or interchange them. If direct access is unavailable, report that
+clearly and offer the official duplication route only when the creator permits
+it.
+
+## Evidence rules
+
+- Separate observed facts from inference and unknowns.
+- Record source URL, access date and relevant viewport or node identifier.
+- Do not invent measurements, ratings, awards, licences, source files or motion.
+- A screenshot can help internal visual verification but is not structural data.
+- Do not generate or attach screenshots to the user's reference shortlist.
+- Do not copy proprietary source code, branding or assets wholesale.
+- Inspect only selected candidates in depth; discovery results remain links and
+  concise evidence notes until selected.
+
+See `../references/evidence-and-confidence.md` and
+`../references/licensing-policy.md`.

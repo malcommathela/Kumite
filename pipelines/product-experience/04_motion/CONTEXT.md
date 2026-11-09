@@ -1,36 +1,26 @@
 # 04_motion — plan interaction motion
 
-One job: design feedback and transition motion from evidence and write a spec
-that can be implemented and audited.
+One job: specify purposeful feedback and transitions from evidence and write a
+library-neutral plan.
 
 ## Inputs
 
-- Working (this run): `../03_flows/output/implementation-spec.md`
-- Working (this run): `../02_system/output/system-inventory.md`
-- Reference (every run): `../../../_shared/motion/README.md`
-- Reference (every run): `../../../_shared/motion/gsap-patterns.md`
-- Reference (every run): `../../../_shared/references/evidence-and-confidence.md`
-- Reference (every run): the official GSAP skill that matches the task, under
-  `.agents/skills/gsap-*`
-
-Do NOT load: all eight GSAP skills at once, other stages' references, prior runs.
+- Working: `../03_flows/output/implementation-spec.md`
+- Working: `../02_system/output/system-inventory.md`
+- Reference: `../../../_shared/motion/README.md`
+- Reference: `../../../_shared/references/evidence-and-confidence.md`
 
 ## Process
 
-1. If an input is missing or empty, stop and name it.
-2. Resolve the specialist `design-motion-principles` skill as `../../../_shared/motion/README.md`
-   describes. Record method, source, commit or version, licence, loaded
-   resources and limitations.
-3. Separate observed motion, source-supported motion, functional additions and
-   intentionally omitted motion. If the reference is static, add no invented
-   motion.
-4. For each state transition, record trigger, purpose, start and end states,
-   duration, delay, easing, interruption, reduced-motion alternative and
-   performance notes.
-5. Apply the frequency gate: high-frequency and keyboard-initiated actions should
-   not animate unless the motion is the feedback itself.
-6. Load only the GSAP skill the task needs. State whether Lenis is used and why.
-7. Review MAS-01 to MAS-09 before implementation.
+1. If an input is missing, stop and name it.
+2. Separate observed behaviour, approved functional additions and unknowns.
+3. Record state-transition feedback, trigger, purpose, start/end states, timing
+   evidence, interruption and reduced-motion alternative.
+4. Apply the frequency gate: high-frequency and keyboard-initiated actions
+   should not be delayed by decorative motion.
+5. Inspect the project's existing dependencies and choose the simplest suitable
+   technology. Do not prescribe or add an animation library.
+6. Review MAS-01 to MAS-09.
 
 ## Outputs
 
@@ -39,7 +29,6 @@ Do NOT load: all eight GSAP skills at once, other stages' references, prior runs
 
 ## Check
 
-A person confirms every state transition has feedback, no keyboard-critical
-action is delayed by animation, and every motion has a reduced-motion
-alternative. Write `pass` or `fail: <why>` as the first line of
-`output/check.md`.
+A person confirms state changes have appropriate feedback, keyboard-critical
+actions are not delayed, reduced motion is respected and no unsupported
+animation has been invented. Write `pass` or `fail: <why>`.

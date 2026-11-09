@@ -15,7 +15,8 @@ brief and user-selected references into an evidence-grounded, approved interface
 ## Non-negotiables
 
 1. **Inspect before building.** Read project files, dependencies and components.
-2. **Ask for taste.** Use references and the selection board; retain the user's
+2. **Ask for taste.** Use supplied references or research relevant websites and
+   Figma designs; present names, short reasons and direct links, then retain the user's
    choices and words. Do not repeat questions already answered.
 3. **Get direction approval.** Present a concept frame and resolve reference
    conflicts before implementation. Motion has a separate approval gate.

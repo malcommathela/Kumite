@@ -1,7 +1,7 @@
 # 02_system — discover taste and inventory the system
 
-One job: ask the user what visual and interaction qualities they prefer, then
-inventory the project's real tokens, components and variants before designing.
+One job: establish design taste using supplied or researched link references,
+then inventory the project's real tokens, components and variants.
 
 ## Inputs
 
@@ -20,9 +20,10 @@ Do NOT load other stages' references, prior runs or the whole `_shared/` folder.
 ## Process
 
 1. If the brief or project files are missing, stop and name what is missing.
-2. Ask the user for visual and interaction taste using references or a selection
-   board; support guided conversation and independent browsing. Do not repeat
-   questions already answered in the project profile.
+2. If the user has no references, use `kumite-design-discovery` to find four
+   to six relevant websites and/or Figma resources. Present names, short reasons
+   and direct links only; no screenshots or previews. Let the user choose one or
+   more references or request another shortlist.
 3. Preserve selected/rejected cards, chosen qualities, anti-preferences and the
    user's own words in project-local taste artifacts.
 4. Read real dependencies and component directories. Record what exists; do not
@@ -37,7 +38,7 @@ Do NOT load other stages' references, prior runs or the whole `_shared/` folder.
 ## Outputs
 
 - `output/taste-profile.json`
-- `output/selection-board.json` and, when useful, a rendered HTML board
+- `output/selection-board.json` (compact link and choice records only)
 - `output/system-inventory.md`
 - `output/check.md`
 

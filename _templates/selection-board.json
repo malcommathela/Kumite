@@ -1,24 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
   "project": "<project>",
   "updated": "YYYY-MM-DD",
   "mode": "guided",
-  "decision": "<the decision this board helps make>",
+  "decision": "<the decision this shortlist helps make>",
   "references": [
     {
       "id": "ref-01",
+      "title": "<website or Figma resource name>",
       "source": {
-        "type": "url",
-        "identity": "https://example.com/reference",
+        "type": "website",
+        "url": "https://example.com",
+        "author": "<author or publisher>",
         "licence": "unknown"
       },
-      "preview": "reference/ref-01-hero.png",
-      "selected": "keep",
+      "reason": "<one concise, project-relevant reason>",
+      "evidence": "<attributable award/review evidence, or empty>",
+      "selected": "undecided",
       "qualities": ["composition", "typography"],
-      "contribution": "<the exact part to borrow>",
-      "notes": "<the user's words>",
-      "confidence": "estimated",
-      "conflictsWith": []
+      "contribution": "",
+      "notes": ""
     }
   ],
   "conflicts": [],
