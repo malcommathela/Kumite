@@ -1,166 +1,90 @@
 ---
 name: kumite-design-discovery
 description: >-
-  Search publicly accessible design resources for free templates, UI kits and
-  design systems. Discovers Figma Community files via web search, extracts
-  Community resource IDs, resolves actual Design URLs and file keys, and verifies
-  licensing, permissions and structured-data accessibility. Prioritizes direct
-  MCP extraction before assisted duplication. Use when a user needs to find design
-  inspiration, reference implementations or reusable design resources for a
-  frontend project.
+  Discover and evaluate real website and Figma design references when a user
+  has no reference, or find complementary references when requested. Uses web
+  research, credible reviews, awards and community evidence, then presents
+  concise names, reasons and direct links for user selection. No screenshots,
+  previews or dedicated discovery engine.
 ---
 
 # Design Discovery
 
-Search for, identify and evaluate publicly accessible design resources before
-implementing a frontend interface.
+Help users discover strong, relevant design references. A user does not need
+to arrive with a reference website or Figma file.
 
 ## When to use
 
-- The user asks for design inspiration, UI kits, templates or design systems.
-- A new frontend project needs a design reference or foundation.
-- Finding free, legitimate public design files (Figma Community, open-source
-  kits).
+- A new project has no visual reference.
+- The user asks for inspiration, examples, templates, UI kits or design systems.
+- Existing references are insufficient and the user wants alternatives.
 
-## Discovery architecture
+## Two entry paths
 
-Figma does not offer a public REST API for general Community marketplace search.
-Kumite bridges this with a dual-engine approach:
+1. **User supplied a reference:** preserve it. Do not replace it with a discovery
+   exercise. Search for complementary examples only when requested or useful.
+2. **No reference supplied:** research the project category and present a
+   curated set of four to six real websites and/or Figma resources.
 
-1. **Web search** for discovery and Community resource URLs.
-2. **Direct access first** — attempt MCP extraction against the resolved design
-   URL.
-3. **Assisted duplication on fallback** — when direct access is denied (403) and
-   the creator permits it, guide the user through a one-click duplication to
-   personal drafts.
-4. **Figma MCP** for structured extraction from the resolved design URL.
+## Research procedure
 
-## Discovery sources
+1. Understand the project, audience, category, platform, required content and
+   constraints. Ask only for essential missing information.
+2. Search the web for real candidate websites, relevant Figma Community files,
+   open-source design systems and component libraries.
+3. Investigate evidence: recognised awards, independent expert reviews,
+   credible community discussions, accessibility/performance reports and
+   verifiable product quality. Use primary sources where possible.
+4. Evaluate candidates for project relevance, visual craft, usability,
+   interaction quality, accessibility and performance. Do not equate awards
+   or popularity with suitability.
+5. Distinguish independently verified facts from the agent's design judgement.
+   Never invent ratings, traffic, awards, review consensus or user counts.
+6. Select four to six diverse, relevant candidates. Avoid near-duplicates.
+7. Present plain text only: name, one concise reason, evidence note where
+   reputation is claimed, and a direct URL.
+8. For Figma, provide the Community resource link and the actual design-file
+   link when verified. Do not create image previews or screenshots.
+9. Ask the user to select one or multiple candidates, combine qualities, reject
+   all and request another set, or proceed with their original reference.
 
-| Source | Use it for | Adapter |
-|---|---|---|
-| User links, images and files | The strongest evidence of intent | The matching adapter |
-| Figma Community and public files | Structured kits, systems and components | `kumite-figma-integration` |
-| 21st.dev | Component and interaction candidates | `_shared/reference-intelligence/adapters/21st-dev.md` |
-| SitePeel | Rendered fonts, colours, stack, assets and screenshots from a live site | `_shared/reference-intelligence/adapters/sitepeel.md` |
-| GSAP Showcase and demos | Motion and interaction mechanisms | `_shared/reference-intelligence/showcase/gsap.md` |
-| Design galleries | Visual direction only, never structured data | Screenshot adapter |
+## Research sources
 
-A discovered source is a candidate. Put it on the selection board, record the
-search source, query and date, and let the user choose qualities. Do not decompose
-a card the user has not kept.
+Investigate sources such as Awwwards, CSS Design Awards, SiteInspire, Godly,
+Land-book, Figma Community, GitHub open-source design systems, independent
+design publications and credible community discussions. These are discovery
+sources, not required integrations or a predetermined ranking.
 
-## Procedure
+## Evaluation
 
-### 1. Understand the requirement
-
-Clarify what the user is building:
-
-- Application type (admin dashboard, e-commerce, SaaS landing, mobile UI).
-- Target platform and stack (React + Tailwind, Next.js, plain HTML).
-- Visual style and density (clean, minimal, data-dense, light or dark).
-- Existing design system or brand guidelines.
-
-### 2. Search public design resources
-
-```text
-site:figma.com/community "<keyword>" "free"
-"Figma Community" "<topic>" "UI kit" free
-"<name>" figma community dashboard template
-```
-
-Prioritise:
-
-1. **Figma Community** (`figma.com/community/file/...`) — structured component
-   kits.
-2. **Open-source design systems** on GitHub with explicit tokens and component
-   specs.
-3. **Reference galleries** (Dribbble, Behance) — visual inspiration only, never
-   structured data.
-
-### 3. Extract and distinguish identifiers
-
-Never interchange Community URLs with design URLs:
-
-- **Community URL** — `https://www.figma.com/community/file/1324762163080748317/...`
-  - Identifier: **Community resource ID** (e.g. `1324762163080748317`).
-  - Cannot be queried directly by Figma MCP.
-- **Design URL** — `https://www.figma.com/design/s5ovdLYnQHqRd4et0M4eNW/...`
-  - Identifier: **design file key** (22-character string).
-  - Optional node id: `?node-id=0-1` or `0:1`.
-  - Target format required for Figma MCP.
-
-### 4. Access workflow and resolution
-
-1. Resolve the design URL (`figma.com/design/:file_key`).
-2. Test direct MCP access with the authenticated session.
-3. Extract directly when access succeeds. Do not require duplication.
-4. On 403, check whether the creator permits duplication. If permitted, guide
-   the user to **Open in Figma** / **Duplicate to drafts** and provide the
-   resulting draft URL.
-5. If duplication is disabled or restricted, skip the resource.
-
-### 5. Evaluate the resource
-
-- [ ] **Licence** — CC BY 4.0, MIT or a permissive free Community licence?
-- [ ] **Attribution** — what credit or link back is required?
-- [ ] **Structured accessibility** — can the data be accessed directly or
-  duplicated to drafts?
-- [ ] **Component quality** — auto layout, named layers, variants, variable
-  tokens?
-
-### 6. Skip inaccessible or non-structured resources
-
-- Do not treat screenshots, thumbnails or raster previews as structured data.
-- If a Community resource cannot be accessed and duplication is unavailable,
-  skip it.
-- Never guess component structure or CSS from a preview image.
-
-### 7. Report findings
-
-- Resource name and author.
-- Community URL and Community ID.
-- Resolved design URL and file key.
-- Direct access status.
-- Licence terms and required attribution.
-- Handoff instructions for `kumite-figma-integration`.
-
-### 8. Hand off to the pipeline
-
-Hand the discovery record to the chosen pipeline's `02_taste` stage. The user
-selects the references and the qualities they want before anything is decomposed.
-Then hand the kept cards to `03_reference` (Content) or `03_system` (Product).
-The record must contain:
-
-| Field | Required content |
+| Dimension | Questions |
 |---|---|
-| Source identity | Resource name, author, canonical URL |
-| Community URL / ID | Exact URL and numeric id |
-| Resolved design URL / file key | `figma.com/design/:key` and the 22-character key, if resolved |
-| Author / licence | Licence name, attribution, commercial use |
-| Accessibility status | Direct, requires duplication, or inaccessible |
-| Extraction method | Direct MCP, duplicated draft, structured export, or none |
-| Evidence | What was verified and where |
-| Explicitly unavailable | Anything not obtained, stated as unavailable |
+| Relevance | Does it solve a similar communication or product problem? |
+| Visual craft | Are layout, typography, colour and imagery coherent? |
+| Usability | Is navigation and content hierarchy understandable? |
+| Interaction | Are states and interactions purposeful? |
+| Accessibility | Is there evidence of keyboard, contrast and reduced-motion support? |
+| Performance | Is there credible evidence of responsive and efficient delivery? |
+| Reputation | Are awards/reviews independently verifiable and relevant? |
 
-The receiving stage decides whether to proceed, downgrade confidence or stop.
+Do not fabricate a numeric score. Explain the trade-offs briefly.
 
-## Source-identity separation
+## Figma identifier rules
 
-Community IDs, design file keys, node ids and screenshot paths are different
-identifiers and are never interchangeable:
+- Community URL and numeric Community ID identify a discovery resource.
+- `figma.com/design/:file_key` identifies an accessible design file.
+- A node id identifies a specific frame or component inside a file.
+- Never interchange or guess these identifiers.
+- Do not inspect Figma contents before the user selects a candidate, unless the
+  user explicitly requests research into its internals.
 
-- A **Community ID** cannot be queried by Figma MCP.
-- A **file key** identifies a file, not a node or a screen.
-- A **node id** identifies one frame or component inside that file.
-- A **screenshot** identifies no structured node at all.
+## Handoff
 
-Never derive a file key or node id from a URL pattern you have not verified. A
-screenshot is still not structured data, even when it came from an accepted
-resource.
+Write only the lightweight selection record needed by the current project.
+The record includes title, source type, canonical URL, author/publisher when
+known, licence status, concise reason, attributable evidence, selection status,
+qualities to borrow and the user's notes.
 
-## Detailed reference
-
-For regular expressions, URL formats, official rate limits, duplication models
-and the DashStack benchmark, see
-[`_shared/references/figma-community-discovery.md`](../../../_shared/references/figma-community-discovery.md).
+Deep inspection happens only after selection, using the available browser,
+repository or connected Figma capabilities. Discovery itself does not generate
+screenshots, thumbnails, preview cards or mockups.
