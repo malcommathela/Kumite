@@ -24,7 +24,7 @@ Do NOT load every adapter at once, other stages' references or prior runs.
 1. If references are supplied, preserve them. If none are supplied, use
    `kumite-design-discovery` to research four to six relevant websites and/or
    Figma resources using reviews, awards and credible community evidence.
-2. Present each option as its name, one concise reason and a direct link. No
+2. Present each option as its name, one concise reason and direct links. No
    screenshots, previews, thumbnails or generated mockups. Let the user select
    one or multiple references, combine qualities, reject all or request another set.
 3. Record the user's own words, selected/rejected links, qualities to borrow,

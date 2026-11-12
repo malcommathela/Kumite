@@ -29,7 +29,7 @@ as a functional addition. Never add motion merely as decoration.
 - Native CSS for simple transitions and presentation.
 - Web Animations API or framework-native tools where appropriate.
 - Existing project animation libraries for interactions that need them.
-- No mandatory GSAP, Lenis, Framer Motion or other dependency.
+- No mandatory animation engine, motion framework or scrolling dependency.
 
 Do not vendor animation-library skills into Kumite. The host agent may use an
 installed specialist motion skill or consult the selected technology's official

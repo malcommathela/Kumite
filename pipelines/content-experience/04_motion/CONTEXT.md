@@ -5,10 +5,10 @@ experience, then write a library-neutral implementation and audit plan.
 
 ## Inputs
 
-- Working: `../03_composition/output/implementation-spec.md`
-- Working: `../02_reference/output/reference-evidence.json`
-- Reference: `../../../_shared/motion/README.md`
-- Reference: `../../../_shared/references/evidence-and-confidence.md`
+- Working (this run): `../03_composition/output/implementation-spec.md`
+- Working (this run): `../02_reference/output/reference-evidence.json`
+- Reference (every run): `../../../_shared/motion/README.md`
+- Reference (every run): `../../../_shared/references/evidence-and-confidence.md`
 
 ## Process
 
@@ -18,7 +18,7 @@ experience, then write a library-neutral implementation and audit plan.
 4. For each meaningful interaction, record trigger, purpose, states, timing
    evidence, responsive behaviour, reduced-motion alternative, interruption,
    cleanup and performance.
-5. Inspect existing project dependencies and select the simplest suitable
+5. Inspect existing dependencies in the project and select the simplest suitable
    implementation. Do not prescribe or add an animation library.
 6. Review motion accessibility and anti-slop indicators MAS-01 to MAS-09.
 

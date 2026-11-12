@@ -9,7 +9,19 @@ const SKILLS = path.join(ROOT, ".agents", "skills");
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
 const exists = (p) => fs.existsSync(path.join(ROOT, p));
 const frontmatter = (s) => s.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
-const field = (s, key) => s.match(new RegExp(`^${key}:\\s*(.+)$`, "m"))?.[1].trim() ?? "";
+const field = (s, key) => {
+  const match = s.match(new RegExp(`^${key}:\\s*(.*)$`, "m"));
+  if (!match) return "";
+  const value = match[1].trim();
+  if (!/^[>|][+-]?$/.test(value)) return value;
+  const body = s.slice((match.index ?? 0) + match[0].length).replace(/^\r?\n/, "");
+  const lines = [];
+  for (const line of body.split(/\r?\n/)) {
+    if (!/^[ \t]+\S/.test(line)) break;
+    lines.push(line.trim());
+  }
+  return lines.join(" ");
+};
 
 test("root routing remains concise and points to both pipelines", () => {
   const agents = read("AGENTS.md");

@@ -5,10 +5,10 @@ library-neutral plan.
 
 ## Inputs
 
-- Working: `../03_flows/output/implementation-spec.md`
-- Working: `../02_system/output/system-inventory.md`
-- Reference: `../../../_shared/motion/README.md`
-- Reference: `../../../_shared/references/evidence-and-confidence.md`
+- Working (this run): `../03_flows/output/implementation-spec.md`
+- Working (this run): `../02_system/output/system-inventory.md`
+- Reference (every run): `../../../_shared/motion/README.md`
+- Reference (every run): `../../../_shared/references/evidence-and-confidence.md`
 
 ## Process
 
