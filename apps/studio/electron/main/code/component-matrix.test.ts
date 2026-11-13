@@ -2,6 +2,7 @@ import { parse } from '@babel/parser';
 import * as t from '@babel/types';
 import {
     getBlockInsertWrapperClass,
+    isBlockInsertContainer,
     SHADCN_BLOCKS,
     SHADCN_COMPONENTS,
     type ShadcnComponentDefinition,
@@ -200,6 +201,23 @@ describe('component matrix', () => {
             );
         }
         assert.equal(getBlockInsertWrapperClass([]), 'w-full');
+    });
+
+    it('refuses to nest a block inside a text element', () => {
+        for (const tag of ['h1', 'h2', 'p', 'span', 'a', 'button', 'label', 'input', 'img']) {
+            assert.equal(isBlockInsertContainer(tag), false, `${tag} must not receive a block`);
+            assert.equal(
+                isBlockInsertContainer(tag.toUpperCase(), 'block'),
+                false,
+                `${tag} must not receive a block even when it lays out as a block`,
+            );
+        }
+        for (const tag of ['div', 'main', 'section', 'article', 'form', 'body', 'li']) {
+            assert.equal(isBlockInsertContainer(tag), true, `${tag} must accept a block`);
+        }
+        assert.equal(isBlockInsertContainer('my-widget', 'flex'), true);
+        assert.equal(isBlockInsertContainer('my-widget', 'inline'), false);
+        assert.equal(isBlockInsertContainer('my-widget'), false);
     });
 
     it('builds one row per pinned item', () => {

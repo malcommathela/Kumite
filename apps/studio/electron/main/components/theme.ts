@@ -18,6 +18,127 @@ interface OklchColor {
 const OKLCH_PATTERN = /^oklch\(\s*([^)]+)\)$/i;
 const DECLARATION_PATTERN = /^(\s*)(--[\w-]+)\s*:\s*(.+?);(\s*)$/;
 
+export interface BaseLayerResult {
+    file: string | null;
+    added: boolean;
+    removedDuplicates: number;
+    skipped: string | null;
+}
+
+const V4_IMPORT_PATTERN = /@import\s+["']tailwindcss["']/;
+const THEME_INLINE_PATTERN = /@theme\s+inline/;
+const BORDER_APPLY_PATTERN = /@apply\s[^;]*\bborder-border\b/;
+const APPLY_LINE_PATTERN = /^\s*@apply\b/;
+
+function collapseDuplicateApplyLines(source: string): { source: string; removed: number } {
+    const lines = source.split(/\r?\n/);
+    const kept: string[] = [];
+    let removed = 0;
+    for (const line of lines) {
+        const previous = kept.at(-1);
+        if (
+            previous !== undefined &&
+            APPLY_LINE_PATTERN.test(line) &&
+            previous.trimEnd() === line.trimEnd()
+        ) {
+            removed += 1;
+            continue;
+        }
+        kept.push(line);
+    }
+    return { source: kept.join('\n'), removed };
+}
+
+/**
+ * shadcn components rely on a `@layer base` rule that turns the `border` utility
+ * into `border-border` (and gives the body its background and foreground). A
+ * project that was initialized without it renders every `border` as
+ * `currentColor`, i.e. a hard black outline. This adds the canonical rule when
+ * it is missing and leaves any rule the project already has untouched.
+ *
+ * The rule is only written when the tokens it references exist; injecting
+ * `@apply border-border` into a stylesheet without a `border` color mapping
+ * would fail the build instead of fixing the look.
+ */
+export function ensureShadcnBaseLayer(projectPath: string): BaseLayerResult {
+    const componentsJson = readComponentsJson(projectPath);
+    const cssRelative = componentsJson?.tailwind?.css;
+    if (!cssRelative) {
+        return {
+            file: null,
+            added: false,
+            removedDuplicates: 0,
+            skipped: 'components.json does not declare a CSS file.',
+        };
+    }
+    const cssPath = path.resolve(projectPath, cssRelative);
+    if (!fs.existsSync(cssPath)) {
+        return {
+            file: null,
+            added: false,
+            removedDuplicates: 0,
+            skipped: 'The declared CSS file does not exist.',
+        };
+    }
+
+    const source = fs.readFileSync(cssPath, 'utf8');
+    if (!source.includes('--background')) {
+        return {
+            file: cssPath,
+            added: false,
+            removedDuplicates: 0,
+            skipped: 'The CSS file does not define shadcn design tokens.',
+        };
+    }
+
+    const collapsed = collapseDuplicateApplyLines(source);
+    let next = collapsed.source;
+    let added = false;
+
+    if (!BORDER_APPLY_PATTERN.test(next)) {
+        const isV4 =
+            V4_IMPORT_PATTERN.test(next) ||
+            THEME_INLINE_PATTERN.test(next) ||
+            resolveTailwindConfig(projectPath) === null;
+        if (isV4) {
+            if (!next.includes('--color-border')) {
+                return {
+                    file: cssPath,
+                    added: false,
+                    removedDuplicates: collapsed.removed,
+                    skipped:
+                        'The CSS file does not map --color-border, so border-border would not compile.',
+                };
+            }
+            next = `${next.trimEnd()}\n\n@layer base {\n  * {\n    @apply border-border outline-ring/50;\n  }\n  body {\n    @apply bg-background text-foreground;\n  }\n}\n`;
+        } else {
+            const configPath = resolveTailwindConfig(projectPath);
+            const configSource = configPath ? fs.readFileSync(configPath, 'utf8') : '';
+            if (!configSource.includes('--border')) {
+                return {
+                    file: cssPath,
+                    added: false,
+                    removedDuplicates: collapsed.removed,
+                    skipped: 'The Tailwind config does not map the border color token.',
+                };
+            }
+            next = `${next.trimEnd()}\n\n@layer base {\n  * {\n    @apply border-border;\n  }\n  body {\n    @apply bg-background text-foreground;\n  }\n}\n`;
+        }
+        added = true;
+    }
+
+    if (next !== source) {
+        fs.writeFileSync(cssPath, next, 'utf8');
+    }
+
+    return {
+        file: cssPath,
+        added,
+        removedDuplicates: collapsed.removed,
+        skipped: null,
+    };
+}
+
 function parseOklch(raw: string): OklchColor | null {
     const match = OKLCH_PATTERN.exec(raw.trim());
     if (!match) {
@@ -113,8 +234,7 @@ function rgbToHsl(rgb: [number, number, number]): [number, number, number] {
         return [0, 0, lightness];
     }
 
-    const saturation =
-        lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+    const saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
 
     if (saturation < 0.0005) {
         return [0, 0, lightness];
@@ -161,7 +281,12 @@ function resolveTailwindConfig(projectPath: string): string | null {
             return candidate;
         }
     }
-    for (const name of ['tailwind.config.js', 'tailwind.config.cjs', 'tailwind.config.ts', 'tailwind.config.mjs']) {
+    for (const name of [
+        'tailwind.config.js',
+        'tailwind.config.cjs',
+        'tailwind.config.ts',
+        'tailwind.config.mjs',
+    ]) {
         const candidate = path.join(projectPath, name);
         if (fs.existsSync(candidate)) {
             return candidate;
@@ -194,7 +319,11 @@ export function normalizeOklchTheme(projectPath: string): ThemeNormalizationResu
     const componentsJson = readComponentsJson(projectPath);
     const cssRelative = componentsJson?.tailwind?.css;
     if (!cssRelative) {
-        return { file: null, replacements: 0, skipped: 'components.json does not declare a CSS file.' };
+        return {
+            file: null,
+            replacements: 0,
+            skipped: 'components.json does not declare a CSS file.',
+        };
     }
     const cssPath = path.resolve(projectPath, cssRelative);
     if (!fs.existsSync(cssPath)) {
@@ -207,7 +336,10 @@ export function normalizeOklchTheme(projectPath: string): ThemeNormalizationResu
     }
 
     const lines = source.split(/\r?\n/);
-    const blocks = new Map<number, Array<{ index: number; name: string; value: string; prefix: string; suffix: string }>>();
+    const blocks = new Map<
+        number,
+        Array<{ index: number; name: string; value: string; prefix: string; suffix: string }>
+    >();
     let depth = 0;
     lines.forEach((line, index) => {
         if (line.includes('}')) {
@@ -246,13 +378,18 @@ export function normalizeOklchTheme(projectPath: string): ThemeNormalizationResu
                 continue;
             }
             const triplet = toHslTriplet(color, backgroundRgb);
-            lines[declaration.index] = `${declaration.prefix}${declaration.name}: ${triplet};${declaration.suffix}`;
+            lines[declaration.index] =
+                `${declaration.prefix}${declaration.name}: ${triplet};${declaration.suffix}`;
             replacements += 1;
         }
     }
 
     if (replacements === 0) {
-        return { file: cssPath, replacements: 0, skipped: 'No convertible OKLCH declarations were found.' };
+        return {
+            file: cssPath,
+            replacements: 0,
+            skipped: 'No convertible OKLCH declarations were found.',
+        };
     }
 
     fs.writeFileSync(cssPath, lines.join('\n'), 'utf8');

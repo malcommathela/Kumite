@@ -19,7 +19,7 @@ import {
 } from './inspect';
 import { componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
-import { normalizeOklchTheme } from './theme';
+import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
@@ -62,15 +62,48 @@ export function getComponentStatus(projectPath: unknown): ShadcnProjectStatus {
     }
 }
 
+function baseLayerNote(root: string): string {
+    const baseLayer = ensureShadcnBaseLayer(root);
+    if (!baseLayer.file) {
+        return '';
+    }
+    const file = path.relative(root, baseLayer.file).split(path.sep).join('/');
+    const notes: string[] = [];
+    if (baseLayer.added) {
+        notes.push(
+            `Added the shadcn base layer to ${file} so borders use the design token instead of currentColor.`,
+        );
+    }
+    if (baseLayer.removedDuplicates > 0) {
+        notes.push(
+            `Removed ${baseLayer.removedDuplicates} duplicated @apply declaration${
+                baseLayer.removedDuplicates === 1 ? '' : 's'
+            } in ${file}.`,
+        );
+    }
+    return notes.join(' ');
+}
+
 function applyThemeNormalization(root: string): string {
+    const notes: string[] = [];
     const result = normalizeOklchTheme(root);
     if (result.replacements > 0 && result.file) {
-        return `Rewrote ${result.replacements} design tokens in ${path
-            .relative(root, result.file)
-            .split(path.sep)
-            .join('/')} to HSL so the project's hsl(var(--...)) Tailwind mappings resolve.`;
+        notes.push(
+            `Rewrote ${result.replacements} design tokens in ${path
+                .relative(root, result.file)
+                .split(path.sep)
+                .join('/')} to HSL so the project's hsl(var(--...)) Tailwind mappings resolve.`,
+        );
     }
-    return result.skipped ? `Theme tokens were left unchanged: ${result.skipped}` : '';
+    if (result.skipped) {
+        notes.push(`Theme tokens were left unchanged: ${result.skipped}`);
+    }
+
+    const baseNote = baseLayerNote(root);
+    if (baseNote) {
+        notes.push(baseNote);
+    }
+    return notes.join(' ');
 }
 
 export async function initializeComponents(projectPath: unknown): Promise<ShadcnInitResult> {
@@ -309,24 +342,26 @@ export async function installComponent(
 
     recordComponentInstallation(root, definition.name, refreshed.uiDir);
     refreshed = inspectProject(root);
+    const baseNote = baseLayerNote(root);
 
     const missingDependencies = verifyDependencies(root, definition.dependencies);
     const missingRegistryItems = definition.registryDependencies.filter(
         (registryDependency) => !refreshed.installed[registryDependency],
     );
     const fileLabel = path.relative(root, installedFile);
+    const baseSuffix = baseNote ? ` ${baseNote}` : '';
     return {
         component: definition.name,
         success: true,
         initialized,
         message:
             missingDependencies.length === 0 && missingRegistryItems.length === 0
-                ? `Installed ${definition.title} to ${fileLabel}.`
+                ? `Installed ${definition.title} to ${fileLabel}.${baseSuffix}`
                 : `Installed ${definition.title} to ${fileLabel}. Missing ${[
                       ...missingDependencies.map((name) => `packages ${name}`),
                       ...missingRegistryItems.map((name) => `shadcn components ${name}`),
-                  ].join(', ')}.`,
-        log: log.trim(),
+                  ].join(', ')}.${baseSuffix}`,
+        log: `${log.trim()}${baseNote ? `\n\n${baseNote}` : ''}`,
         status: refreshed,
     };
 }

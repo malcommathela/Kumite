@@ -930,6 +930,103 @@ export function getBlockInsertWrapperClass(categories: readonly string[]): strin
         : 'w-full';
 }
 
+/**
+ * Elements that hold text rather than layout. A page-level block appended to one
+ * of these produces invalid markup (a card inside an `h1`) and renders in the
+ * wrong place, so insertion walks up to the nearest container instead.
+ */
+const TEXT_ONLY_ELEMENTS = new Set([
+    'a',
+    'abbr',
+    'b',
+    'br',
+    'button',
+    'cite',
+    'code',
+    'em',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'i',
+    'img',
+    'input',
+    'kbd',
+    'label',
+    'mark',
+    'option',
+    'p',
+    'pre',
+    'q',
+    's',
+    'samp',
+    'select',
+    'small',
+    'span',
+    'strong',
+    'sub',
+    'summary',
+    'sup',
+    'svg',
+    'textarea',
+    'time',
+    'u',
+    'var',
+]);
+
+const CONTAINER_ELEMENTS = new Set([
+    'article',
+    'aside',
+    'body',
+    'dd',
+    'details',
+    'dialog',
+    'div',
+    'dl',
+    'dt',
+    'fieldset',
+    'figcaption',
+    'figure',
+    'footer',
+    'form',
+    'header',
+    'li',
+    'main',
+    'nav',
+    'ol',
+    'section',
+    'table',
+    'tbody',
+    'td',
+    'tfoot',
+    'th',
+    'thead',
+    'tr',
+    'ul',
+]);
+
+/**
+ * Decides whether a selected DOM element can receive an inserted block. Text and
+ * void elements are rejected outright; layout elements are accepted; anything
+ * else (custom elements, replaced tags) is accepted only when it lays out as a
+ * box (`block`, `flex`, `grid`).
+ */
+export function isBlockInsertContainer(
+    tagName: string,
+    display?: string | null,
+): boolean {
+    const tag = tagName.toLowerCase();
+    if (TEXT_ONLY_ELEMENTS.has(tag)) {
+        return false;
+    }
+    if (CONTAINER_ELEMENTS.has(tag)) {
+        return true;
+    }
+    return display === 'block' || display === 'flex' || display === 'grid' || display === 'flow-root';
+}
+
 export const SHADCN_BLOCKS: ShadcnBlockDefinition[] = BLOCKS.map((block) => {
     const code = `<${block.exportName} />`;
     const wrapperClass = getBlockInsertWrapperClass(block.categories);

@@ -134,6 +134,15 @@ Card-shaped blocks (authentication, login, signup, otp) instead wrap in
 `mx-auto w-full max-w-sm` so an inserted login form renders as the centred card
 its upstream page shows rather than stretching across the frame.
 
+A block is never appended to a text element. `resolveBlockInsertTarget` walks up
+from the selection until `isBlockInsertContainer` accepts the tag (layout
+elements, or anything laying out as `block`/`flex`/`grid`), so selecting an `h1`,
+`p`, or `span` places the block in its nearest container instead of producing
+`<h1>…<div class="max-w-sm"><LoginForm /></div></h1>`. When no container is
+found, insertion refuses with "Select a layout element…" rather than guessing.
+The resolved container also owns the `CodeDiffRequest`, so the write and the
+insertion location address the same node.
+
 Use and install actions run through MobX state: `installing` covers the CLI
 install and `using` covers the code write, and the library's Use button renders an
 `Icons.Shadow` spinner with `Installing…` / `Adding…` and stays disabled for the
@@ -146,6 +155,21 @@ used for manual edits. The webview reloads after the write.
 Inserted JSX keeps generated `data-oid` attributes, so it stays selectable and
 editable like hand-written JSX, including Tailwind class edits written back to the
 user's source file.
+
+Editing a component root such as
+`className={cn("flex flex-col gap-6", className)} {...props}` replaces only the
+literal class arguments and keeps the forwarded `className` and other dynamic
+arguments. A spread therefore no longer makes the element read-only; it only
+blocks the edit when there is no `className` value to extend, because there is no
+safe place to put the class.
+
+Installed components must keep their upstream look. shadcn relies on a `@layer
+base` rule (`@apply border-border …`) to turn Tailwind's `border` utility into the
+`--border` token; without it every border falls back to `currentColor`, which is
+the hard black outline seen on imported cards. `ensureShadcnBaseLayer` adds the
+canonical rule on init and after each install when it is missing, is idempotent,
+and refuses to write an `@apply` whose token mapping does not exist so it cannot
+break the project's build. It also collapses duplicated `@apply` declarations.
 
 ### Explicit limits
 

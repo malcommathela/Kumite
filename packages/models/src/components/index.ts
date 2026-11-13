@@ -1,7 +1,17 @@
 import type { CodeImport } from '../code';
-import { getBlockInsertWrapperClass, getShadcnBlock, SHADCN_BLOCKS } from './blocks';
+import {
+    getBlockInsertWrapperClass,
+    getShadcnBlock,
+    isBlockInsertContainer,
+    SHADCN_BLOCKS,
+} from './blocks';
 
-export { getBlockInsertWrapperClass, getShadcnBlock, SHADCN_BLOCKS } from './blocks';
+export {
+    getBlockInsertWrapperClass,
+    getShadcnBlock,
+    isBlockInsertContainer,
+    SHADCN_BLOCKS,
+} from './blocks';
 export type { ShadcnBlockDefinition } from './blocks';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
