@@ -53,6 +53,12 @@ kumite/
 
 The full routing table is in [`CONTEXT.md`](CONTEXT.md).
 
+## Upstream desktop application
+
+The desktop editor source is maintained in an isolated Onlook-derived working
+copy, not vendored into this repository. Kumite keeps the integration architecture
+and verification records here; see [`UPSTREAM.md`](UPSTREAM.md).
+
 ## The workflow
 
 Kumite has three connected systems:
