@@ -4,6 +4,9 @@ The desktop application source is at the repository root. This folder contains
 Kumite's architecture, provenance, migration and phase verification records; the
 former skill/pipeline framework is not part of the app repository.
 
+Start with [`REPOSITORY_MIGRATION.md`](REPOSITORY_MIGRATION.md) for the source,
+cleanup and license boundaries.
+
 ## Architecture
 
 - [`UPSTREAM.md`](UPSTREAM.md) — source provenance and integration boundary.

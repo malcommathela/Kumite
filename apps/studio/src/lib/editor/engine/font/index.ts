@@ -7,19 +7,22 @@ import type { Font } from '@kumite/models/assets';
 import type { FontFile } from '@/routes/editor/LayersPanel/BrandTab/FontPanel/FontFiles';
 import WebFont from 'webfontloader';
 import FlexSearch from 'flexsearch';
-import type { Document } from 'flexsearch';
+import type { Document, DocumentData } from 'flexsearch';
 
-interface RawFont {
+interface FontSearchRecord extends DocumentData {
     id: string;
     family: string;
     subsets: string[];
     weights: string[];
     styles: string[];
+    type: string;
+}
+
+interface RawFont extends FontSearchRecord {
     defSubset: string;
     variable: boolean;
     lastModified: string;
     category: string;
-    type: string;
 }
 
 export class FontManager {
@@ -33,7 +36,7 @@ export class FontManager {
     private _currentFontIndex = 0;
     private _batchSize = 20;
     private _isFetching = false;
-    private _fontSearchIndex: Document;
+    private _fontSearchIndex: Document<FontSearchRecord>;
 
     constructor(
         private editorEngine: EditorEngine,
@@ -42,7 +45,7 @@ export class FontManager {
         makeAutoObservable(this);
 
         // Initialize FlexSearch index
-        this._fontSearchIndex = new FlexSearch.Document({
+        this._fontSearchIndex = new FlexSearch.Document<FontSearchRecord>({
             document: {
                 id: 'id',
                 index: ['family'],
@@ -57,9 +60,9 @@ export class FontManager {
                 id: font.id,
                 family: font.family,
                 subsets: font.subsets,
-                variable: font.variable,
                 weights: font.weights,
                 styles: font.styles,
+                type: font.type,
             });
         });
 
@@ -100,7 +103,7 @@ export class FontManager {
         );
     }
 
-    private convertFont(font: RawFont): Font {
+    private convertFont(font: FontSearchRecord): Font {
         return {
             ...font,
             weight: font.weights,
@@ -341,7 +344,9 @@ export class FontManager {
 
             const fonts = Object.values(searchResults)
                 .flatMap((result) => result.result)
-                .map((font) => this.convertFont(font.doc))
+                .map((result) => result.doc)
+                .filter((font): font is FontSearchRecord => font !== null)
+                .map((font) => this.convertFont(font))
                 .filter((font) => !this._fonts.some((f) => f.family === font.family));
 
             if (fonts.length === 0) {
