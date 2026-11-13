@@ -9,7 +9,14 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { runShadcnCommand } from './cli';
-import { findBlockComponent, findComponentFile, inspectProject, readPackageJson } from './inspect';
+import { restoreFiles, snapshotFiles } from './files';
+import {
+    findBlockComponent,
+    findComponentFile,
+    inspectProject,
+    readPackageJson,
+    resolveAlias,
+} from './inspect';
 import { componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme } from './theme';
@@ -118,6 +125,15 @@ export async function initializeComponents(projectPath: unknown): Promise<Shadcn
         log: `${result.command}\n\n${result.output}${themeNote ? `\n\n${themeNote}` : ''}`,
         status,
     };
+}
+
+function componentDirectories(root: string, status: ShadcnProjectStatus): string[] {
+    return [
+        status.uiDir,
+        resolveAlias(root, status.componentsAlias ?? '@/components'),
+        path.join(root, 'app'),
+        path.join(root, 'src', 'app'),
+    ].filter((directory): directory is string => Boolean(directory));
 }
 
 export async function installComponent(
@@ -262,7 +278,18 @@ export async function installComponent(
     }
 
     const itemReference = isShadcnBlock(definition) ? definition.registryUrl : definition.name;
-    const result = await runShadcnCommand(root, packageManager, ['add', itemReference, '-y']);
+    const snapshot = snapshotFiles(componentDirectories(root, status));
+    let result: Awaited<ReturnType<typeof runShadcnCommand>>;
+    try {
+        result = await runShadcnCommand(root, packageManager, [
+            'add',
+            itemReference,
+            '-y',
+            '--overwrite',
+        ]);
+    } finally {
+        restoreFiles(snapshot);
+    }
     log += `${result.command}\n\n${result.output}`;
 
     let refreshed = inspectProject(root);

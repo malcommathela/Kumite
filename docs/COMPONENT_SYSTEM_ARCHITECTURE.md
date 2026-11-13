@@ -67,8 +67,13 @@ preview sources and provenance are verified.
   TypeScript, Tailwind), which breaks the preview after install.
 - Not pinned to latest on purpose: 4.x moves the registry to Base UI/nova
   components, and 2.10.0 fails with `Validation failed: - tailwind: Required`.
-- Installs never pass `--overwrite`. Re-running an install for a component whose
-  file already exists reports "already installed" instead of rewriting it.
+- The pinned CLI has no "skip existing files" flag: an existing destination file
+  opens an interactive overwrite prompt even with `-y` and `CI=1`, which stalls
+  forever without a TTY. Kumite snapshots the UI, components and `app` directories
+  before `shadcn add ... --overwrite`, then restores every file that existed
+  beforehand. Files the install created are kept, so installs still never
+  overwrite project files. Re-running an install for a catalog item whose file
+  already exists reports "already installed" without invoking the CLI.
 
 ### Status detection
 
@@ -122,7 +127,9 @@ require Vite in the active project.
 `CodeDiffRequest` that carries required `imports`. Component imports are remapped
 to the active project's `components.json` UI alias. Block imports use the
 configured components alias and the block's verified named/default export; a
-block is appended to the selected element rather than replacing a route.
+block is appended to the selected element rather than replacing a route. Blocks
+are page-level compositions, so their insert code wraps the export in a
+full-width `div`; without it they collapse inside a centred flex parent.
 `apps/studio/electron/main/code/diff/transform.ts` merges those
 imports into the file's existing `import { ... } from "..."` declaration instead of
 appending a second one, then the write goes through the same code-diff pipeline

@@ -918,6 +918,11 @@ const BLOCKS = [
 
 export const SHADCN_BLOCKS: ShadcnBlockDefinition[] = BLOCKS.map((block) => {
     const code = `<${block.exportName} />`;
+    // Blocks are page-level compositions. A full-width wrapper keeps them from
+    // collapsing when they are inserted into a centred flex/grid parent.
+    const insertCode = `<div className="w-full">
+    ${code}
+</div>`;
     const source = `@/components/${block.componentFile}`;
     const moduleImport: CodeImport = block.defaultImport
         ? { source, defaultImport: block.exportName }
@@ -934,7 +939,7 @@ export const SHADCN_BLOCKS: ShadcnBlockDefinition[] = BLOCKS.map((block) => {
                 : `https://ui.shadcn.com/view/new-york-v4/${block.name}`,
         registryUrl: `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/public/r/styles/new-york-v4/${block.name}.json`,
         imports: [moduleImport],
-        insertCode: code,
+        insertCode,
         previewCode: code,
     };
 });

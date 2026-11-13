@@ -176,7 +176,10 @@ describe('component matrix', () => {
                     : block.imports[0].namedImports?.[0],
                 block.exportName,
             );
-            assert.equal(block.insertCode, `<${block.exportName} />`);
+            assert.equal(
+                block.insertCode,
+                `<div className="w-full">\n    <${block.exportName} />\n</div>`,
+            );
             assert.ok(block.categories.length > 0);
             assert.ok(block.registryDependencies.every((name) => componentNames.has(name)));
             for (const dependency of block.dependencies) {
