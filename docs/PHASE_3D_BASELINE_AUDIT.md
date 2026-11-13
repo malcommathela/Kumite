@@ -152,9 +152,10 @@ Two structural observations for Stage 2:
   resolver consults. `runManager` is the natural owner of the mapping and is
   already the only source of `TemplateNode`; adding a second registry would
   duplicate it (the spec forbids that).
-- `_shared/component-core.mjs` in the Kumite repository is a **documentation
-  model**, not application code. It must not be imported by the app and must not
-  become the runtime registry.
+- At the time of this baseline, `_shared/component-core.mjs` was a
+  **documentation-only model**, not application code. It was intentionally not
+  imported into the desktop app or used as its runtime registry; the file was
+  later removed when the skill/pipeline repository was converted to the app.
 
 ## 4. Identity audit (Stage 1 input)
 

@@ -8,7 +8,10 @@
 
 ## Relationship
 
-Kumite uses Onlook Desktop as its upstream foundation. Kumite is not a clean fork in Git history; the validated upstream code lives in an isolated working copy. Kumite's own repository remains separate.
+The desktop application source now lives in this repository. It was derived from
+the validated Onlook base commit above; the upstream Git history itself was not
+merged. The isolated working copy was used as a read-only source for this import
+and remains separate from the Kumite remote.
 
 ## Review and integration
 
@@ -17,9 +20,14 @@ Kumite uses Onlook Desktop as its upstream foundation. Kumite is not a clean for
 3. Port only necessary changes.
 4. Document modified files and reasons.
 
-## Modified upstream files
+## Application source
 
-No upstream files are modified inside Kumite's own repository yet. Modifications in the isolated working copy include:
+The tracked application tree was imported from the isolated working copy at
+`65e3662a`. The source is under `apps/studio`, `packages`, `plugins`, `scripts`,
+and `tooling`. Local probes, build outputs, `node_modules`, and Bun are not
+versioned; `bun run download_bun` fetches the ignored Bun runtime when needed.
+
+The application changes recorded against upstream include:
 
 - `packages/models/src/constants/editor.ts`: APP_NAME/APP_SCHEMA changed to Kumite/kumite.
 - `apps/studio/package.json`: productName changed to Kumite.
@@ -101,9 +109,9 @@ No upstream files are modified inside Kumite's own repository yet. Modifications
 
 ### Phase 3D — component intelligence
 
-- `electron/main/code/intelligence/` (new): definitions, composition,
+- `apps/studio/electron/main/code/intelligence/` (new): definitions, composition,
   capabilities, fingerprints and one AST content engine over mapped source.
-- `electron/main/code/edit-target/ownership.ts` and `code/diff/`: containment
+- `apps/studio/electron/main/code/edit-target/ownership.ts` and `code/diff/`: containment
   and export-ownership checks, typed refusals, atomic preflight, and guarded
   span-addressed text/data writes. No silent instance/root fallback.
 - One `chart` adapter for local Recharts configuration and data literals; no
@@ -136,16 +144,17 @@ No upstream files are modified inside Kumite's own repository yet. Modifications
 - `PHASE_3D_BASELINE_AUDIT.md` and `PHASE_3D_*_COMPLETION_REPORT.md`: engine,
   content, adapter and 54-item catalog records.
 
-The Kumite repository stores these records and its documentation-only shared
-models. It does not contain or build the desktop app source.
+All Kumite-specific architecture and phase records are collected in this `docs/`
+directory. The former skill/pipeline framework and its skill files are not part
+of this application repository.
 
 
 ## Merge hotspots
 
-- `electron/main/index.ts`
-- `src/routes/editor/WebviewArea/Frame.tsx`
-- `builder-config/base.ts`
-- IPC event registration
+- `apps/studio/electron/main/index.ts`
+- `apps/studio/src/routes/editor/WebviewArea/Frame.tsx`
+- `apps/studio/builder-config/base.ts`
+- IPC event registration under `apps/studio/electron/main/events/`
 
 ## Licensing
 

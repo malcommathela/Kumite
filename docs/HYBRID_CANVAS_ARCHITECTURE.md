@@ -35,13 +35,13 @@ Frame resize triggers real browser layout (Grid/Flexbox), not absolute positioni
 
 ## State persistence
 
-Persist workspace layout separately from project files. In the running app, workspace
-state is stored in Onlook's own `project.settings` (`scale`, `position`, `frames`,
+Persist workspace layout separately from website source. In the running app, workspace
+state is stored in the app's `project.settings` (`scale`, `position`, `frames`,
 `activeFrameId`); there is no second store.
 
 ## Implemented foundation (Phase 2)
 
-Onlook already provides pan/zoom canvas (`src/routes/editor/Canvas/index.tsx`), frame model (`CanvasManager`), viewport presets, and editing integration. Kumite adds a separate workspace model (`_shared/workspace-model.mjs`) for documentation/validation without duplicating React source.
+The app inherits its pan/zoom canvas (`apps/studio/src/routes/editor/Canvas/index.tsx`), frame model (`CanvasManager`), viewport presets, and editing integration from Onlook. Kumite extends that implementation without introducing a second runtime canvas store.
 
 ## Implemented integration (Phase 3A.1)
 
@@ -107,5 +107,5 @@ non-overlapping drags are exact and repeatable.
 
 ### Workspace model status
 
-`_shared/workspace-model.mjs` remains **documentation and test only**. The app store
-(`project.settings`) is authoritative; no adapter writes through the shared module.
+The app store (`project.settings`) is authoritative; no parallel workspace model
+is used at runtime.

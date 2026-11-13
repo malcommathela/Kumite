@@ -6,9 +6,10 @@ Source adapter -> Normalization -> Dependency resolution -> Provenance validatio
 
 ## Component record
 
-See `_shared/component-core.mjs`. This is a small documentation/validation model,
-not the desktop app's runtime registry. Required: id, name, source, license,
-attribution. Unknown licenses are not installable.
+The application contract is `packages/models/src/components/index.ts`. Each
+definition records registry name, dependencies, exports, imports, templates and
+capability limits. Registry provenance is pinned; unknown licensing or
+attribution must never be treated as permissive.
 
 ## Adapters
 
@@ -24,8 +25,8 @@ official installation mechanism and then reads what landed on disk.
 Catalog: the audited 54-name `new-york-v4` manifest at `shadcn@3.7.0`, commit
 `1e9e337923aaede7db55b6091cb56a72a661b959`. It has 53 installable registry
 items; `toast` is retained as an explicitly unavailable item because its pinned
-registry request is 404. Catalog source lives in the isolated app checkout at
-`packages/models/src/components/index.ts`; that app source is not vendored here.
+registry request is 404. Catalog source lives in this repository at
+`packages/models/src/components/index.ts`.
 
 ### Installation
 
@@ -46,10 +47,10 @@ registry request is 404. Catalog source lives in the isolated app checkout at
 
 ### Status detection
 
-`inspectProject` reports framework, package manager, Tailwind presence, whether
+`apps/studio/electron/main/components/inspect.ts` reports framework, package manager, Tailwind presence, whether
 `components.json` exists, the resolved `ui` directory, and which catalog items
-already have files. A project without a `package.json` raises
-and the panel surfaces the message; a project with no React dependency or no
+already have files. A project without a `package.json` is rejected and the panel
+surfaces the message; a project with no React dependency or no
 Tailwind returns `supported: false` with a reason and install is disabled. No
 install is attempted for an unsupported project.
 
@@ -63,7 +64,7 @@ rollback is attempted.
 
 shadcn writes `oklch(...)` CSS variables. Projects on Tailwind v3 map tokens with
 `hsl(var(--token))`, where an `oklch()` value is invalid and silently resolves to
-no color. `theme.ts` converts each color token `oklch -> sRGB -> HSL triplet`,
+no color. `apps/studio/electron/main/components/theme.ts` converts each color token `oklch -> sRGB -> HSL triplet`,
 composites alpha over the block's `--background`, and forces hue to 0 when
 saturation is near zero. The rewrite is limited to color declarations and is
 idempotent.
@@ -87,8 +88,9 @@ preview stops. Previews therefore show the actual installed source, not a copy.
 
 ### Insertion
 
-`ComponentsManager.insert` builds an element tree and a `CodeDiffRequest` that
-carries the required `imports`. `electron/main/code/diff/transform.ts` merges those
+`apps/studio/src/lib/components/index.ts` builds an element tree and a
+`CodeDiffRequest` that carries required `imports`.
+`apps/studio/electron/main/code/diff/transform.ts` merges those
 imports into the file's existing `import { ... } from "..."` declaration instead of
 appending a second one, then the write goes through the same code-diff pipeline
 used for manual edits. The webview reloads after the write.
