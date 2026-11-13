@@ -119,6 +119,9 @@ The application changes recorded against upstream include:
 - The pinned catalog has 54 audited names, registry-derived exports/dependencies
   and a generated matrix. `toast` is a recorded 404; `form` and `sonner` carry
   explicit capability limits.
+- The desktop runtime uses `node-pty` when its native addon is available. If a
+  Windows SDK is unavailable, project commands use a PowerShell child-process
+  fallback; output and stop work, but terminal resizing is unavailable.
 
 ## Decisions recorded against upstream
 

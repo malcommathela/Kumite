@@ -104,7 +104,7 @@ persisted settings needed the legacy `'Onlook'` branch in `fromType`.
 |---|---|---|
 | Packaging | `electron-builder` fails on this host: `winCodeSign` cache extraction needs a symlink privilege (`EPERM`), and `node-abi` cannot resolve Electron 36.0.1 for the native rebuild. The unpacked app is produced (`release/0.2.31/win-unpacked/Kumite.exe`, `app.asar`, `resources/bun`) but exe branding and the NSIS installer are not. Run `bun run package` on a machine or CI with symlink rights. | Yes — no code change will fix a privilege. |
 | Auto-update feed | `apps/studio/dev-app-update.yml` still points at `onlook-dev/onlook`; commented as intentional until Kumite publishes releases. | No |
-| Root script `build:cli` | References a non-existent package (`--filter onlook`); pre-existing dead script, left as found. | Yes |
+| Root script `build:cli` | Removed during the app import; this repository has no CLI workspace. | No |
 | `packages/growth` | No longer imported by the app; kept in the tree. | Yes |
 | `plugins/*` metadata | `plugins/babel` and `plugins/next` keep their `@onlook/*` names, `author: onlook` and `onlook.com` homepage, because they are published packages that user projects install. | Yes — only when they are republished under Kumite |
 | Lockfiles | `bun.lock` and `package-lock.json` were **not** hand-edited after the scope rename. `bun install` must be re-run before building from a clean clone; today the tree works through `node_modules/@kumite/*` junctions. | No |

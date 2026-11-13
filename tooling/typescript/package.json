@@ -1,0 +1,6 @@
+{
+    "name": "@kumite/typescript",
+    "description": "The Kumite TypeScript Configuration",
+    "version": "0.0.0",
+    "private": true
+}

@@ -1,0 +1,7 @@
+# Dev-mode auto-updater feed.
+# Points at the upstream Onlook repository on purpose: Kumite publishes no
+# releases yet, so there is no Kumite feed to check. Re-point this (and the
+# publish target in builder-config/base.ts) once Kumite ships its own releases.
+owner: onlook-dev
+repo: onlook
+provider: github

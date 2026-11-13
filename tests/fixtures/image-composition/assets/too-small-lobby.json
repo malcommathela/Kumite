@@ -1,7 +1,0 @@
-{
-  "case": "too-small-lobby",
-  "description": "An 800px-wide lobby thumbnail cannot fill a 1600x900 hero without visible upscaling.",
-  "asset": { "id": "unsplash-lobby-thumb-1600607687939", "width": 800, "height": 600 },
-  "container": { "width": 1600, "height": 900 },
-  "focalPoint": { "x": 0.5, "y": 0.5 }
-}

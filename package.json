@@ -1,0 +1,55 @@
+{
+    "name": "@kumite/repo",
+    "version": "0.0.0",
+    "description": "Kumite Monorepo",
+    "homepage": "https://github.com/malcommathela/Kumite",
+    "license": "Apache-2.0",
+    "private": true,
+    "author": {
+        "name": "Kumite",
+        "url": "https://github.com/malcommathela/Kumite"
+    },
+    "workspaces": [
+        "packages/*",
+        "apps/*",
+        "tooling/*"
+    ],
+    "trustedDependencies": [
+        "electron",
+        "esbuild",
+        "supabase"
+    ],
+    "scripts": {
+        "build:foundation": "bun --filter @kumite/foundation build",
+        "build:studio": "bun build:foundation && bun --filter @kumite/studio build",
+        "clean": "git clean -xdf node_modules",
+        "clean:workspaces": "bun --filter '*' clean",
+        "db:gen": "bun --filter @kumite/supabase db:gen",
+        "db:gen:local": "bun --filter @kumite/backend db:gen",
+        "dev:foundation": "bun --filter @kumite/foundation dev",
+        "dev:studio": "bun --filter @kumite/studio dev",
+        "build": "bun --filter '*' build",
+        "ci:build": "bun run build:foundation && bun --filter '*' build",
+        "dev": "bun --elide-lines=0  --filter '*' dev",
+        "test": "bun --filter '*' test",
+        "format": "bun --filter '*' format",
+        "lint": "bun --filter @kumite/studio lint",
+        "typecheck": "bun --filter '*' typecheck",
+        "increment_tag": "./scripts/increment_tag.sh",
+        "publish_tag": "./scripts/publish_tag.sh",
+        "remove_tag": "./scripts/remove_tag.sh",
+        "download_bun": "bun run ./scripts/download_bun.ts",
+        "prepare": "husky"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/malcommathela/Kumite.git"
+    },
+    "bugs": {
+        "url": "https://github.com/malcommathela/Kumite/issues"
+    },
+    "devDependencies": {
+        "extract-zip": "^2.0.1",
+        "husky": "^9.1.6"
+    }
+}

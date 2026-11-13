@@ -1,8 +1,0 @@
-{
-  "case": "compatible-architecture-hero",
-  "description": "4:3 source cropped to a 16:9 hero keeps the stair focal point and the right-hand text wall.",
-  "asset": { "id": "pexels-architectural-atrium-1181396", "width": 6000, "height": 4000 },
-  "container": { "width": 1600, "height": 900 },
-  "focalPoint": { "x": 0.62, "y": 0.42 },
-  "textSafeArea": { "x": 0.06, "y": 0.5, "width": 0.4, "height": 0.4 }
-}

@@ -1,0 +1,38 @@
+{
+    "name": "@kumite/supabase",
+    "description": "Supabase client library for Kumite",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "clean": "rm -rf node_modules",
+        "lint": "eslint --fix .",
+        "format": "prettier --write .",
+        "db:gen": "supabase gen types --lang=typescript --project-id $PROJECT_ID --schema public > src/types/db.ts",
+        "typecheck": "tsc --noEmit"
+    },
+    "keywords": [
+        "kumite",
+        "supabase"
+    ],
+    "author": {
+        "name": "Kumite",
+        "url": "https://github.com/malcommathela/Kumite"
+    },
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/malcommathela/Kumite",
+    "dependencies": {
+        "@supabase/supabase-js": "^2.45.6",
+        "react": "^18.3.1"
+    },
+    "devDependencies": {
+        "@kumite/typescript": "*",
+        "supabase": "^2.2.1",
+        "typescript": "^5.5.4"
+    },
+    "exports": {
+        "./clients": "./src/clients/index.ts",
+        "./queries": "./src/queries/index.ts",
+        "./rpc": "./src/rpc/index.ts",
+        "./types": "./src/types/index.ts"
+    }
+}

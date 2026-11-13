@@ -1,169 +1,145 @@
-# Kumite
+<a id="readme-top"></a>
 
-A portable, taste-led design-engineering system for AI coding agents. Kumite
-helps users discover and select the design references they like, turns those
-choices into an approved visual and motion direction, then engineers the
-experience with evidence-based specialist skills.
+<div align="center">
+<h3 align="center">Kumite</h3>
+  <p align="center">
+    A design-engineering studio for React apps
+    <br />
+    <br />
+    <a href="https://github.com/malcommathela/Kumite/issues/new">Report an Issue</a>
+    ·
+    <a href="https://github.com/malcommathela/Kumite/issues">Request a Feature</a>
+  </p>
+</div>
 
-## What it is
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#about">About</a></li>
+    <li><a href="#status">Status</a></li>
+    <li><a href="#getting-started">Getting Started</a></li>
+    <li><a href="#repository-layout">Repository Layout</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+    <li><a href="#license">License</a></li>
+  </ol>
+</details>
 
-- **Two experience pipelines.** Content Experience for marketing pages,
-  editorial sites and portfolios. Product Experience for app screens,
-  dashboards, tools and flows.
-- **A collaborative taste system.** Users can browse references independently
-  or choose through guided conversation, select multiple sources and specify
-  exactly which qualities they want to combine.
-- **One shared factory.** Evidence rules, reference decomposition, conflict
-  resolution, design-system foundations, visual quality, motion and reference
-  intelligence are shared by both pipelines.
-- **A discoverable skill layer.** `.agents/skills/` contains the Kumite design skills; animation technology is
-  selected per project rather than prescribed by Kumite.
-- **Worked examples.** `examples/design-intelligence-demo/` keeps a compact,
-  runnable page demonstration; `projects/coffee-brand/` preserves a complete
-  validation project and proof of work.
+## About
 
-## What it is not
+Kumite is a desktop studio for React + Tailwind projects. It runs your app in a
+window on an infinite canvas, lets you edit the rendered DOM directly, and writes
+those edits back into your source files without giving up control of the codebase.
 
-- A website builder, image generator or design application.
-- A replacement for Figma, a component library or a design-token pipeline.
-- A promise that a screenshot is structured data. It is not.
+Kumite is a fork of [Onlook Desktop](https://github.com/onlook-dev/desktop), the
+open-source "Cursor for Designers". The design canvas, editor, write-to-code
+pipeline, AI chat and Electron shell come from that project; this fork rebrands
+the application and adds its own tooling on top.
 
-## Architecture
+### Built With
 
-```text
-kumite/
-├── AGENTS.md                     # concise agent routing and non-negotiables
-├── CONTEXT.md                    # system router
-├── .agents/skills/               # Kumite design skills
-├── pipelines/
-│   ├── content-experience/       # brief → reference/taste → direction → motion → build
-│   └── product-experience/       # brief → system/taste → flows/direction → motion → build
-├── _shared/
-│   ├── foundations/              # taste, link-based selection, decomposition, approval
-│   ├── references/                # policies, evidence and quality rules
-│   ├── scripts/                   # anti-slop and fidelity CLIs
-│   ├── motion/                    # library-agnostic motion principles and approval
-│   └── reference-intelligence/    # live-page, Figma and component-source guidance
-├── _templates/                    # project, reference, taste, direction and review artifacts
-├── _tools/                        # validation utilities
-├── projects/                      # project-specific work and evidence
-├── examples/                      # preserved worked example
-└── adapters/                      # platform integration notes
-```
+React · Electron · Tailwind CSS · Vite · TypeScript
 
-The full routing table is in [`CONTEXT.md`](CONTEXT.md).
+## Status
 
-## Upstream desktop application
+Kumite is under active development and is **not** a released product yet. There
+is no download; build it from source (see below).
 
-The desktop editor source is maintained in an isolated Onlook-derived working
-copy, not vendored into this repository. Kumite keeps the integration architecture
-and verification records here; see [`UPSTREAM.md`](UPSTREAM.md).
+What this fork changes relative to upstream:
 
-## The workflow
+-   **Identity and storage.** The app, its window titles, menus, assets, CSS
+    tokens, DOM attributes and package scope (`@kumite/*`) are renamed. Existing
+    local data is migrated from the legacy application directories on first
+    launch, including project metadata and images.
+-   **No growth surfaces.** The upstream announcement campaign, the "built with"
+    badge injected into published sites, and the badge-removal plan benefit are
+    removed. Kumite does not monetize or upsell through the editor.
+-   **Contacts are placeholders.** Help-menu and about links point at this
+    repository. The upstream Discord invite, website and support addresses are
+    intentionally left as clearly-marked placeholders until Kumite has its own
+    destinations.
+-   **Component intelligence.** The Components panel installs pinned shadcn/ui
+    definitions. A shared AST engine proves source ownership and supports guarded
+    text/data edits; one adapter handles local Recharts data. The 54-item catalog
+    is structurally validated, not claimed as 54 Electron runtime tests.
 
-Kumite has three connected systems:
+Known limitations inherited from upstream, and still present here:
 
-1. **Discovery** — understand the brief, find references, ask for the user's
-   taste, and present concise link options for user selection.
-2. **Direction** — inspect only selected references, resolve contradictions
-   with the user, propose a visual concept/frame, derive the living design
-   system, and obtain explicit approval. Motion is discovered and approved
-   separately.
-3. **Engineering** — build from the approved specifications, show meaningful
-   checkpoints, incorporate feedback and direction changes, then verify quality.
+-   Publishing deploys through the upstream Onlook hosting service. Kumite has no
+    first-party hosting backend, so publishing, custom domains and any related
+    account limits depend on that upstream service. See
+    `docs/KUMITE_REBRAND_AUDIT.md` for the full list.
+-   The auto-updater configuration and several service endpoints still reference
+    upstream infrastructure.
+-   If the native `node-pty` addon cannot be built, the app uses a PowerShell
+    fallback for project commands. It streams output and stops the process tree,
+    but terminal resizing is unavailable.
 
-Taste discovery is mandatory in both pipelines. The Content pipeline captures it
-in the reference stage; the Product pipeline captures it alongside the system
-inventory. Both pipelines obtain direction approval before implementation.
+## Getting Started
 
-### Content Experience
+### Prerequisites
 
-Use when the work is a page or site whose job is to communicate, persuade or
-present: landing pages, editorial features, portfolios and campaign pages.
+-   [Bun](https://bun.sh) (package manager and test runner)
+-   Node.js 20 or newer
+-   Git
 
-Start at
-[`pipelines/content-experience/CONTEXT.md`](pipelines/content-experience/CONTEXT.md).
-
-### Product Experience
-
-Use when the work is an application surface: dashboards, settings, onboarding,
-multi-step flows and data tools. The project's real design system and states
-come first.
-
-Start at
-[`pipelines/product-experience/CONTEXT.md`](pipelines/product-experience/CONTEXT.md).
-
-## Shared foundations
-
-- **Taste and selection** — project profiles, multi-reference boards and
-  user-authored preferences. See
-  [`_shared/foundations/selection-board.md`](_shared/foundations/selection-board.md).
-- **Reference intelligence** — browser-based live-page/source inspection,
-  Figma MCP extraction and component-source research. No dedicated inspection
-  service or engine is required. See
-  [`_shared/reference-intelligence/README.md`](_shared/reference-intelligence/README.md).
-- **Direction and design system** — conflict resolution, concept approval,
-  living tokens and implementation checkpoints. See
-  [`_shared/foundations/README.md`](_shared/foundations/README.md).
-- **Evidence and quality** — exact, measured, estimated and unknown values,
-  image composition, anti-slop and fidelity checks. See
-  [`_shared/references/evidence-and-confidence.md`](_shared/references/evidence-and-confidence.md).
-- **Motion** — evidence-based, library-neutral motion principles, approval and
-  accessibility. See
-  [`_shared/motion/README.md`](_shared/motion/README.md).
-
-## Skills
-
-Agents discover skills at `.agents/skills/<name>/SKILL.md`; each directory
-matches its frontmatter `name`.
-
-| Skill | Job |
-|---|---|
-| `kumite-content-experience` | Route content-led work |
-| `kumite-product-experience` | Route product work |
-| `kumite-design-intelligence` | Coordinate discovery, direction and engineering |
-| `kumite-design-discovery` | Find and evaluate public design resources |
-| `kumite-figma-integration` | Extract structured data through Figma MCP |
-| `kumite-component-first` | Reuse components before writing new ones |
-| `kumite-visual-assets` | Source authentic, composition-compatible imagery |
-| `kumite-design-quality` | Anti-slop, fidelity and motion audit |
-| `kumite-motion-design` | Coordinate evidence-based, library-neutral motion design |
-| `kumite-taste` | Maintain user and project taste profiles |
-| `kumite-design-system` | Derive and maintain the living design system |
-| `kumite-component-intelligence` | Discover, inspect and adapt component references |
-
-
-## Validation
-
-Run from the repository root:
+### Build from source
 
 ```sh
-node --test "tests/**/*.test.mjs"
-python _tools/links.py
+bun install
+bun run download_bun
+cd apps/studio
+bun run dev
 ```
 
-Individual tools:
+To produce a distributable:
 
 ```sh
-node _shared/scripts/anti-slop-check.mjs <review.json> [--json]
-node _shared/scripts/fidelity-check.mjs <reference.json> <implementation.json> [--json]
+cd apps/studio
+bun run package
 ```
 
-## Project evidence
+`bun install` must be run before building. `bun run download_bun` fetches the
+platform runtime into the ignored `apps/studio/resources/bun/` directory used by
+the desktop app and installer. The binary is intentionally not stored in Git.
 
-Project-specific evidence belongs with its project. Kumite has no mandatory
-repository-wide design-memory file or schema; current decisions live in the
-approved brief, reference evidence, taste profile, direction, design system and
-implementation specification.
+### Usage
 
+Kumite runs on any React + Tailwind project: bring your own, or create a new one
+from the template. Use the chat or the style panel to change the app, right-click
+an element to jump to its source, and choose your preferred IDE from the top bar
+to open the code where the element lives.
 
-## Installation
+## Repository Layout
 
-Not yet packaged for distribution. Clone the repository and use the
-project-local `.agents/skills/` directory. For Antigravity, see
-[`adapters/antigravity/README.md`](adapters/antigravity/README.md).
+-   `apps/studio` — the Electron application (main, preload, renderer).
+-   `packages` — shared models, AI, git, storage and UI packages.
+-   `plugins/babel`, `plugins/next` — build plugins injected into user projects.
+    These keep their published `@onlook/*` package names, because projects
+    reference them by that name.
+
+## Contributing
+
+Issues and pull requests are welcome at
+[github.com/malcommathela/Kumite](https://github.com/malcommathela/Kumite).
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the contribution process and
+[docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) for community expectations.
+
+Kumite-specific integration and phase records are collected in [`docs/`](docs/).
+
+## Acknowledgments
+
+Kumite would not exist without [Onlook](https://github.com/onlook-dev/desktop) and
+the projects it builds on:
+
+-   [Visbug](https://github.com/GoogleChromeLabs/ProjectVisBug)
+-   [Responsively](https://github.com/responsively-org/responsively-app)
+-   [Supabase](https://github.com/supabase/supabase)
+-   [shadcn/ui](https://github.com/shadcn-ui/ui)
+-   [hymhub/css-to-tailwind](https://github.com/hymhub/css-to-tailwind)
 
 ## License
 
-[MIT](LICENSE). Third-party components retain their own licences; see
-[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for the
+full text. The original copyright notice and upstream attribution are retained.
