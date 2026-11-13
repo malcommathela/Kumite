@@ -6,8 +6,9 @@ Source adapter -> Normalization -> Dependency resolution -> Provenance validatio
 
 ## Component record
 
-The application contract is `packages/models/src/components/index.ts`. Each
-definition records registry name, dependencies, exports, imports, templates and
+The component contract is `packages/models/src/components/index.ts`; the curated
+official block records are in `packages/models/src/components/blocks.ts`.
+Definitions record registry identity, import templates, preview source and
 capability limits. Registry provenance is pinned; unknown licensing or
 attribution must never be treated as permissive.
 
@@ -28,10 +29,34 @@ items; `toast` is retained as an explicitly unavailable item because its pinned
 registry request is 404. Catalog source lives in this repository at
 `packages/models/src/components/index.ts`.
 
+The same pinned commit has 64 official blocks. Kumite catalogs all 64 with
+measured descriptions, categories, npm dependencies, registry dependencies,
+verified reusable exports and preview sources (official live pages where
+published; project-local preview for calendar and OTP examples).
+The block manifest is in `packages/models/src/components/blocks.ts`.
+
+Blocks install from their direct JSON URL at the pinned commit, not by mutable
+registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
+`calendar-01` and `dashboard-01` JSON installed their reusable source files and
+registry dependencies. `registry:page` routes are not created by the CLI for a
+Vite project, so Kumite inserts the block's verified component export instead.
+The installed file is recorded in `.kumite/components.json`; existing files are
+never overwritten. Variants that share a destination file cannot be installed
+side-by-side without the user resolving that conflict.
+
+### Library UI
+
+The Components panel opens a searchable, categorized library with component and
+block filters. Catalog browsing and official block previews work without an
+active project. The detail view offers preview, copy-for-agent and use actions;
+project writes remain explicit. 21st.dev and Magic UI use the same visible
+provider slot but remain unavailable until their catalogs, installation paths,
+preview sources and provenance are verified.
+
 ### Installation
 
 - Pinned CLI: `shadcn@3.7.0`. `init -d` for a project without `components.json`,
-  then `add <name> -y`.
+  then add catalog primitives by name and blocks by their pinned direct JSON URL.
 - Package manager detection from the lockfile: npm and yarn use
   `npx --yes shadcn@3.7.0`, pnpm uses `pnpm dlx`, and Bun uses the desktop app's
   bundled Bun executable. Its directory is added to the child-process `PATH`
@@ -47,12 +72,14 @@ registry request is 404. Catalog source lives in this repository at
 
 ### Status detection
 
-`apps/studio/electron/main/components/inspect.ts` reports framework, package manager, Tailwind presence, whether
-`components.json` exists, the resolved `ui` directory, and which catalog items
-already have files. A project without a `package.json` is rejected and the panel
-surfaces the message; a project with no React dependency or no
-Tailwind returns `supported: false` with a reason and install is disabled. No
-install is attempted for an unsupported project.
+`apps/studio/electron/main/components/inspect.ts` reports framework, package
+manager, Tailwind presence, whether `components.json` exists, resolved component
+directories and aliases, local Vite preview availability, and installed
+catalog items. A project without a `package.json` is rejected and the panel
+surfaces the message; a project with no React dependency or no Tailwind returns
+`supported: false` with a reason and install/use is disabled. Vite preview
+availability is reported separately, so Next/React projects without local Vite
+can still use components and blocks without a misleading preview action.
 
 ### Failures
 
@@ -80,16 +107,22 @@ CLI wrote them.
 
 ### Preview
 
-Each preview runs in an isolated Vite server rooted at the project, started on the
-first free port from 3310. It writes a temporary `__kumite_preview.html` and
-`__kumite_preview.tsx` at the project root that import the real installed file by
-relative path, renders it in a Dialog iframe, and deletes both temp files when the
-preview stops. Previews therefore show the actual installed source, not a copy.
+Installed components preview their actual project source in an isolated Vite
+server on the first free port from 3310. Kumite creates its temporary entry files
+exclusively, refuses to overwrite either fixed-name file if it already exists,
+and cleans up the child process and owned files after a failed start or close.
+Blocks with an official upstream preview use it before install; calendar and OTP
+examples render the installed source in the local isolated Vite preview. Remote
+previews show an offline message when the network is unavailable. Local previews
+require Vite in the active project.
 
 ### Insertion
 
 `apps/studio/src/lib/components/index.ts` builds an element tree and a
-`CodeDiffRequest` that carries required `imports`.
+`CodeDiffRequest` that carries required `imports`. Component imports are remapped
+to the active project's `components.json` UI alias. Block imports use the
+configured components alias and the block's verified named/default export; a
+block is appended to the selected element rather than replacing a route.
 `apps/studio/electron/main/code/diff/transform.ts` merges those
 imports into the file's existing `import { ... } from "..."` declaration instead of
 appending a second one, then the write goes through the same code-diff pipeline

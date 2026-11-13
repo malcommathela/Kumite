@@ -1,7 +1,7 @@
-import { COMPONENT_CLI_VERSION, getShadcnComponent } from '@kumite/models';
+import { COMPONENT_CLI_VERSION, getShadcnLibraryItem, isShadcnBlock } from '@kumite/models';
 import fs from 'fs';
 import path from 'path';
-import { findComponentFile } from './inspect';
+import { findBlockComponent, findComponentFile, inspectProject } from './inspect';
 
 interface ProvenanceRecord {
     name: string;
@@ -44,12 +44,19 @@ export function recordComponentInstallation(
 
     const manifestPath = path.join(directory, MANIFEST_FILE);
     const manifest = readManifest(manifestPath);
-    const definition = getShadcnComponent(componentName);
-    const componentFile = findComponentFile(uiDir, componentName);
-
-    const files = componentFile
-        ? [path.relative(projectPath, componentFile).split(path.sep).join('/')]
-        : [];
+    const definition = getShadcnLibraryItem(componentName);
+    const status = inspectProject(projectPath);
+    const files =
+        definition && isShadcnBlock(definition)
+            ? definition.files
+                  .map((file) =>
+                      findBlockComponent(projectPath, status.componentsAlias ?? undefined, file),
+                  )
+                  .filter((file): file is string => Boolean(file))
+                  .map((file) => path.relative(projectPath, file).split(path.sep).join('/'))
+            : [findComponentFile(uiDir, componentName)]
+                  .filter((file): file is string => Boolean(file))
+                  .map((file) => path.relative(projectPath, file).split(path.sep).join('/'));
 
     const record: ProvenanceRecord = {
         name: componentName,
@@ -83,5 +90,10 @@ function readManifest(manifestPath: string): ProvenanceManifest {
     } catch {
         // Missing or invalid manifest; start a new one.
     }
-    return { generator: 'Kumite', registry: 'shadcn/ui', cliVersion: COMPONENT_CLI_VERSION, components: [] };
+    return {
+        generator: 'Kumite',
+        registry: 'shadcn/ui',
+        cliVersion: COMPONENT_CLI_VERSION,
+        components: [],
+    };
 }

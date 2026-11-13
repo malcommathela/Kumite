@@ -1,11 +1,16 @@
 import type { ActionElement } from '@kumite/models/actions';
 import type {
-    ShadcnComponentDefinition,
     ShadcnInitResult,
     ShadcnInstallResult,
+    ShadcnLibraryItem,
     ShadcnProjectStatus,
 } from '@kumite/models';
-import { getShadcnComponent, SHADCN_COMPONENTS } from '@kumite/models';
+import {
+    getShadcnLibraryItem,
+    isShadcnBlock,
+    SHADCN_BLOCKS,
+    SHADCN_COMPONENTS,
+} from '@kumite/models';
 import { MainChannels } from '@kumite/models/constants';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { getOrCreateCodeDiffRequest } from '../editor/engine/code/helpers';
@@ -38,8 +43,8 @@ export class ComponentsManager {
         makeAutoObservable(this);
     }
 
-    get catalog(): ShadcnComponentDefinition[] {
-        return SHADCN_COMPONENTS;
+    get catalog(): ShadcnLibraryItem[] {
+        return [...SHADCN_COMPONENTS, ...SHADCN_BLOCKS];
     }
 
     get projectPath(): string | null {
@@ -117,6 +122,7 @@ export class ComponentsManager {
                 status: null,
             };
         }
+        const wasInstalled = Boolean(this.status?.installed[componentName]);
         this.installing = componentName;
         try {
             const result = (await invokeMainChannel(MainChannels.COMPONENTS_INSTALL, {
@@ -127,7 +133,7 @@ export class ComponentsManager {
                 this.status = result.status ?? this.status;
                 this.lastLog = result.log || null;
             });
-            if (result.success) {
+            if (result.success && !wasInstalled) {
                 this.reloadPreviews();
             }
             return result;
@@ -139,6 +145,16 @@ export class ComponentsManager {
     }
 
     async openPreview(componentName: string): Promise<void> {
+        const block = getShadcnLibraryItem(componentName);
+        if (block && isShadcnBlock(block) && block.previewUrl) {
+            this.previewComponent = componentName;
+            this.previewUrl = navigator.onLine ? block.previewUrl : null;
+            this.previewError = navigator.onLine
+                ? null
+                : 'You’re offline. The official shadcn block preview needs an internet connection.';
+            this.previewLoading = false;
+            return;
+        }
         const projectPath = this.projectPath;
         if (!projectPath) {
             this.previewError = 'Open a project before previewing components.';
@@ -183,7 +199,7 @@ export class ComponentsManager {
     }
 
     async insert(componentName: string): Promise<ComponentInsertResult> {
-        const definition = getShadcnComponent(componentName);
+        const definition = getShadcnLibraryItem(componentName);
         if (!definition) {
             return { success: false, message: 'Unknown component.' };
         }
@@ -226,7 +242,24 @@ export class ComponentsManager {
             const requests = new Map();
             const request = await getOrCreateCodeDiffRequest(selected.oid, requests);
             request.structureChanges.push(codeInsert);
-            request.imports = definition.imports;
+            request.imports = definition.imports.map((moduleImport) => {
+                if (isShadcnBlock(definition)) {
+                    return {
+                        ...moduleImport,
+                        source: `${this.status?.componentsAlias ?? '@/components'}/${definition.componentFile}`,
+                    };
+                }
+                if (moduleImport.source.startsWith('@/components/ui/')) {
+                    return {
+                        ...moduleImport,
+                        source: moduleImport.source.replace(
+                            '@/components/ui',
+                            this.status?.uiAlias ?? '@/components/ui',
+                        ),
+                    };
+                }
+                return moduleImport;
+            });
 
             const written = await this.editorEngine.code.getAndWriteCodeDiff([request]);
             if (!written) {

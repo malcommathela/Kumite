@@ -4,12 +4,12 @@ import type {
     ShadcnPreviewResult,
     ShadcnProjectStatus,
 } from '@kumite/models';
-import { getShadcnComponent } from '@kumite/models';
+import { getShadcnLibraryItem, isShadcnBlock } from '@kumite/models';
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { runShadcnCommand } from './cli';
-import { findComponentFile, inspectProject, readPackageJson } from './inspect';
+import { findBlockComponent, findComponentFile, inspectProject, readPackageJson } from './inspect';
 import { componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme } from './theme';
@@ -30,11 +30,15 @@ function unsupportedStatus(projectPath: string, reason: string): ShadcnProjectSt
         projectPath,
         supported: false,
         reason,
+        previewSupported: false,
+        previewReason: 'Open a supported project with Vite installed to preview components.',
         framework: 'unknown',
         packageManager: null,
         tailwind: false,
         initialized: false,
         uiDir: null,
+        uiAlias: null,
+        componentsAlias: null,
         componentsJsonPath: null,
         installed: {},
     };
@@ -121,7 +125,7 @@ export async function installComponent(
     componentName: unknown,
 ): Promise<ShadcnInstallResult> {
     const definition =
-        typeof componentName === 'string' ? getShadcnComponent(componentName) : undefined;
+        typeof componentName === 'string' ? getShadcnLibraryItem(componentName) : undefined;
     if (!definition) {
         return {
             component: String(componentName ?? ''),
@@ -211,24 +215,60 @@ export async function installComponent(
     }
 
     // Never overwrite a component the project already owns.
-    const existing = findComponentFile(status.uiDir, definition.name);
+    const existing = isShadcnBlock(definition)
+        ? status.installed[definition.name]
+            ? findBlockComponent(
+                  root,
+                  status.componentsAlias ?? undefined,
+                  definition.componentFile,
+              )
+            : null
+        : findComponentFile(status.uiDir, definition.name);
+    if (isShadcnBlock(definition) && !status.installed[definition.name]) {
+        const targetExists = definition.files
+            .map((file) => findBlockComponent(root, status.componentsAlias ?? undefined, file))
+            .find((file): file is string => Boolean(file));
+        if (targetExists) {
+            return {
+                component: definition.name,
+                success: false,
+                initialized,
+                message: `The block target ${path.relative(root, targetExists)} already exists. Kumite will not overwrite it.`,
+                log: log.trim(),
+                status,
+            };
+        }
+    }
     if (existing) {
         status = inspectProject(root);
+        const missingDependencies = verifyDependencies(root, definition.dependencies);
+        const missingRegistryItems = definition.registryDependencies.filter(
+            (registryDependency) => !status.installed[registryDependency],
+        );
         return {
             component: definition.name,
-            success: true,
+            success: missingDependencies.length === 0 && missingRegistryItems.length === 0,
             initialized,
-            message: `${definition.title} is already installed at ${path.relative(root, existing)}.`,
+            message:
+                missingDependencies.length === 0 && missingRegistryItems.length === 0
+                    ? `${definition.title} is already installed at ${path.relative(root, existing)}.`
+                    : `${definition.title} exists at ${path.relative(root, existing)}, but the project is missing ${[
+                          ...missingDependencies.map((name) => `packages ${name}`),
+                          ...missingRegistryItems.map((name) => `shadcn components ${name}`),
+                      ].join(', ')}. Add them before using this item.`,
             log: log.trim(),
             status,
         };
     }
 
-    const result = await runShadcnCommand(root, packageManager, ['add', definition.name, '-y']);
+    const itemReference = isShadcnBlock(definition) ? definition.registryUrl : definition.name;
+    const result = await runShadcnCommand(root, packageManager, ['add', itemReference, '-y']);
     log += `${result.command}\n\n${result.output}`;
 
-    const refreshed = inspectProject(root);
-    const installedFile = findComponentFile(refreshed.uiDir, definition.name);
+    let refreshed = inspectProject(root);
+    const installedFile = isShadcnBlock(definition)
+        ? findBlockComponent(root, refreshed.componentsAlias ?? undefined, definition.componentFile)
+        : findComponentFile(refreshed.uiDir, definition.name);
     if (!result.success || !installedFile) {
         return {
             component: definition.name,
@@ -241,17 +281,24 @@ export async function installComponent(
     }
 
     recordComponentInstallation(root, definition.name, refreshed.uiDir);
+    refreshed = inspectProject(root);
 
     const missingDependencies = verifyDependencies(root, definition.dependencies);
+    const missingRegistryItems = definition.registryDependencies.filter(
+        (registryDependency) => !refreshed.installed[registryDependency],
+    );
     const fileLabel = path.relative(root, installedFile);
     return {
         component: definition.name,
         success: true,
         initialized,
         message:
-            missingDependencies.length === 0
+            missingDependencies.length === 0 && missingRegistryItems.length === 0
                 ? `Installed ${definition.title} to ${fileLabel}.`
-                : `Installed ${definition.title} to ${fileLabel}. Missing package.json entries: ${missingDependencies.join(', ')}.`,
+                : `Installed ${definition.title} to ${fileLabel}. Missing ${[
+                      ...missingDependencies.map((name) => `packages ${name}`),
+                      ...missingRegistryItems.map((name) => `shadcn components ${name}`),
+                  ].join(', ')}.`,
         log: log.trim(),
         status: refreshed,
     };
@@ -274,12 +321,20 @@ export async function startComponentPreview(
     componentName: unknown,
 ): Promise<ShadcnPreviewResult> {
     const definition =
-        typeof componentName === 'string' ? getShadcnComponent(componentName) : undefined;
+        typeof componentName === 'string' ? getShadcnLibraryItem(componentName) : undefined;
     if (!definition) {
         return {
             component: String(componentName ?? ''),
             url: null,
             error: 'That component is not part of the supported catalog.',
+            log: null,
+        };
+    }
+    if (isShadcnBlock(definition) && definition.previewUrl) {
+        return {
+            component: definition.name,
+            url: definition.previewUrl,
+            error: null,
             log: null,
         };
     }

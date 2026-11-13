@@ -1,9 +1,5 @@
-import type {
-    DetectedFramework,
-    PackageManager,
-    ShadcnProjectStatus,
-} from '@kumite/models';
-import { SHADCN_COMPONENTS } from '@kumite/models';
+import type { DetectedFramework, PackageManager, ShadcnProjectStatus } from '@kumite/models';
+import { SHADCN_BLOCKS, SHADCN_COMPONENTS } from '@kumite/models';
 import fs from 'fs';
 import path from 'path';
 
@@ -120,12 +116,53 @@ export function findComponentFile(uiDir: string | null, name: string): string | 
     return null;
 }
 
-function installedComponents(uiDir: string | null): Record<string, boolean> {
+function installedComponents(
+    projectPath: string,
+    uiDir: string | null,
+    componentsAlias: string | undefined,
+): Record<string, boolean> {
     const installed: Record<string, boolean> = {};
     for (const component of SHADCN_COMPONENTS) {
         installed[component.name] = Boolean(findComponentFile(uiDir, component.name));
     }
+    try {
+        const manifest = JSON.parse(
+            fs.readFileSync(path.join(projectPath, '.kumite', 'components.json'), 'utf8'),
+        ) as { components?: Array<{ name?: string }> };
+        const installedBlocks = new Set(
+            (manifest.components ?? [])
+                .map((component) => component.name)
+                .filter((name): name is string => Boolean(name)),
+        );
+        for (const block of SHADCN_BLOCKS) {
+            installed[block.name] =
+                installedBlocks.has(block.name) &&
+                findBlockComponent(projectPath, componentsAlias, block.componentFile) !== null;
+        }
+    } catch {
+        for (const block of SHADCN_BLOCKS) {
+            installed[block.name] = false;
+        }
+    }
     return installed;
+}
+
+export function findBlockComponent(
+    projectPath: string,
+    componentsAlias: string | undefined,
+    componentFile: string,
+): string | null {
+    const componentsDir = resolveAlias(projectPath, componentsAlias ?? '@/components');
+    if (!componentsDir) {
+        return null;
+    }
+    for (const extension of ['.tsx', '.jsx', '.ts', '.js']) {
+        const candidate = path.join(componentsDir, `${componentFile}${extension}`);
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+    return null;
 }
 
 export function inspectProject(projectPath: string): ShadcnProjectStatus {
@@ -148,19 +185,26 @@ export function inspectProject(projectPath: string): ShadcnProjectStatus {
         supported = false;
         reason = 'Tailwind CSS was not detected in the active project.';
     }
+    const previewSupported = fs.existsSync(
+        path.join(resolvedPath, 'node_modules', 'vite', 'bin', 'vite.js'),
+    );
 
     return {
         projectPath: resolvedPath,
         supported,
         reason,
+        previewSupported,
+        previewReason: previewSupported
+            ? null
+            : 'Live preview requires Vite to be installed in the active project.',
         framework,
         packageManager: packageJson ? detectPackageManager(resolvedPath) : null,
         tailwind,
         initialized: Boolean(componentsJson),
         uiDir,
-        componentsJsonPath: componentsJson
-            ? path.join(resolvedPath, 'components.json')
-            : null,
-        installed: installedComponents(uiDir),
+        uiAlias: componentsJson?.aliases?.ui ?? '@/components/ui',
+        componentsAlias: componentsJson?.aliases?.components ?? '@/components',
+        componentsJsonPath: componentsJson ? path.join(resolvedPath, 'components.json') : null,
+        installed: installedComponents(resolvedPath, uiDir, componentsJson?.aliases?.components),
     };
 }

@@ -1,4 +1,8 @@
 import type { CodeImport } from '../code';
+import { getShadcnBlock, SHADCN_BLOCKS } from './blocks';
+
+export { getShadcnBlock, SHADCN_BLOCKS } from './blocks';
+export type { ShadcnBlockDefinition } from './blocks';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
@@ -49,11 +53,15 @@ export interface ShadcnProjectStatus {
     projectPath: string;
     supported: boolean;
     reason: string | null;
+    previewSupported: boolean;
+    previewReason: string | null;
     framework: DetectedFramework;
     packageManager: PackageManager | null;
     tailwind: boolean;
     initialized: boolean;
     uiDir: string | null;
+    uiAlias: string | null;
+    componentsAlias: string | null;
     componentsJsonPath: string | null;
     installed: Record<string, boolean>;
 }
@@ -2071,3 +2079,14 @@ export const SHADCN_COMPONENTS: ShadcnComponentDefinition[] = [
 
 export const getShadcnComponent = (name: string): ShadcnComponentDefinition | undefined =>
     SHADCN_COMPONENTS.find((component) => component.name === name);
+
+export type ShadcnLibraryItem =
+    ShadcnComponentDefinition | import('./blocks').ShadcnBlockDefinition;
+
+export const getShadcnLibraryItem = (name: string): ShadcnLibraryItem | undefined =>
+    getShadcnComponent(name) ?? getShadcnBlock(name);
+
+export const isShadcnBlock = (
+    item: ShadcnLibraryItem,
+): item is import('./blocks').ShadcnBlockDefinition =>
+    SHADCN_BLOCKS.some((block) => block.name === item.name);
