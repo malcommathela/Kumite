@@ -406,6 +406,21 @@ const ComponentsTab = observer(() => {
         });
     };
 
+    const isBusy = (definition: ShadcnLibraryItem) =>
+        manager.installing === definition.name || manager.using === definition.name;
+
+    const insertLabel = (definition: ShadcnLibraryItem) => {
+        if (manager.using === definition.name) {
+            return 'Adding…';
+        }
+        if (manager.installing === definition.name) {
+            return 'Installing…';
+        }
+        return manager.status?.installed[definition.name]
+            ? 'Use in Kumite'
+            : 'Install & use in Kumite';
+    };
+
     const copyForAgent = async (definition: ShadcnLibraryItem) => {
         try {
             await navigator.clipboard.writeText(
@@ -555,7 +570,7 @@ const ComponentsTab = observer(() => {
                                         size="sm"
                                         variant="secondary"
                                         className="h-7 px-2 text-[11px]"
-                                        disabled={!hasSelection}
+                                        disabled={!hasSelection || isBusy(definition)}
                                         title={
                                             hasSelection
                                                 ? 'Add inside the selected element'
@@ -563,7 +578,10 @@ const ComponentsTab = observer(() => {
                                         }
                                         onClick={() => void useComponent(definition)}
                                     >
-                                        Use
+                                        {isBusy(definition) && (
+                                            <Icons.Shadow className="mr-1.5 h-3 w-3 animate-spin" />
+                                        )}
+                                        {isBusy(definition) ? 'Adding…' : 'Use'}
                                     </Button>
                                 )}
                             </div>
@@ -868,7 +886,7 @@ const ComponentsTab = observer(() => {
                                                 !projectPath ||
                                                 !manager.status?.supported ||
                                                 !hasSelection ||
-                                                manager.installing === selectedDefinition.name
+                                                isBusy(selectedDefinition)
                                             }
                                             title={
                                                 !hasSelection
@@ -877,9 +895,10 @@ const ComponentsTab = observer(() => {
                                             }
                                             onClick={() => void useComponent(selectedDefinition)}
                                         >
-                                            {manager.status?.installed[selectedDefinition.name]
-                                                ? 'Use in Kumite'
-                                                : 'Install & use in Kumite'}
+                                            {isBusy(selectedDefinition) && (
+                                                <Icons.Shadow className="mr-2 h-4 w-4 animate-spin" />
+                                            )}
+                                            {insertLabel(selectedDefinition)}
                                         </Button>
                                     )}
                                     <Button

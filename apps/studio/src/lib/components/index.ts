@@ -29,6 +29,7 @@ export class ComponentsManager {
     isLoadingStatus = false;
     initializing = false;
     installing: string | null = null;
+    using: string | null = null;
     lastLog: string | null = null;
     insertError: string | null = null;
     previewComponent: string | null = null;
@@ -215,6 +216,7 @@ export class ComponentsManager {
         }
 
         this.insertError = null;
+        this.using = componentName;
         const domId = createDomId();
         const oid = createOid();
         const actionElement: ActionElement = {
@@ -281,6 +283,10 @@ export class ComponentsManager {
                 this.insertError = message;
             });
             return { success: false, message };
+        } finally {
+            runInAction(() => {
+                this.using = null;
+            });
         }
     }
 

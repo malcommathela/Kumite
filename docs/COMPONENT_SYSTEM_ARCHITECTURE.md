@@ -130,6 +130,14 @@ configured components alias and the block's verified named/default export; a
 block is appended to the selected element rather than replacing a route. Blocks
 are page-level compositions, so their insert code wraps the export in a
 full-width `div`; without it they collapse inside a centred flex parent.
+Card-shaped blocks (authentication, login, signup, otp) instead wrap in
+`mx-auto w-full max-w-sm` so an inserted login form renders as the centred card
+its upstream page shows rather than stretching across the frame.
+
+Use and install actions run through MobX state: `installing` covers the CLI
+install and `using` covers the code write, and the library's Use button renders an
+`Icons.Shadow` spinner with `Installing…` / `Adding…` and stays disabled for the
+whole flow.
 `apps/studio/electron/main/code/diff/transform.ts` merges those
 imports into the file's existing `import { ... } from "..."` declaration instead of
 appending a second one, then the write goes through the same code-diff pipeline

@@ -1,6 +1,7 @@
 import { parse } from '@babel/parser';
 import * as t from '@babel/types';
 import {
+    getBlockInsertWrapperClass,
     SHADCN_BLOCKS,
     SHADCN_COMPONENTS,
     type ShadcnComponentDefinition,
@@ -178,7 +179,7 @@ describe('component matrix', () => {
             );
             assert.equal(
                 block.insertCode,
-                `<div className="w-full">\n    <${block.exportName} />\n</div>`,
+                `<div className="${getBlockInsertWrapperClass(block.categories)}">\n    <${block.exportName} />\n</div>`,
             );
             assert.ok(block.categories.length > 0);
             assert.ok(block.registryDependencies.every((name) => componentNames.has(name)));
@@ -186,6 +187,19 @@ describe('component matrix', () => {
                 assert.match(dependency, /^(?:@[^/@]+\/)?[^@/]+$/);
             }
         }
+    });
+
+    it('constrains card-shaped blocks to the card width the upstream page uses', () => {
+        const cardCategories = new Set(['authentication', 'login', 'signup', 'otp']);
+        for (const block of SHADCN_BLOCKS) {
+            const isCard = block.categories.some((category) => cardCategories.has(category));
+            assert.equal(
+                getBlockInsertWrapperClass(block.categories),
+                isCard ? 'mx-auto w-full max-w-sm' : 'w-full',
+                `${block.name} wrapper`,
+            );
+        }
+        assert.equal(getBlockInsertWrapperClass([]), 'w-full');
     });
 
     it('builds one row per pinned item', () => {

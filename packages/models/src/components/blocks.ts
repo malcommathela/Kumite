@@ -916,11 +916,24 @@ const BLOCKS = [
     },
 ] as const;
 
+const CARD_BLOCK_CATEGORIES = new Set(['authentication', 'login', 'signup', 'otp']);
+
+/**
+ * Blocks are page-level compositions. Authentication blocks are a centred card
+ * on an otherwise empty page, so inserting the bare component lets it stretch
+ * across the host frame. Constrain those to the card width the upstream page
+ * uses; every other block keeps the host width.
+ */
+export function getBlockInsertWrapperClass(categories: readonly string[]): string {
+    return categories.some((category) => CARD_BLOCK_CATEGORIES.has(category))
+        ? 'mx-auto w-full max-w-sm'
+        : 'w-full';
+}
+
 export const SHADCN_BLOCKS: ShadcnBlockDefinition[] = BLOCKS.map((block) => {
     const code = `<${block.exportName} />`;
-    // Blocks are page-level compositions. A full-width wrapper keeps them from
-    // collapsing when they are inserted into a centred flex/grid parent.
-    const insertCode = `<div className="w-full">
+    const wrapperClass = getBlockInsertWrapperClass(block.categories);
+    const insertCode = `<div className="${wrapperClass}">
     ${code}
 </div>`;
     const source = `@/components/${block.componentFile}`;
