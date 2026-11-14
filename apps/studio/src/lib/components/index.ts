@@ -1,11 +1,18 @@
 import type { ActionElement } from '@kumite/models/actions';
 import type {
-    ShadcnComponentDefinition,
     ShadcnInitResult,
     ShadcnInstallResult,
+    ShadcnLibraryItem,
     ShadcnProjectStatus,
 } from '@kumite/models';
-import { getShadcnComponent, SHADCN_COMPONENTS } from '@kumite/models';
+import {
+    getShadcnLibraryItem,
+    isBlockInsertContainer,
+    isShadcnBlock,
+    SHADCN_BLOCKS,
+    SHADCN_COMPONENTS,
+} from '@kumite/models';
+import type { DomElement } from '@kumite/models/element';
 import { MainChannels } from '@kumite/models/constants';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { getOrCreateCodeDiffRequest } from '../editor/engine/code/helpers';
@@ -24,6 +31,7 @@ export class ComponentsManager {
     isLoadingStatus = false;
     initializing = false;
     installing: string | null = null;
+    using: string | null = null;
     lastLog: string | null = null;
     insertError: string | null = null;
     previewComponent: string | null = null;
@@ -38,8 +46,8 @@ export class ComponentsManager {
         makeAutoObservable(this);
     }
 
-    get catalog(): ShadcnComponentDefinition[] {
-        return SHADCN_COMPONENTS;
+    get catalog(): ShadcnLibraryItem[] {
+        return [...SHADCN_COMPONENTS, ...SHADCN_BLOCKS];
     }
 
     get projectPath(): string | null {
@@ -117,6 +125,7 @@ export class ComponentsManager {
                 status: null,
             };
         }
+        const wasInstalled = Boolean(this.status?.installed[componentName]);
         this.installing = componentName;
         try {
             const result = (await invokeMainChannel(MainChannels.COMPONENTS_INSTALL, {
@@ -127,7 +136,7 @@ export class ComponentsManager {
                 this.status = result.status ?? this.status;
                 this.lastLog = result.log || null;
             });
-            if (result.success) {
+            if (result.success && !wasInstalled) {
                 this.reloadPreviews();
             }
             return result;
@@ -139,6 +148,16 @@ export class ComponentsManager {
     }
 
     async openPreview(componentName: string): Promise<void> {
+        const block = getShadcnLibraryItem(componentName);
+        if (block && isShadcnBlock(block) && block.previewUrl) {
+            this.previewComponent = componentName;
+            this.previewUrl = navigator.onLine ? block.previewUrl : null;
+            this.previewError = navigator.onLine
+                ? null
+                : 'You’re offline. The official shadcn block preview needs an internet connection.';
+            this.previewLoading = false;
+            return;
+        }
         const projectPath = this.projectPath;
         if (!projectPath) {
             this.previewError = 'Open a project before previewing components.';
@@ -183,7 +202,7 @@ export class ComponentsManager {
     }
 
     async insert(componentName: string): Promise<ComponentInsertResult> {
-        const definition = getShadcnComponent(componentName);
+        const definition = getShadcnLibraryItem(componentName);
         if (!definition) {
             return { success: false, message: 'Unknown component.' };
         }
@@ -194,11 +213,25 @@ export class ComponentsManager {
             };
         }
         const selected = this.editorEngine.elements.selected[0];
-        if (!selected || !selected.oid) {
+        if (!selected) {
             return { success: false, message: 'Select an element in a frame first.' };
         }
 
+        const target = isShadcnBlock(definition)
+            ? await this.resolveBlockInsertTarget(selected)
+            : selected;
+        if (!target?.oid) {
+            return isShadcnBlock(definition)
+                ? {
+                      success: false,
+                      message:
+                          'Select a layout element (a section, div, or the page body) to add this block.',
+                  }
+                : { success: false, message: 'Select an element in a frame first.' };
+        }
+
         this.insertError = null;
+        this.using = componentName;
         const domId = createDomId();
         const oid = createOid();
         const actionElement: ActionElement = {
@@ -212,8 +245,8 @@ export class ComponentsManager {
         };
         const location = {
             type: 'append' as const,
-            targetDomId: selected.domId,
-            targetOid: selected.oid,
+            targetDomId: target.domId,
+            targetOid: target.oid,
         };
 
         try {
@@ -224,9 +257,26 @@ export class ComponentsManager {
                 definition.insertCode,
             );
             const requests = new Map();
-            const request = await getOrCreateCodeDiffRequest(selected.oid, requests);
+            const request = await getOrCreateCodeDiffRequest(target.oid, requests);
             request.structureChanges.push(codeInsert);
-            request.imports = definition.imports;
+            request.imports = definition.imports.map((moduleImport) => {
+                if (isShadcnBlock(definition)) {
+                    return {
+                        ...moduleImport,
+                        source: `${this.status?.componentsAlias ?? '@/components'}/${definition.componentFile}`,
+                    };
+                }
+                if (moduleImport.source.startsWith('@/components/ui/')) {
+                    return {
+                        ...moduleImport,
+                        source: moduleImport.source.replace(
+                            '@/components/ui',
+                            this.status?.uiAlias ?? '@/components/ui',
+                        ),
+                    };
+                }
+                return moduleImport;
+            });
 
             const written = await this.editorEngine.code.getAndWriteCodeDiff([request]);
             if (!written) {
@@ -248,7 +298,42 @@ export class ComponentsManager {
                 this.insertError = message;
             });
             return { success: false, message };
+        } finally {
+            runInAction(() => {
+                this.using = null;
+            });
         }
+    }
+
+    /**
+     * A block is a page-level composition. Appending it to whatever is selected
+     * produces invalid markup when that element only holds text (`h1`, `p`,
+     * `span`), so walk up to the nearest layout container first.
+     */
+    private async resolveBlockInsertTarget(selected: DomElement): Promise<DomElement | null> {
+        const webview = this.editorEngine.webviews.getWebview(selected.webviewId);
+        if (!webview) {
+            return selected.oid ? selected : null;
+        }
+
+        let current = selected;
+        for (let depth = 0; depth < 16; depth += 1) {
+            if (isBlockInsertContainer(current.tagName, current.styles?.computed.display)) {
+                return current.oid ? current : null;
+            }
+            const parentDomId = current.parent?.domId;
+            if (!parentDomId) {
+                return null;
+            }
+            const parent = (await webview.executeJavaScript(
+                `window.api?.getDomElementByDomId(${JSON.stringify(parentDomId)}, true)`,
+            )) as DomElement | null;
+            if (!parent) {
+                return null;
+            }
+            current = parent;
+        }
+        return null;
     }
 
     private reloadPreviews(): void {

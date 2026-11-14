@@ -5,6 +5,7 @@ import {
     hasSpreadAttribute,
     isSupportedClassUtilityCall,
     readStaticClassValue,
+    replaceCallLiteralClasses,
 } from './class-expression';
 
 export type ClassTransformFailure =
@@ -15,8 +16,7 @@ export type ClassTransformFailure =
     | 'invalid-classname-value';
 
 export type ClassTransformResult =
-    | { ok: true }
-    | { ok: false; reason: ClassTransformFailure; message: string };
+    { ok: true } | { ok: false; reason: ClassTransformFailure; message: string };
 
 function fail(reason: ClassTransformFailure, message: string): ClassTransformResult {
     return { ok: false, reason, message };
@@ -25,17 +25,21 @@ function fail(reason: ClassTransformFailure, message: string): ClassTransformRes
 /**
  * Adds classes while preserving the existing expression. Refuses whenever the
  * current value cannot be read and re-emitted without changing behaviour.
+ *
+ * A spread only blocks the edit when there is no `className` to extend: adding a
+ * class to an existing value cannot change what the spread owns. It may still
+ * override the result at runtime, exactly as it did before the edit.
  */
 export function addClassToNode(node: t.JSXElement, className: string): ClassTransformResult {
     const openingElement = node.openingElement;
-    if (hasSpreadAttribute(openingElement)) {
+    const classNameAttr = findClassNameAttribute(openingElement);
+    if (!classNameAttr && hasSpreadAttribute(openingElement)) {
         return fail(
             'spread-may-own-classname',
             'A spread attribute may own className, so the class cannot be added safely.',
         );
     }
 
-    const classNameAttr = findClassNameAttribute(openingElement);
     if (!classNameAttr) {
         insertClassAttribute(openingElement, className);
         return { ok: true };
@@ -76,9 +80,7 @@ export function addClassToNode(node: t.JSXElement, className: string): ClassTran
         if (t.isTemplateLiteral(expression)) {
             const staticClasses = readStaticClassValue(value);
             if (staticClasses) {
-                classNameAttr.value = t.stringLiteral(
-                    twMerge(staticClasses.join(' '), className),
-                );
+                classNameAttr.value = t.stringLiteral(twMerge(staticClasses.join(' '), className));
                 return { ok: true };
             }
             return fail(
@@ -97,19 +99,22 @@ export function addClassToNode(node: t.JSXElement, className: string): ClassTran
 }
 
 /**
- * Replaces classes only when the current value is fully static. A dynamic
- * expression is left untouched rather than overwritten with a literal.
+ * Replaces classes only when the current value can be rewritten without losing
+ * logic. A supported merge call keeps its dynamic arguments (variant flags and
+ * the forwarded `className` prop) and has only its literal class arguments
+ * replaced. A spread does not block a rewrite that keeps the `className` value
+ * intact: it can override the result at runtime, never lose it.
  */
 export function replaceNodeClasses(node: t.JSXElement, className: string): ClassTransformResult {
     const openingElement = node.openingElement;
-    if (hasSpreadAttribute(openingElement)) {
+    const classNameAttr = findClassNameAttribute(openingElement);
+    if (!classNameAttr && hasSpreadAttribute(openingElement)) {
         return fail(
             'spread-may-own-classname',
             'A spread attribute may own className, so the class cannot be replaced safely.',
         );
     }
 
-    const classNameAttr = findClassNameAttribute(openingElement);
     if (!classNameAttr) {
         insertClassAttribute(openingElement, className);
         return { ok: true };
@@ -120,13 +125,18 @@ export function replaceNodeClasses(node: t.JSXElement, className: string): Class
         const expression = t.isJSXExpressionContainer(classNameAttr.value)
             ? classNameAttr.value.expression
             : null;
-        if (expression && t.isCallExpression(expression)) {
-            return fail(
-                'unsupported-call',
-                'className is produced by a helper call; replacing it would drop that logic.',
-            );
+        if (
+            expression &&
+            t.isCallExpression(expression) &&
+            isSupportedClassUtilityCall(expression)
+        ) {
+            replaceCallLiteralClasses(expression, className);
+            return { ok: true };
         }
-        if (expression && (t.isConditionalExpression(expression) || t.isLogicalExpression(expression))) {
+        if (
+            expression &&
+            (t.isConditionalExpression(expression) || t.isLogicalExpression(expression))
+        ) {
             return fail(
                 'unsupported-conditional',
                 'className is conditional; replacing it would drop the condition.',

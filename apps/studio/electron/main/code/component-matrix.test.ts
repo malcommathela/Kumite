@@ -1,6 +1,12 @@
 import { parse } from '@babel/parser';
 import * as t from '@babel/types';
-import { SHADCN_COMPONENTS, type ShadcnComponentDefinition } from '@kumite/models/components';
+import {
+    getBlockInsertWrapperClass,
+    isBlockInsertContainer,
+    SHADCN_BLOCKS,
+    SHADCN_COMPONENTS,
+    type ShadcnComponentDefinition,
+} from '@kumite/models/components';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -144,6 +150,76 @@ interface Row {
 const rows: Row[] = [];
 
 describe('component matrix', () => {
+    it('keeps the curated block catalog bound to the pinned shadcn preview routes', () => {
+        assert.equal(SHADCN_BLOCKS.length, 64);
+        assert.equal(new Set(SHADCN_BLOCKS.map((block) => block.name)).size, 64);
+        const componentNames = new Set(SHADCN_COMPONENTS.map((component) => component.name));
+        for (const block of SHADCN_BLOCKS) {
+            assert.match(block.name, /^(dashboard|sidebar|login|calendar|signup|otp)-\d{2}$/);
+            assert.ok(block.componentFile.length > 0);
+            if (block.previewUrl) {
+                assert.equal(
+                    block.previewUrl,
+                    `https://ui.shadcn.com/view/new-york-v4/${block.name}`,
+                );
+            } else {
+                assert.match(block.name, /^(calendar|otp)-/);
+            }
+            assert.match(
+                block.registryUrl,
+                new RegExp(
+                    `1e9e337923aaede7db55b6091cb56a72a661b959/apps/v4/public/r/styles/new-york-v4/${block.name}\\.json$`,
+                ),
+            );
+            assert.equal(block.imports.length, 1);
+            assert.equal(
+                block.defaultImport
+                    ? block.imports[0].defaultImport
+                    : block.imports[0].namedImports?.[0],
+                block.exportName,
+            );
+            assert.equal(
+                block.insertCode,
+                `<div className="${getBlockInsertWrapperClass(block.categories)}">\n    <${block.exportName} />\n</div>`,
+            );
+            assert.ok(block.categories.length > 0);
+            assert.ok(block.registryDependencies.every((name) => componentNames.has(name)));
+            for (const dependency of block.dependencies) {
+                assert.match(dependency, /^(?:@[^/@]+\/)?[^@/]+$/);
+            }
+        }
+    });
+
+    it('constrains card-shaped blocks to the card width the upstream page uses', () => {
+        const cardCategories = new Set(['authentication', 'login', 'signup', 'otp']);
+        for (const block of SHADCN_BLOCKS) {
+            const isCard = block.categories.some((category) => cardCategories.has(category));
+            assert.equal(
+                getBlockInsertWrapperClass(block.categories),
+                isCard ? 'mx-auto w-full max-w-sm' : 'w-full',
+                `${block.name} wrapper`,
+            );
+        }
+        assert.equal(getBlockInsertWrapperClass([]), 'w-full');
+    });
+
+    it('refuses to nest a block inside a text element', () => {
+        for (const tag of ['h1', 'h2', 'p', 'span', 'a', 'button', 'label', 'input', 'img']) {
+            assert.equal(isBlockInsertContainer(tag), false, `${tag} must not receive a block`);
+            assert.equal(
+                isBlockInsertContainer(tag.toUpperCase(), 'block'),
+                false,
+                `${tag} must not receive a block even when it lays out as a block`,
+            );
+        }
+        for (const tag of ['div', 'main', 'section', 'article', 'form', 'body', 'li']) {
+            assert.equal(isBlockInsertContainer(tag), true, `${tag} must accept a block`);
+        }
+        assert.equal(isBlockInsertContainer('my-widget', 'flex'), true);
+        assert.equal(isBlockInsertContainer('my-widget', 'inline'), false);
+        assert.equal(isBlockInsertContainer('my-widget'), false);
+    });
+
     it('builds one row per pinned item', () => {
         for (const definition of SHADCN_COMPONENTS) {
             const insertBlocked = definition.insertable === false;

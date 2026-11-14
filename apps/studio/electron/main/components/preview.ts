@@ -1,9 +1,9 @@
-import type { ShadcnComponentDefinition, ShadcnProjectStatus } from '@kumite/models';
+import type { ShadcnLibraryItem, ShadcnProjectStatus } from '@kumite/models';
 import { spawn, type ChildProcess } from 'child_process';
 import { detect } from 'detect-port';
 import fs from 'fs';
 import path from 'path';
-import { readComponentsJson } from './inspect';
+import { readComponentsJson, resolveAlias } from './inspect';
 
 const PREVIEW_STEM = '__kumite_preview';
 const HTML_MARKER = '<!-- kumite-preview -->';
@@ -23,7 +23,7 @@ class ComponentPreviewServer {
 
     async start(
         status: ShadcnProjectStatus,
-        definition: ShadcnComponentDefinition,
+        definition: ShadcnLibraryItem,
     ): Promise<{ url: string | null; error: string | null; log: string | null }> {
         const projectPath = status.projectPath;
         if (definition.previewable === false) {
@@ -53,6 +53,7 @@ class ComponentPreviewServer {
         let entrySource: string;
         try {
             entrySource = buildEntryFile(projectPath, status, definition);
+            writePreviewFiles(projectPath, entrySource);
         } catch (error: any) {
             return {
                 url: null,
@@ -60,19 +61,29 @@ class ComponentPreviewServer {
                 log: null,
             };
         }
-        writePreviewFiles(projectPath, entrySource);
 
-        const port = await detect(3310);
-        const child = spawn(
-            process.execPath,
-            [viteBin, '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
-            {
-                cwd: projectPath,
-                env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', NODE_ENV: 'development' },
-                windowsHide: true,
-                stdio: ['ignore', 'pipe', 'pipe'],
-            },
-        );
+        let port: number;
+        let child: ChildProcess;
+        try {
+            port = await detect(3310);
+            child = spawn(
+                process.execPath,
+                [viteBin, '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
+                {
+                    cwd: projectPath,
+                    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', NODE_ENV: 'development' },
+                    windowsHide: true,
+                    stdio: ['ignore', 'pipe', 'pipe'],
+                },
+            );
+        } catch (error: any) {
+            removePreviewFiles(projectPath);
+            return {
+                url: null,
+                error: error?.message ?? 'Failed to start the preview server.',
+                log: null,
+            };
+        }
 
         const running: RunningPreview = {
             projectPath,
@@ -92,7 +103,7 @@ class ComponentPreviewServer {
             const error =
                 child.exitCode === null ? 'Preview server timed out.' : 'Preview server exited.';
             const log = running.log || null;
-            await this.stop();
+            cleanupRunning(running);
             return { url: null, error, log };
         }
 
@@ -106,9 +117,13 @@ class ComponentPreviewServer {
         if (!running) {
             return;
         }
-        killProcess(running.process);
-        removePreviewFiles(running.projectPath);
+        cleanupRunning(running);
     }
+}
+
+function cleanupRunning(running: RunningPreview): void {
+    killProcess(running.process);
+    removePreviewFiles(running.projectPath);
 }
 
 function waitForServer(running: RunningPreview): Promise<boolean> {
@@ -168,21 +183,41 @@ function buildImportStatement(
     return `import ${clause} from '${relativePath}';`;
 }
 
-function resolveUiImportFile(uiDir: string, source: string): string {
-    const base = source.split('/').pop() ?? source;
-    for (const extension of ['tsx', 'jsx', 'ts', 'js']) {
-        const candidate = path.join(uiDir, `${base}.${extension}`);
-        if (fs.existsSync(candidate)) {
-            return candidate;
-        }
+function resolveProjectImportFile(
+    projectPath: string,
+    status: ShadcnProjectStatus,
+    source: string,
+): string | null {
+    const uiAlias = status.uiAlias ?? '@/components/ui';
+    const componentsAlias = status.componentsAlias ?? '@/components';
+    let localSource = source;
+
+    if (source.startsWith('@/components/ui')) {
+        localSource = `${uiAlias}${source.slice('@/components/ui'.length)}`;
+    } else if (source.startsWith('@/components')) {
+        localSource = `${componentsAlias}${source.slice('@/components'.length)}`;
+    } else if (source.startsWith('@/')) {
+        const aliasBase = componentsAlias.replace(/\/components$/, '');
+        localSource = `${aliasBase}${source.slice(1)}`;
     }
-    throw new Error(`Installed component file for "${base}" was not found in ${uiDir}.`);
+
+    const basePath = localSource.startsWith('.')
+        ? path.resolve(projectPath, localSource)
+        : resolveAlias(projectPath, localSource);
+    if (!basePath) {
+        return null;
+    }
+
+    const candidates = path.extname(basePath)
+        ? [basePath]
+        : ['.tsx', '.jsx', '.ts', '.js', '.json'].map((extension) => `${basePath}${extension}`);
+    return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
 function buildEntryFile(
     projectPath: string,
     status: ShadcnProjectStatus,
-    definition: ShadcnComponentDefinition,
+    definition: ShadcnLibraryItem,
 ): string {
     if (!status.uiDir) {
         throw new Error('Could not resolve the shadcn/ui directory.');
@@ -201,18 +236,19 @@ function buildEntryFile(
     }
 
     for (const moduleImport of definition.imports) {
-        // A registry import names a file the CLI installs into the ui directory.
-        // Anything else is a package specifier the project already depends on
-        // (chart needs the recharts primitives), so it is emitted verbatim
-        // instead of being looked for in the ui directory.
-        const isRegistryImport =
-            moduleImport.source.startsWith('@/') || moduleImport.source.startsWith('.');
-        if (!isRegistryImport) {
-            lines.push(buildImportStatement(moduleImport.source, moduleImport));
+        const file = resolveProjectImportFile(projectPath, status, moduleImport.source);
+        if (file) {
+            lines.push(buildImportStatement(toRelativeImport(projectPath, file), moduleImport));
             continue;
         }
-        const file = resolveUiImportFile(status.uiDir, moduleImport.source);
-        lines.push(buildImportStatement(toRelativeImport(projectPath, file), moduleImport));
+        if (
+            moduleImport.source.startsWith('@/') ||
+            moduleImport.source.startsWith('~/') ||
+            moduleImport.source.startsWith('.')
+        ) {
+            throw new Error(`Installed source for "${moduleImport.source}" was not found.`);
+        }
+        lines.push(buildImportStatement(moduleImport.source, moduleImport));
     }
 
     lines.push(`function Preview() {`);
@@ -252,8 +288,35 @@ function writePreviewFiles(projectPath: string, entrySource: string): void {
     </body>
 </html>
 `;
-    fs.writeFileSync(path.join(projectPath, `${PREVIEW_STEM}.html`), html, 'utf8');
-    fs.writeFileSync(path.join(projectPath, `${PREVIEW_STEM}.tsx`), entrySource, 'utf8');
+    const files = [
+        [path.join(projectPath, `${PREVIEW_STEM}.html`), html],
+        [path.join(projectPath, `${PREVIEW_STEM}.tsx`), entrySource],
+    ] as const;
+    if (files.some(([file]) => fs.existsSync(file))) {
+        throw new Error('Preview files already exist in the project root.');
+    }
+
+    const created: string[] = [];
+    try {
+        for (const [file, contents] of files) {
+            const descriptor = fs.openSync(file, 'wx');
+            created.push(file);
+            try {
+                fs.writeFileSync(descriptor, contents, 'utf8');
+            } finally {
+                fs.closeSync(descriptor);
+            }
+        }
+    } catch (error) {
+        for (const file of created) {
+            try {
+                fs.unlinkSync(file);
+            } catch {
+                // Ignore cleanup failures.
+            }
+        }
+        throw error;
+    }
 }
 
 function removePreviewFiles(projectPath: string): void {

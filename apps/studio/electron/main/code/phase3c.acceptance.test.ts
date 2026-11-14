@@ -292,14 +292,30 @@ describe('Phase 3C — class expression transforms (T08, T09, T10, T11)', () => 
         assert.equal(print(node), '<div className="bg-red-500" />');
     });
 
-    it('refuses to overwrite a cn() call (Phase 3B data-loss case)', () => {
+    it('replaces the literal classes of a cn() call and keeps the forwarded className (Phase 3B data-loss case)', () => {
         const source = '<div className={cn("rounded-xl border", className)} />';
         const node = parseElement(source);
-        const before = print(node);
         const result = replaceNodeClasses(node, 'bg-red-500');
-        assert.equal(result.ok, false);
-        assert.equal((result as { reason: string }).reason, 'unsupported-call');
-        assert.equal(print(node), before);
+        assert.equal(result.ok, true);
+        assert.equal(print(node), '<div className={cn("bg-red-500", className)} />');
+    });
+
+    it('restyles a spread component root without dropping its className prop', () => {
+        const node = parseElement(
+            '<div className={cn("flex flex-col gap-6", className)} {...props} />',
+        );
+        const result = replaceNodeClasses(node, 'flex flex-col gap-6 bg-red-500');
+        assert.equal(result.ok, true);
+        assert.equal(
+            print(node),
+            '<div className={cn("flex flex-col gap-6 bg-red-500", className)} {...props} />',
+        );
+    });
+
+    it('adds a class to a spread component root when it already owns a className', () => {
+        const node = parseElement('<div className="p-4" {...props} />');
+        assert.equal(addClassToNode(node, 'bg-red-500').ok, true);
+        assert.equal(print(node), '<div className="p-4 bg-red-500" {...props} />');
     });
 
     it('refuses to overwrite a conditional', () => {

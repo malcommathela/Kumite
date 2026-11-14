@@ -4,6 +4,8 @@ import { readCodeBlock } from '.';
 import {
     findClassNameAttribute,
     hasSpreadAttribute,
+    isSupportedClassUtilityCall,
+    readCallLiteralClasses,
     readStaticClassValue,
 } from './diff/class-expression';
 import { parseJsxCodeBlock } from './helpers';
@@ -34,29 +36,32 @@ export function getNodeClasses(node: t.JSXElement): ClassParsingResult {
     const classNameAttr = findClassNameAttribute(openingElement);
 
     if (!classNameAttr) {
+        if (hasSpreadAttribute(openingElement)) {
+            return {
+                type: 'error',
+                reason: 'The class may come from a spread.',
+            };
+        }
         return {
             type: 'classes',
             value: [''],
         };
     }
 
-    if (hasSpreadAttribute(openingElement)) {
-        return {
-            type: 'error',
-            reason: 'The class may come from a spread.',
-        };
+    const classes = readStaticClassValue(classNameAttr.value);
+    if (classes !== null) {
+        return { type: 'classes', value: classes };
     }
 
-    const classes = readStaticClassValue(classNameAttr.value);
-    if (classes === null) {
-        return {
-            type: 'error',
-            reason: 'Unsupported className format.',
-        };
+    const expression = t.isJSXExpressionContainer(classNameAttr.value)
+        ? classNameAttr.value.expression
+        : null;
+    if (expression && t.isCallExpression(expression) && isSupportedClassUtilityCall(expression)) {
+        return { type: 'classes', value: readCallLiteralClasses(expression) };
     }
 
     return {
-        type: 'classes',
-        value: classes,
+        type: 'error',
+        reason: 'Unsupported className format.',
     };
 }

@@ -29,6 +29,54 @@ export function hasSpreadAttribute(openingElement: t.JSXOpeningElement): boolean
     return openingElement.attributes.some((attribute) => t.isJSXSpreadAttribute(attribute));
 }
 
+function isStaticTemplateLiteral(expression: t.Node): expression is t.TemplateLiteral {
+    return t.isTemplateLiteral(expression) && expression.expressions.length === 0;
+}
+
+/**
+ * Classes contributed by the literal arguments of a supported merge call. The
+ * other arguments (variant flags, the forwarded `className` prop) cannot be read
+ * statically and are intentionally omitted.
+ */
+export function readCallLiteralClasses(expression: t.CallExpression): string[] {
+    const classes: string[] = [];
+    for (const argument of expression.arguments) {
+        if (t.isStringLiteral(argument)) {
+            classes.push(...splitClasses(argument.value));
+            continue;
+        }
+        if (isStaticTemplateLiteral(argument)) {
+            classes.push(...splitClasses(argument.quasis.map((quasi) => quasi.value.raw).join('')));
+        }
+    }
+    return classes;
+}
+
+/**
+ * Rewrites the literal class arguments of a supported merge call, keeping every
+ * dynamic argument in place. This is how a component root such as
+ * `className={cn("flex flex-col gap-6", className)}` can be restyled without
+ * dropping the forwarded `className` prop.
+ */
+export function replaceCallLiteralClasses(expression: t.CallExpression, className: string): void {
+    const next: t.CallExpression['arguments'] = [];
+    let replaced = false;
+    for (const argument of expression.arguments) {
+        if (t.isStringLiteral(argument) || isStaticTemplateLiteral(argument)) {
+            if (!replaced) {
+                next.push(t.stringLiteral(className));
+                replaced = true;
+            }
+            continue;
+        }
+        next.push(argument);
+    }
+    if (!replaced) {
+        next.unshift(t.stringLiteral(className));
+    }
+    expression.arguments = next;
+}
+
 /**
  * Classes of a fully static className value, or `null` when the value cannot be
  * read without evaluating code. A missing value or empty attribute yields `[]`.
