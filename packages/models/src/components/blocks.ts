@@ -919,6 +919,30 @@ const BLOCKS = [
 const CARD_BLOCK_CATEGORIES = new Set(['authentication', 'login', 'signup', 'otp']);
 
 /**
+ * Blocks whose component is a fragment of a page. Upstream renders these inside
+ * `SidebarProvider`, so a bare `<AppSidebar />` throws "useSidebar must be used
+ * within a SidebarProvider". `sidebar-13` and `sidebar-15` render their own
+ * provider and are not listed.
+ */
+const SIDEBAR_PROVIDER_BLOCK_NAMES = new Set([
+    'dashboard-01',
+    'sidebar-01',
+    'sidebar-02',
+    'sidebar-03',
+    'sidebar-04',
+    'sidebar-05',
+    'sidebar-06',
+    'sidebar-07',
+    'sidebar-08',
+    'sidebar-09',
+    'sidebar-10',
+    'sidebar-11',
+    'sidebar-12',
+    'sidebar-14',
+    'sidebar-16',
+]);
+
+/**
  * Blocks are page-level compositions. Authentication blocks are a centred card
  * on an otherwise empty page, so inserting the bare component lets it stretch
  * across the host frame. Constrain those to the card width the upstream page
@@ -1013,10 +1037,7 @@ const CONTAINER_ELEMENTS = new Set([
  * else (custom elements, replaced tags) is accepted only when it lays out as a
  * box (`block`, `flex`, `grid`).
  */
-export function isBlockInsertContainer(
-    tagName: string,
-    display?: string | null,
-): boolean {
+export function isBlockInsertContainer(tagName: string, display?: string | null): boolean {
     const tag = tagName.toLowerCase();
     if (TEXT_ONLY_ELEMENTS.has(tag)) {
         return false;
@@ -1024,11 +1045,15 @@ export function isBlockInsertContainer(
     if (CONTAINER_ELEMENTS.has(tag)) {
         return true;
     }
-    return display === 'block' || display === 'flex' || display === 'grid' || display === 'flow-root';
+    return (
+        display === 'block' || display === 'flex' || display === 'grid' || display === 'flow-root'
+    );
 }
 
 export const SHADCN_BLOCKS: ShadcnBlockDefinition[] = BLOCKS.map((block) => {
-    const code = `<${block.exportName} />`;
+    const element = `<${block.exportName} />`;
+    const needsSidebarProvider = SIDEBAR_PROVIDER_BLOCK_NAMES.has(block.name);
+    const code = needsSidebarProvider ? `<SidebarProvider>${element}</SidebarProvider>` : element;
     const wrapperClass = getBlockInsertWrapperClass(block.categories);
     const insertCode = `<div className="${wrapperClass}">
     ${code}
@@ -1037,6 +1062,9 @@ export const SHADCN_BLOCKS: ShadcnBlockDefinition[] = BLOCKS.map((block) => {
     const moduleImport: CodeImport = block.defaultImport
         ? { source, defaultImport: block.exportName }
         : { source, namedImports: [block.exportName] };
+    const imports: CodeImport[] = needsSidebarProvider
+        ? [{ source: '@/components/ui/sidebar', namedImports: ['SidebarProvider'] }, moduleImport]
+        : [moduleImport];
     return {
         ...block,
         categories: [...block.categories],
@@ -1048,7 +1076,7 @@ export const SHADCN_BLOCKS: ShadcnBlockDefinition[] = BLOCKS.map((block) => {
                 ? null
                 : `https://ui.shadcn.com/view/new-york-v4/${block.name}`,
         registryUrl: `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/public/r/styles/new-york-v4/${block.name}.json`,
-        imports: [moduleImport],
+        imports,
         insertCode,
         previewCode: code,
     };

@@ -1,5 +1,6 @@
 import type { ActionElement } from '@kumite/models/actions';
 import type {
+    ShadcnCatalogPreview,
     ShadcnInitResult,
     ShadcnInstallResult,
     ShadcnLibraryItem,
@@ -38,6 +39,16 @@ export class ComponentsManager {
     previewUrl: string | null = null;
     previewLoading = false;
     previewError: string | null = null;
+    catalogPreviews: Record<string, string> = {};
+    catalogBaseLoading = false;
+    catalogBaseError: string | null = null;
+    catalogItemLoading: Record<string, boolean> = {};
+    catalogItemErrors: Record<string, string> = {};
+    private catalogReady = false;
+    private catalogPending = new Set<string>();
+    private catalogTimer: ReturnType<typeof setTimeout> | null = null;
+    private catalogChain: Promise<void> = Promise.resolve();
+    private catalogWaiters: Array<() => void> = [];
 
     constructor(
         private editorEngine: EditorEngine,
@@ -136,7 +147,7 @@ export class ComponentsManager {
                 this.status = result.status ?? this.status;
                 this.lastLog = result.log || null;
             });
-            if (result.success && !wasInstalled) {
+            if (result.success && (!wasInstalled || result.addedDependencies?.length)) {
                 this.reloadPreviews();
             }
             return result;
@@ -149,6 +160,13 @@ export class ComponentsManager {
 
     async openPreview(componentName: string): Promise<void> {
         const block = getShadcnLibraryItem(componentName);
+        if (block && block.previewable === false) {
+            this.previewComponent = componentName;
+            this.previewUrl = null;
+            this.previewError = block.limitation ?? `${block.title} cannot be previewed.`;
+            this.previewLoading = false;
+            return;
+        }
         if (block && isShadcnBlock(block) && block.previewUrl) {
             this.previewComponent = componentName;
             this.previewUrl = navigator.onLine ? block.previewUrl : null;
@@ -158,15 +176,42 @@ export class ComponentsManager {
             this.previewLoading = false;
             return;
         }
-        const projectPath = this.projectPath;
-        if (!projectPath) {
-            this.previewError = 'Open a project before previewing components.';
+        if (!this.catalogPreviews[componentName]) {
+            await this.ensureCatalogPreviews([componentName]);
+        }
+        const catalogUrl = this.catalogPreviews[componentName];
+        if (catalogUrl) {
+            runInAction(() => {
+                this.previewComponent = componentName;
+                this.previewUrl = catalogUrl;
+                this.previewError = null;
+                this.previewLoading = false;
+            });
             return;
         }
-        this.previewLoading = true;
-        this.previewComponent = componentName;
-        this.previewError = null;
-        this.previewUrl = null;
+        const itemError = this.catalogItemErrors[componentName];
+        if (itemError) {
+            runInAction(() => {
+                this.previewComponent = componentName;
+                this.previewUrl = null;
+                this.previewError = itemError;
+                this.previewLoading = false;
+            });
+            return;
+        }
+        const projectPath = this.projectPath;
+        if (!projectPath) {
+            runInAction(() => {
+                this.previewError = 'Open a project before previewing components.';
+            });
+            return;
+        }
+        runInAction(() => {
+            this.previewLoading = true;
+            this.previewComponent = componentName;
+            this.previewError = null;
+            this.previewUrl = null;
+        });
         try {
             const result = (await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_START, {
                 projectPath,
@@ -186,6 +231,104 @@ export class ComponentsManager {
         } finally {
             runInAction(() => {
                 this.previewLoading = false;
+            });
+        }
+    }
+
+    /**
+     * Requests live previews for the given catalog components. Requests are
+     * batched so a screenful of cards costs one install, and a component is
+     * never prepared twice. Resolves once the batch it joined has loaded.
+     */
+    ensureCatalogPreviews(names: string[]): Promise<void> {
+        const wanted = names.filter(
+            (name) =>
+                name &&
+                !this.catalogPreviews[name] &&
+                !this.catalogItemLoading[name] &&
+                !this.catalogItemErrors[name],
+        );
+        if (wanted.length === 0) {
+            return names.some((name) => this.catalogItemLoading[name])
+                ? new Promise<void>((resolve) => this.catalogWaiters.push(resolve))
+                : this.catalogChain;
+        }
+        for (const name of wanted) {
+            this.catalogPending.add(name);
+            this.catalogItemLoading[name] = true;
+        }
+        if (!this.catalogReady) {
+            this.catalogBaseLoading = true;
+        }
+        const promise = new Promise<void>((resolve) => this.catalogWaiters.push(resolve));
+        if (this.catalogTimer) {
+            clearTimeout(this.catalogTimer);
+        }
+        this.catalogTimer = setTimeout(() => this.flushCatalog(), 150);
+        return promise;
+    }
+
+    retryCatalogPreview(name: string): Promise<void> {
+        delete this.catalogItemErrors[name];
+        return this.ensureCatalogPreviews([name]);
+    }
+
+    private flushCatalog(): void {
+        this.catalogTimer = null;
+        const batch = [...this.catalogPending];
+        this.catalogPending.clear();
+        if (batch.length === 0) {
+            this.resolveCatalogWaiters();
+            return;
+        }
+        this.catalogChain = this.catalogChain
+            .then(() => this.loadCatalogBatch(batch))
+            .finally(() => {
+                if (this.catalogPending.size === 0) {
+                    this.resolveCatalogWaiters();
+                }
+            });
+    }
+
+    private resolveCatalogWaiters(): void {
+        const waiters = this.catalogWaiters;
+        this.catalogWaiters = [];
+        waiters.forEach((resolve) => resolve());
+    }
+
+    private async loadCatalogBatch(batch: string[]): Promise<void> {
+        try {
+            const result = (await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_CATALOG, {
+                components: batch,
+            })) as ShadcnCatalogPreview;
+            runInAction(() => {
+                this.catalogPreviews = { ...this.catalogPreviews, ...(result.urls ?? {}) };
+                for (const name of batch) {
+                    this.catalogItemLoading[name] = false;
+                    if (this.catalogPreviews[name]) {
+                        delete this.catalogItemErrors[name];
+                        continue;
+                    }
+                    this.catalogItemErrors[name] =
+                        result.error ??
+                        `Kumite could not prepare ${name} for preview. Check the CLI output for details.`;
+                }
+                this.catalogReady = true;
+                this.catalogBaseLoading = false;
+                this.catalogBaseError = result.error;
+                if (result.log) {
+                    this.lastLog = result.log;
+                }
+            });
+        } catch (error: any) {
+            const message = error?.message ?? 'Could not prepare the component previews.';
+            runInAction(() => {
+                for (const name of batch) {
+                    this.catalogItemLoading[name] = false;
+                    this.catalogItemErrors[name] = message;
+                }
+                this.catalogBaseLoading = false;
+                this.catalogBaseError = message;
             });
         }
     }

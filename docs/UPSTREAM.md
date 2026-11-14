@@ -46,12 +46,14 @@ The application changes recorded against upstream include:
 
 - `apps/studio/electron/main/components/` (new): `index.ts` service facade,
   `inspect.ts` project/status detection, `cli.ts` shadcn CLI wrapper,
-  `preview.ts` isolated Vite preview, `theme.ts` oklch-to-HSL token
+  `preview.ts` isolated Vite preview plus the shared catalog preview server,
+  `catalog.ts` Kumite's lazily installed catalog workspace, `patches.ts` guards
+  for registry source (empty chart container), `theme.ts` oklch-to-HSL token
   normalization, `provenance.ts` manifest and notices.
 - `apps/studio/electron/main/events/components.ts` (new) and
   `electron/main/events/index.ts`: `COMPONENTS_GET_STATUS`,
   `COMPONENTS_INITIALIZE`, `COMPONENTS_INSTALL`, `COMPONENTS_PREVIEW_START`,
-  `COMPONENTS_PREVIEW_STOP`.
+  `COMPONENTS_PREVIEW_CATALOG`, `COMPONENTS_PREVIEW_STOP`.
 - `apps/studio/electron/main/code/diff/transform.ts`: merges requested imports
   into an existing import declaration instead of appending a duplicate.
 - `apps/studio/src/lib/components/index.ts` (new): renderer `ComponentsManager`,
@@ -150,7 +152,6 @@ The application changes recorded against upstream include:
 All Kumite-specific architecture and phase records are collected in this `docs/`
 directory. The former skill/pipeline framework and its skill files are not part
 of this application repository.
-
 
 ## Merge hotspots
 

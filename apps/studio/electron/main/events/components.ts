@@ -4,6 +4,7 @@ import {
     getComponentStatus,
     initializeComponents,
     installComponent,
+    startCatalogPreview,
     startComponentPreview,
     stopComponentPreview,
 } from '../components';
@@ -34,4 +35,11 @@ export function listenForComponentMessages() {
     ipcMain.handle(MainChannels.COMPONENTS_PREVIEW_STOP, async () => {
         return stopComponentPreview();
     });
+
+    ipcMain.handle(
+        MainChannels.COMPONENTS_PREVIEW_CATALOG,
+        async (_event, args: { components?: string[] }) => {
+            return startCatalogPreview(args?.components);
+        },
+    );
 }

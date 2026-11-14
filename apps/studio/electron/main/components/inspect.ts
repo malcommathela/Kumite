@@ -1,5 +1,16 @@
-import type { DetectedFramework, PackageManager, ShadcnProjectStatus } from '@kumite/models';
-import { SHADCN_BLOCKS, SHADCN_COMPONENTS } from '@kumite/models';
+import type {
+    DetectedFramework,
+    PackageManager,
+    ShadcnLibraryItem,
+    ShadcnProjectStatus,
+} from '@kumite/models';
+import {
+    collectShadcnDependencies,
+    getShadcnLibraryItem,
+    isShadcnBlock,
+    SHADCN_BLOCKS,
+    SHADCN_COMPONENTS,
+} from '@kumite/models';
 import fs from 'fs';
 import path from 'path';
 
@@ -36,6 +47,16 @@ export function readComponentsJson(projectPath: string): ShadcnComponentsJson | 
     } catch {
         return null;
     }
+}
+
+/**
+ * The stylesheet shadcn writes design tokens into. It has to stay outside the
+ * install snapshot: the CLI adds each item's `cssVars` (the sidebar palette, for
+ * example) to this file, and restoring it would silently drop them.
+ */
+export function resolveCssFile(projectPath: string): string | null {
+    const cssRelative = readComponentsJson(projectPath)?.tailwind?.css;
+    return cssRelative ? path.resolve(projectPath, cssRelative) : null;
 }
 
 export function detectPackageManager(projectPath: string): PackageManager {
@@ -163,6 +184,113 @@ export function findBlockComponent(
         }
     }
     return null;
+}
+
+/**
+ * Packages the item and its registry dependencies need that the project cannot
+ * resolve yet. A declared dependency can still be absent from node_modules, and
+ * that is what breaks the dev server after an install.
+ */
+export function missingPackages(projectPath: string, item: ShadcnLibraryItem): string[] {
+    const packageJson = readPackageJson(projectPath);
+    const declared = {
+        ...(packageJson?.dependencies ?? {}),
+        ...(packageJson?.devDependencies ?? {}),
+    };
+    return requiredPackages(projectPath, item).filter(
+        (name) =>
+            !declared[name] ||
+            !fs.existsSync(path.join(projectPath, 'node_modules', ...name.split('/'))),
+    );
+}
+
+/** Packages provided by the project itself; never install or re-pin these. */
+const PROJECT_OWNED_PACKAGES = new Set(['react', 'react-dom', 'next']);
+
+const LOCAL_IMPORT_PREFIXES = ['@/', '~/', '#', '$'];
+
+/**
+ * The files of an item plus every catalog registry item it pulls in. Registry
+ * items sometimes import a package they do not declare (`calendar-30` imports
+ * `little-date`), so the files are scanned instead of trusting the metadata.
+ */
+function installedItemFiles(projectPath: string, item: ShadcnLibraryItem): string[] {
+    const componentsJson = readComponentsJson(projectPath);
+    const uiDir = resolveAlias(projectPath, componentsJson?.aliases?.ui ?? '@/components/ui');
+    const componentsAlias = componentsJson?.aliases?.components;
+    const files: string[] = [];
+    const visited = new Set<string>([item.name]);
+    const visit = (current: ShadcnLibraryItem) => {
+        if (isShadcnBlock(current)) {
+            for (const file of current.files) {
+                const found = findBlockComponent(projectPath, componentsAlias, file);
+                if (found) {
+                    files.push(found);
+                }
+            }
+        } else {
+            const found = findComponentFile(uiDir, current.name);
+            if (found) {
+                files.push(found);
+            }
+        }
+        for (const name of current.registryDependencies) {
+            if (visited.has(name)) {
+                continue;
+            }
+            visited.add(name);
+            const registryItem = getShadcnLibraryItem(name);
+            if (registryItem) {
+                visit(registryItem);
+            }
+        }
+    };
+    visit(item);
+    return files;
+}
+
+function importedPackageName(specifier: string, aliases: string[]): string | null {
+    if (!specifier || specifier.startsWith('.') || specifier.startsWith('/')) {
+        return null;
+    }
+    if (specifier.includes(':')) {
+        return null;
+    }
+    if (LOCAL_IMPORT_PREFIXES.some((prefix) => specifier.startsWith(prefix))) {
+        return null;
+    }
+    if (aliases.some((alias) => specifier === alias || specifier.startsWith(`${alias}/`))) {
+        return null;
+    }
+    const parts = specifier.split('/');
+    const name = specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+    return PROJECT_OWNED_PACKAGES.has(name) ? null : name;
+}
+
+/**
+ * Every npm package the installed item pulls in: the measured registry closure
+ * plus the bare imports its own source files actually use.
+ */
+export function requiredPackages(projectPath: string, item: ShadcnLibraryItem): string[] {
+    const packages = new Set(collectShadcnDependencies(item));
+    const aliases = Object.values(readComponentsJson(projectPath)?.aliases ?? {}).filter(
+        (alias): alias is string => Boolean(alias),
+    );
+    for (const file of installedItemFiles(projectPath, item)) {
+        let content: string;
+        try {
+            content = fs.readFileSync(file, 'utf8');
+        } catch {
+            continue;
+        }
+        for (const match of content.matchAll(/from\s+['"]([^'"]+)['"]/g)) {
+            const name = importedPackageName(match[1], aliases);
+            if (name) {
+                packages.add(name);
+            }
+        }
+    }
+    return [...packages].sort();
 }
 
 export function inspectProject(projectPath: string): ShadcnProjectStatus {

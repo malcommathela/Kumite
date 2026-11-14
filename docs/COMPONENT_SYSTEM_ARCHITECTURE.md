@@ -73,7 +73,23 @@ preview sources and provenance are verified.
   before `shadcn add ... --overwrite`, then restores every file that existed
   beforehand. Files the install created are kept, so installs still never
   overwrite project files. Re-running an install for a catalog item whose file
-  already exists reports "already installed" without invoking the CLI.
+  already exists skips the CLI and only adds the packages the project still
+  cannot resolve. The project stylesheet is excluded from the snapshot: the CLI
+  only adds the item's design tokens to it (the `--sidebar-*` palette), and
+  restoring it would drop them. Zero-byte files are excluded for the same
+  reason: a component file truncated by an interrupted install imports as
+  `undefined` and crashes every page that uses it, so an install treats it as
+  missing and refills it.
+- Blocks are inserted as the page renders them. The sidebar blocks and
+  `dashboard-01` are page fragments whose page wraps them in `SidebarProvider`,
+  so their insert and preview markup includes that provider; the export alone
+  throws `useSidebar must be used within a SidebarProvider`.
+- Dependencies are verified against the item's full closure (its own packages
+  plus every catalog registry item it pulls in). Whatever the project cannot
+  resolve yet is installed with the project's package manager after the CLI run,
+  and the same check repairs an already-installed item. This is what keeps a
+  block such as `sidebar-01` from landing without `lucide-react`, which the CLI
+  resolves only transitively.
 
 ### Status detection
 
@@ -120,6 +136,21 @@ Blocks with an official upstream preview use it before install; calendar and OTP
 examples render the installed source in the local isolated Vite preview. Remote
 previews show an offline message when the network is unavailable. Local previews
 require Vite in the active project.
+
+The library also previews the **whole catalog**, including items the active
+project does not have, from Kumite's own workspace: `catalog.ts` prepares the
+base under `<userData>/catalog-preview` once per run (React, Vite, Tailwind and
+`shadcn init -d`), then installs only the items the grid actually shows, one
+`shadcn add` per visible batch. `preview.ts` writes one entry per component into
+`kumite-preview/` before starting a second Vite server on the first free port
+from 3320. `catalogPreviewServer` serves every entry from that one process, so
+the grid shows live cards without starting a server per component, and entries
+added by later batches never restart or invalidate the ones already showing.
+Opening the library therefore never pays for the whole catalog, and scrolling
+only installs what comes into view. The workspace is repaired rather than
+rebuilt when an install is interrupted, and the active project is never
+modified. When the workspace cannot be prepared, cards fall back to the styled
+thumbnails and the failure is shown in the detail pane and the last CLI output.
 
 ### Insertion
 

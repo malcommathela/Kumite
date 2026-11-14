@@ -83,6 +83,8 @@ export interface ShadcnInstallResult {
     message: string;
     log: string;
     status: ShadcnProjectStatus | null;
+    /** Packages the installer added while repairing an existing install. */
+    addedDependencies?: string[];
 }
 
 export interface ShadcnInitResult {
@@ -95,6 +97,18 @@ export interface ShadcnInitResult {
 export interface ShadcnPreviewResult {
     component: string;
     url: string | null;
+    error: string | null;
+    log: string | null;
+}
+
+/**
+ * URLs for the catalog components that are ready to preview, rendered from
+ * Kumite's own preview workspace rather than the active project. Items are
+ * installed in batches, so a batch reports the ones it could not prepare.
+ */
+export interface ShadcnCatalogPreview {
+    urls: Record<string, string>;
+    missing?: string[];
     error: string | null;
     log: string | null;
 }
@@ -2100,3 +2114,28 @@ export const isShadcnBlock = (
     item: ShadcnLibraryItem,
 ): item is import('./blocks').ShadcnBlockDefinition =>
     SHADCN_BLOCKS.some((block) => block.name === item.name);
+
+/**
+ * npm packages an item needs, including those declared by the registry items it
+ * pulls in. A block record only lists its own packages, so `sidebar-01` records
+ * none while its `sidebar` registry dependency needs `lucide-react`.
+ */
+export function collectShadcnDependencies(item: ShadcnLibraryItem): string[] {
+    const dependencies = new Set<string>();
+    const visited = new Set<string>([item.name]);
+    const visit = (current: ShadcnLibraryItem) => {
+        current.dependencies.forEach((dependency) => dependencies.add(dependency));
+        current.registryDependencies.forEach((name) => {
+            if (visited.has(name)) {
+                return;
+            }
+            visited.add(name);
+            const registryItem = getShadcnLibraryItem(name);
+            if (registryItem) {
+                visit(registryItem);
+            }
+        });
+    };
+    visit(item);
+    return [...dependencies].sort();
+}

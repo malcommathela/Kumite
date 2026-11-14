@@ -342,3 +342,199 @@ function removePreviewFiles(projectPath: string): void {
 }
 
 export const componentPreviewServer = new ComponentPreviewServer();
+
+const CATALOG_DIR = 'kumite-preview';
+
+function buildCatalogEntry(definition: ShadcnLibraryItem): string {
+    const lines: string[] = [ENTRY_MARKER];
+    lines.push(`import React from 'react';`);
+    lines.push(`import { createRoot } from 'react-dom/client';`);
+    lines.push(`import '@/index.css';`);
+    for (const moduleImport of definition.imports) {
+        lines.push(buildImportStatement(moduleImport.source, moduleImport));
+    }
+    lines.push(`function Preview() {`);
+    lines.push(`    return (`);
+    lines.push(
+        `        <div className="flex min-h-screen w-full items-center justify-center bg-background p-6 text-foreground">`,
+    );
+    lines.push(`            ${definition.previewCode.trim()}`);
+    lines.push(`        </div>`);
+    lines.push(`    );`);
+    lines.push(`}`);
+    lines.push(``);
+    lines.push(`createRoot(document.getElementById('root')!).render(`);
+    lines.push(`    <React.StrictMode>`);
+    lines.push(`        <Preview />`);
+    lines.push(`    </React.StrictMode>,`);
+    lines.push(`);`);
+    lines.push(``);
+    return lines.join('\n');
+}
+
+function buildCatalogHtml(title: string): string {
+    return `${HTML_MARKER}
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${title}</title>
+    </head>
+    <body class="bg-background text-foreground">
+        <div id="root"></div>
+    </body>
+</html>
+`;
+}
+
+/**
+ * Writes one entry per definition. Entries are additive: batches arrive as the
+ * library scrolls, and a later batch must not delete the previews already
+ * shown. Files are only written when their content changes, so adding a batch
+ * does not hot-reload the iframes that are already showing.
+ */
+function writeCatalogEntries(projectPath: string, definitions: ShadcnLibraryItem[]): void {
+    const directory = path.join(projectPath, CATALOG_DIR);
+    fs.mkdirSync(directory, { recursive: true });
+    const writeIfChanged = (file: string, contents: string) => {
+        try {
+            if (fs.readFileSync(file, 'utf8') === contents) {
+                return;
+            }
+        } catch {
+            // Missing or unreadable: write it.
+        }
+        fs.writeFileSync(file, contents, 'utf8');
+    };
+    for (const definition of definitions) {
+        const entry = buildCatalogEntry(definition);
+        writeIfChanged(path.join(directory, `${definition.name}.tsx`), entry);
+        const html = buildCatalogHtml(definition.title).replace(
+            `<div id="root"></div>`,
+            `<div id="root"></div>\n        <script type="module" src="./${definition.name}.tsx"></script>`,
+        );
+        writeIfChanged(path.join(directory, `${definition.name}.html`), html);
+    }
+}
+
+/**
+ * Serves catalog items from Kumite's preview workspace. One dev server renders
+ * every entry, so the library can show a live preview per card without starting
+ * a process per component. Entries are added as batches arrive, without
+ * restarting the server or invalidating the previews already on screen.
+ */
+export class CatalogPreviewServer {
+    private current: RunningPreview | null = null;
+    private urls: Record<string, string> = {};
+
+    async start(
+        projectPath: string,
+        definitions: ShadcnLibraryItem[],
+    ): Promise<{ urls: Record<string, string>; error: string | null; log: string | null }> {
+        const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
+        if (!fs.existsSync(viteBin)) {
+            return {
+                urls: {},
+                error: 'The preview workspace has no local Vite install.',
+                log: null,
+            };
+        }
+        const items = definitions.filter(
+            (definition) => definition.previewable !== false && definition.previewCode.trim(),
+        );
+
+        const running = this.current;
+        const reuse = running !== null && running.projectPath === projectPath;
+        if (items.length === 0 && !reuse) {
+            return { urls: {}, error: 'The catalog has no previewable components.', log: null };
+        }
+
+        try {
+            writeCatalogEntries(projectPath, items);
+        } catch (error: any) {
+            return {
+                urls: {},
+                error: error?.message ?? 'Failed to write the catalog preview entries.',
+                log: null,
+            };
+        }
+
+        if (reuse) {
+            for (const definition of items) {
+                this.urls[definition.name] =
+                    `http://127.0.0.1:${running.port}/${CATALOG_DIR}/${definition.name}.html`;
+            }
+            return { urls: this.urls, error: null, log: null };
+        }
+
+        await this.stop();
+
+        let port: number;
+        let child: ChildProcess;
+        try {
+            port = await detect(3320);
+            child = spawn(
+                process.execPath,
+                [viteBin, '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
+                {
+                    cwd: projectPath,
+                    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', NODE_ENV: 'development' },
+                    windowsHide: true,
+                    stdio: ['ignore', 'pipe', 'pipe'],
+                },
+            );
+        } catch (error: any) {
+            return {
+                urls: {},
+                error: error?.message ?? 'Failed to start the catalog preview server.',
+                log: null,
+            };
+        }
+
+        const server: RunningPreview = {
+            projectPath,
+            port,
+            url: `http://127.0.0.1:${port}/${CATALOG_DIR}/${items[0].name}.html`,
+            process: child,
+            log: '',
+        };
+        const appendLog = (data: Buffer) => {
+            server.log = `${server.log}${data.toString()}`.slice(-8000);
+        };
+        child.stdout?.on('data', appendLog);
+        child.stderr?.on('data', appendLog);
+
+        const ready = await waitForServer(server);
+        if (!ready) {
+            const error =
+                child.exitCode === null
+                    ? 'Catalog preview server timed out.'
+                    : 'Catalog preview server exited.';
+            const log = server.log || null;
+            cleanupRunning(server);
+            return { urls: {}, error, log };
+        }
+
+        this.current = server;
+        this.urls = Object.fromEntries(
+            items.map((definition) => [
+                definition.name,
+                `http://127.0.0.1:${port}/${CATALOG_DIR}/${definition.name}.html`,
+            ]),
+        );
+        return { urls: this.urls, error: null, log: null };
+    }
+
+    async stop(): Promise<void> {
+        const running = this.current;
+        this.current = null;
+        this.urls = {};
+        if (!running) {
+            return;
+        }
+        cleanupRunning(running);
+    }
+}
+
+export const catalogPreviewServer = new CatalogPreviewServer();

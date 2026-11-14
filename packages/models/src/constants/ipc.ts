@@ -189,6 +189,7 @@ export enum MainChannels {
     COMPONENTS_INITIALIZE = 'components-initialize',
     COMPONENTS_INSTALL = 'components-install',
     COMPONENTS_PREVIEW_START = 'components-preview-start',
+    COMPONENTS_PREVIEW_CATALOG = 'components-preview-catalog',
     COMPONENTS_PREVIEW_STOP = 'components-preview-stop',
 }
 

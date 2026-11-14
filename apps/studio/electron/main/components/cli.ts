@@ -31,12 +31,55 @@ export function buildShadcnCommand(
     }
 }
 
+export function buildPackageManagerCommand(
+    packageManager: PackageManager,
+    packages: string[],
+): { command: string; args: string[] } {
+    switch (packageManager) {
+        case 'pnpm':
+            return { command: 'pnpm', args: ['add', ...packages] };
+        case 'yarn':
+            return { command: 'yarn', args: ['add', ...packages] };
+        case 'bun':
+            return { command: getBunExecutablePath(), args: ['add', ...packages] };
+        default:
+            return { command: 'npm', args: ['install', ...packages] };
+    }
+}
+
 export async function runShadcnCommand(
     projectPath: string,
     packageManager: PackageManager,
     args: string[],
 ): Promise<ShadcnCommandResult> {
     const { command, args: commandArgs } = buildShadcnCommand(packageManager, args);
+    return runProjectCommand(command, commandArgs, projectPath, packageManager);
+}
+
+export async function runPackageManagerCommand(
+    projectPath: string,
+    packageManager: PackageManager,
+    packages: string[],
+): Promise<ShadcnCommandResult> {
+    const { command, args } = buildPackageManagerCommand(packageManager, packages);
+    return runProjectCommand(command, args, projectPath, packageManager);
+}
+
+/** Installs the dependencies already declared in the project's package.json. */
+export async function runPackageManagerInstall(
+    projectPath: string,
+    packageManager: PackageManager,
+): Promise<ShadcnCommandResult> {
+    const command = packageManager === 'bun' ? getBunExecutablePath() : packageManager;
+    return runProjectCommand(command, ['install'], projectPath, packageManager);
+}
+
+async function runProjectCommand(
+    command: string,
+    commandArgs: string[],
+    projectPath: string,
+    packageManager: PackageManager,
+): Promise<ShadcnCommandResult> {
     const printable = `${command} ${commandArgs.join(' ')}`;
 
     try {
