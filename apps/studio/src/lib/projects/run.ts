@@ -69,10 +69,9 @@ export class RunManager {
     }
 
     async startIfPortAvailable() {
-        const isPortAvailable = await this.portManager.checkPort();
-        if (isPortAvailable) {
-            this.start();
-        }
+        // Development servers choose their own free port; a busy preferred port
+        // is not a reason to block startup.
+        return this.start();
     }
 
     async start() {
@@ -165,6 +164,13 @@ export class RunManager {
             }
         });
 
+        window.api.on(MainChannels.RUN_URL_CHANGED, (args) => {
+            const { id, url } = args as { id: string; url: string };
+            if (id === this.project.id) {
+                this.applyRunUrl(url);
+            }
+        });
+
         reaction(
             () => this.editorEngine.errors.errors,
             (errors) => {
@@ -175,6 +181,29 @@ export class RunManager {
                 }
             },
         );
+    }
+
+    /**
+     * The dev server reports the port it actually bound. Frames keep their
+     * paths but follow that origin instead of a hardcoded localhost port.
+     */
+    private applyRunUrl(url: string) {
+        let origin: string;
+        try {
+            origin = new URL(url).origin;
+        } catch {
+            return;
+        }
+        const frames = this.editorEngine.canvas.frames;
+        const next = frames.map((frame) => {
+            try {
+                const current = new URL(frame.url);
+                return { ...frame, url: `${origin}${current.pathname}${current.search}` };
+            } catch {
+                return frame;
+            }
+        });
+        this.editorEngine.canvas.saveFrames(next);
     }
 
     handleTerminalInput(data: string) {

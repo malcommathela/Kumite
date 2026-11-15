@@ -2,6 +2,7 @@ import type { DetectedPortResults } from '@kumite/models';
 import { MainChannels } from '@kumite/models/constants';
 import { ipcMain } from 'electron';
 import { runBunCommand } from '../bun';
+import { closeProjectResources } from '../lifecycle';
 import run from '../run';
 import { isPortAvailable } from '../run/helpers';
 import terminal from '../run/terminal';
@@ -29,6 +30,17 @@ export async function listenForRunMessages() {
         };
         return run.restart(id, folderPath, command);
     });
+
+    ipcMain.handle(
+        MainChannels.PROJECT_CLOSE,
+        async (_e: Electron.IpcMainInvokeEvent, args: { id: string; folderPath: string }) => {
+            const { id, folderPath } = args ?? {};
+            if (!id || !folderPath) {
+                return { success: false, errors: ['No project was provided.'] };
+            }
+            return closeProjectResources(id, folderPath);
+        },
+    );
 
     ipcMain.handle(MainChannels.GET_TEMPLATE_NODE, (e: Electron.IpcMainInvokeEvent, args) => {
         const { id } = args as { id: string };

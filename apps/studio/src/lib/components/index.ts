@@ -253,6 +253,7 @@ export class ComponentsManager {
             const result = (await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_START, {
                 projectPath,
                 component: componentName,
+                projectId: this.projectsManager.project?.id ?? null,
             })) as {
                 url: string | null;
                 sessionId?: string | null;
@@ -359,6 +360,7 @@ export class ComponentsManager {
         try {
             const result = (await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_CATALOG, {
                 components: batch,
+                projectId: this.projectsManager.project?.id ?? null,
             })) as ShadcnCatalogPreview;
             runInAction(() => {
                 this.catalogPreviews = { ...this.catalogPreviews, ...(result.urls ?? {}) };
@@ -402,6 +404,32 @@ export class ComponentsManager {
             await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_STOP);
         } catch (error) {
             console.error('Failed to stop the component preview', error);
+        }
+    }
+
+    /** Clears preview UI and releases this project's catalog sessions. */
+    async reset(): Promise<void> {
+        const projectId = this.projectsManager.project?.id ?? null;
+        runInAction(() => {
+            this.catalogPreviews = {};
+            this.catalogSessions = {};
+            this.catalogItemErrors = {};
+            this.catalogItemLoading = {};
+            this.catalogPending.clear();
+            this.catalogReady = false;
+            this.catalogBaseLoading = false;
+            this.catalogBaseError = null;
+            this.previewComponent = null;
+            this.previewUrl = null;
+            this.previewSessionId = null;
+            this.previewError = null;
+        });
+        if (projectId) {
+            try {
+                await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_RELEASE, { projectId });
+            } catch (error) {
+                console.error('Failed to release catalog preview sessions', error);
+            }
         }
     }
 

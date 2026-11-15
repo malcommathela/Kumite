@@ -28,6 +28,7 @@ export class ProjectsManager {
     private _run: RunManager | null = null;
     private _domains: DomainsManager | null = null;
     private _versions: VersionsManager | null = null;
+    private closeTask: Promise<{ success: boolean; errors: string[] }> | null = null;
 
     constructor() {
         makeAutoObservable(this);
@@ -116,16 +117,59 @@ export class ProjectsManager {
         invokeMainChannel(MainChannels.UPDATE_PROJECTS, { projects: this._projects });
     }
 
-    deleteProject(project: Project, deleteProjectFolder: boolean = false) {
+    async deleteProject(project: Project, deleteProjectFolder: boolean = false): Promise<void> {
         if (this.project?.id === project.id) {
-            this.project = null;
+            await this.closeProject();
         }
         this.projects = this._projects.filter((p) => p.id !== project.id);
 
         if (deleteProjectFolder) {
-            invokeMainChannel(MainChannels.DELETE_FOLDER, project.folderPath);
+            await invokeMainChannel(MainChannels.DELETE_FOLDER, project.folderPath);
         }
         sendAnalytics('delete project', { url: project.url, id: project.id, deleteProjectFolder });
+    }
+
+    /**
+     * Closes the active project through the main-process lifecycle, awaits every
+     * project-owned process, then disposes the renderer managers.
+     */
+    async closeProject(): Promise<{ success: boolean; errors: string[] }> {
+        if (this.closeTask) {
+            return this.closeTask;
+        }
+        this.closeTask = this.closeProjectInternal().finally(() => {
+            this.closeTask = null;
+        });
+        return this.closeTask;
+    }
+
+    private async closeProjectInternal(): Promise<{ success: boolean; errors: string[] }> {
+        const project = this._project;
+        let result = { success: true, errors: [] as string[] };
+        if (project) {
+            try {
+                result = (await invokeMainChannel(MainChannels.PROJECT_CLOSE, {
+                    id: project.id,
+                    folderPath: project.folderPath,
+                })) as { success: boolean; errors: string[] };
+            } catch (error: any) {
+                result = { success: false, errors: [error?.message ?? 'Project close failed.'] };
+                console.error('Failed to close project resources', error);
+            }
+        }
+        await this.disposeManagers();
+        this._project = null;
+        this.updateAppState({ activeProjectId: null });
+        return result;
+    }
+
+    /** Closes the current project before switching to another one. */
+    async openProject(project: Project): Promise<void> {
+        if (this._project && this._project.id !== project.id) {
+            await this.closeProject();
+        }
+        this.project = project;
+        await this.runner?.startIfPortAvailable();
     }
 
     async scanProjectMetadata(project: Project) {
@@ -160,7 +204,7 @@ export class ProjectsManager {
 
     set project(newProject: Project | null) {
         if (!newProject) {
-            this.disposeManagers();
+            void this.disposeManagers();
         } else {
             this.setOrUpdateManagers(newProject);
         }
@@ -194,13 +238,17 @@ export class ProjectsManager {
         }
     }
 
-    disposeManagers() {
-        this._run?.dispose();
-        this._domains?.dispose();
-        this._versions?.dispose();
+    async disposeManagers(): Promise<void> {
+        const run = this._run;
+        const domains = this._domains;
+        const versions = this._versions;
         this._run = null;
         this._domains = null;
         this._versions = null;
+        await run?.dispose();
+        await this.editorEngine?.components?.reset();
+        domains?.dispose();
+        versions?.dispose();
     }
 
     get projects() {

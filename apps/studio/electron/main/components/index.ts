@@ -9,7 +9,6 @@ import type {
     ShadcnProjectStatus,
 } from '@kumite/models';
 import { getShadcnLibraryItem, isShadcnBlock, SHADCN_COMPONENTS } from '@kumite/models';
-import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { ensureCatalogBase, installCatalogItems } from './catalog';
@@ -268,9 +267,8 @@ export async function installComponent(
     const report = createProgressReporter(definition.name, onProgress);
     report('queued', `Waiting to install ${definition.title}…`);
     try {
-        return await sharedInstallQueue.enqueue(
-            componentInstallKey(root, definition.name),
-            () => runInstallComponent(root, definition, report),
+        return await sharedInstallQueue.enqueue(componentInstallKey(root, definition.name), () =>
+            runInstallComponent(root, definition, report),
         );
     } catch (error) {
         if (isInstallCancelled(error)) {
@@ -304,10 +302,7 @@ async function runInstallComponent(
 ): Promise<ShadcnInstallResult> {
     report('running', `Preparing ${definition.title}…`);
     const finish = (result: ShadcnInstallResult): ShadcnInstallResult => {
-        report(
-            'done',
-            result.success ? result.message : `Could not install ${definition.title}.`,
-        );
+        report('done', result.success ? result.message : `Could not install ${definition.title}.`);
         return result;
     };
 
@@ -536,6 +531,7 @@ async function ensurePackages(
 export async function startComponentPreview(
     projectPath: unknown,
     componentName: unknown,
+    projectId?: unknown,
 ): Promise<ShadcnPreviewResult> {
     const definition =
         typeof componentName === 'string' ? getShadcnLibraryItem(componentName) : undefined;
@@ -585,7 +581,11 @@ export async function startComponentPreview(
         };
     }
 
-    const result = await componentPreviewServer.start(status, definition);
+    const result = await componentPreviewServer.start(
+        status,
+        definition,
+        typeof projectId === 'string' ? projectId : null,
+    );
     return {
         component: definition.name,
         url: result.url,
@@ -608,6 +608,7 @@ export async function stopComponentPreview(): Promise<boolean> {
  */
 export async function startCatalogPreview(
     components?: unknown,
+    projectId?: unknown,
     onProgress?: (progress: ShadcnInstallProgress) => void,
 ): Promise<ShadcnCatalogPreview> {
     try {
@@ -628,7 +629,11 @@ export async function startCatalogPreview(
         const definitions = SHADCN_COMPONENTS.filter(
             (component) => component.previewable !== false && status.installed[component.name],
         );
-        const result = await catalogPreviewServer.start(base.root, definitions);
+        const result = await catalogPreviewServer.start(
+            base.root,
+            definitions,
+            typeof projectId === 'string' ? projectId : 'catalog-ui',
+        );
         const log = [install?.log, result.log].filter(Boolean).join('\n\n');
         return {
             urls: result.urls,
@@ -648,7 +653,11 @@ export async function startCatalogPreview(
     }
 }
 
-app.on('before-quit', () => {
-    void componentPreviewServer.stop();
-    void catalogPreviewServer.stop();
-});
+/** Releases a project's catalog sessions without stopping other consumers. */
+export async function releaseCatalogPreview(projectId: unknown): Promise<boolean> {
+    if (typeof projectId !== 'string' || projectId.trim().length === 0) {
+        return false;
+    }
+    await catalogPreviewServer.releaseProject(projectId);
+    return true;
+}

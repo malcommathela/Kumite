@@ -40,8 +40,8 @@ export default function ProjectSettingsButton({ project }: { project: Project })
         setProjectName(project.name);
     }, [project.name]);
 
-    const handleDeleteProject = () => {
-        projectsManager.deleteProject(project, deleteProjectFolder);
+    const handleDeleteProject = async () => {
+        await projectsManager.deleteProject(project, deleteProjectFolder);
         setShowDeleteDialog(false);
     };
 

@@ -32,21 +32,25 @@ const ProjectBreadcrumb = observer(() => {
     const [isClosingProject, setIsClosingProject] = useState(false);
 
     async function handleNavigateToProjects(tab?: ProjectTabs) {
+        if (isClosingProject) {
+            return;
+        }
         try {
             setIsClosingProject(true);
             await takeScreenshotWithTimeout();
-            await projectsManager.runner?.stop();
+            const result = await projectsManager.closeProject();
+            if (!result.success) {
+                console.error('Project cleanup did not complete:', result.errors.join('; '));
+            }
         } catch (error) {
-            console.error('Failed to take screenshot:', error);
-        }
-        setTimeout(() => {
-            projectsManager.project = null;
+            console.error('Failed to close the project:', error);
+        } finally {
             if (tab) {
                 projectsManager.projectsTab = tab;
             }
             routeManager.route = Route.PROJECTS;
             setIsClosingProject(false);
-        }, 100);
+        }
     }
 
     const takeScreenshotWithTimeout = async () => {

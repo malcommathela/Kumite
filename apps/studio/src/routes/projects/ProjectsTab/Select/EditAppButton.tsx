@@ -18,9 +18,8 @@ export const EditAppButton = observer(({ project, ...props }: EditAppButtonProps
     const { t } = useTranslation();
     const projectsManager = useProjectsManager();
 
-    const selectProject = (project: Project) => {
-        projectsManager.project = project;
-        projectsManager.runner?.startIfPortAvailable();
+    const selectProject = async (project: Project) => {
+        await projectsManager.openProject(project);
         sendAnalytics('open project', { id: project.id, url: project.url });
     };
 

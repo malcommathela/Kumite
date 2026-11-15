@@ -41,6 +41,7 @@ export enum MainChannels {
     IS_CHILD_TEXT_EDITABLE = 'is-child-text-editable',
     IS_PORT_AVAILABLE = 'is-port-available',
     CLEAN_UP_BEFORE_QUIT = 'clean-up-before-quit',
+    PROJECT_CLOSE = 'project-close',
 
     // Code
     GET_CODE_BLOCK = 'get-code-block',
@@ -115,6 +116,7 @@ export enum MainChannels {
     RUN_RESTART = 'run-restart',
     GET_TEMPLATE_NODE = 'get-template-node',
     RUN_STATE_CHANGED = 'run-state-changed',
+    RUN_URL_CHANGED = 'run-url-changed',
     GET_RUN_STATE = 'get-run-state',
     RUN_COMMAND = 'run-command',
 
@@ -191,6 +193,7 @@ export enum MainChannels {
     COMPONENTS_PREVIEW_START = 'components-preview-start',
     COMPONENTS_PREVIEW_CATALOG = 'components-preview-catalog',
     COMPONENTS_PREVIEW_STOP = 'components-preview-stop',
+    COMPONENTS_PREVIEW_RELEASE = 'components-preview-release',
     COMPONENTS_INSTALL_PROGRESS = 'components-install-progress',
     COMPONENTS_INSTALL_CANCEL = 'components-install-cancel',
 }
