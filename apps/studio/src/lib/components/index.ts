@@ -1,6 +1,8 @@
 import type { ActionElement } from '@kumite/models/actions';
 import type {
+    ShadcnCatalogPreview,
     ShadcnInitResult,
+    ShadcnInstallProgress,
     ShadcnInstallResult,
     ShadcnLibraryItem,
     ShadcnProjectStatus,
@@ -31,19 +33,43 @@ export class ComponentsManager {
     isLoadingStatus = false;
     initializing = false;
     installing: string | null = null;
+    installProgress: ShadcnInstallProgress | null = null;
     using: string | null = null;
     lastLog: string | null = null;
     insertError: string | null = null;
     previewComponent: string | null = null;
     previewUrl: string | null = null;
+    previewSessionId: string | null = null;
     previewLoading = false;
     previewError: string | null = null;
+    catalogPreviews: Record<string, string> = {};
+    catalogSessions: Record<string, string> = {};
+    catalogBaseLoading = false;
+    catalogBaseError: string | null = null;
+    catalogItemLoading: Record<string, boolean> = {};
+    catalogItemErrors: Record<string, string> = {};
+    private catalogReady = false;
+    private catalogPending = new Set<string>();
+    private catalogTimer: ReturnType<typeof setTimeout> | null = null;
+    private catalogChain: Promise<void> = Promise.resolve();
+    private catalogWaiters: Array<() => void> = [];
+    private unsubscribeProgress: (() => void) | null = null;
 
     constructor(
         private editorEngine: EditorEngine,
         private projectsManager: ProjectsManager,
     ) {
         makeAutoObservable(this);
+        if (typeof window !== 'undefined' && window.api?.on) {
+            this.unsubscribeProgress = window.api.on<ShadcnInstallProgress>(
+                MainChannels.COMPONENTS_INSTALL_PROGRESS,
+                (progress) => {
+                    runInAction(() => {
+                        this.installProgress = progress.phase === 'done' ? null : progress;
+                    });
+                },
+            );
+        }
     }
 
     get catalog(): ShadcnLibraryItem[] {
@@ -125,8 +151,8 @@ export class ComponentsManager {
                 status: null,
             };
         }
-        const wasInstalled = Boolean(this.status?.installed[componentName]);
         this.installing = componentName;
+        this.installProgress = null;
         try {
             const result = (await invokeMainChannel(MainChannels.COMPONENTS_INSTALL, {
                 projectPath,
@@ -136,44 +162,106 @@ export class ComponentsManager {
                 this.status = result.status ?? this.status;
                 this.lastLog = result.log || null;
             });
-            if (result.success && !wasInstalled) {
-                this.reloadPreviews();
-            }
             return result;
         } finally {
             runInAction(() => {
                 this.installing = null;
+                this.installProgress = null;
             });
+        }
+    }
+
+    /**
+     * Cancels a component install that is still waiting in the serial queue.
+     * A running install cannot be cancelled: it is already writing files.
+     */
+    async cancelInstall(componentName: string): Promise<boolean> {
+        const projectPath = this.projectPath;
+        if (!projectPath) {
+            return false;
+        }
+        try {
+            return (await invokeMainChannel(MainChannels.COMPONENTS_INSTALL_CANCEL, {
+                projectPath,
+                component: componentName,
+            })) as boolean;
+        } catch {
+            return false;
         }
     }
 
     async openPreview(componentName: string): Promise<void> {
         const block = getShadcnLibraryItem(componentName);
+        if (block && block.previewable === false) {
+            this.previewComponent = componentName;
+            this.previewUrl = null;
+            this.previewSessionId = null;
+            this.previewError = block.limitation ?? `${block.title} cannot be previewed.`;
+            this.previewLoading = false;
+            return;
+        }
         if (block && isShadcnBlock(block) && block.previewUrl) {
             this.previewComponent = componentName;
             this.previewUrl = navigator.onLine ? block.previewUrl : null;
+            this.previewSessionId = null;
             this.previewError = navigator.onLine
                 ? null
                 : 'You’re offline. The official shadcn block preview needs an internet connection.';
             this.previewLoading = false;
             return;
         }
-        const projectPath = this.projectPath;
-        if (!projectPath) {
-            this.previewError = 'Open a project before previewing components.';
+        if (!this.catalogPreviews[componentName]) {
+            await this.ensureCatalogPreviews([componentName]);
+        }
+        const catalogUrl = this.catalogPreviews[componentName];
+        if (catalogUrl) {
+            runInAction(() => {
+                this.previewComponent = componentName;
+                this.previewUrl = catalogUrl;
+                this.previewSessionId = this.catalogSessions[componentName] ?? null;
+                this.previewError = null;
+                this.previewLoading = false;
+            });
             return;
         }
-        this.previewLoading = true;
-        this.previewComponent = componentName;
-        this.previewError = null;
-        this.previewUrl = null;
+        const itemError = this.catalogItemErrors[componentName];
+        if (itemError) {
+            runInAction(() => {
+                this.previewComponent = componentName;
+                this.previewUrl = null;
+                this.previewSessionId = null;
+                this.previewError = itemError;
+                this.previewLoading = false;
+            });
+            return;
+        }
+        const projectPath = this.projectPath;
+        if (!projectPath) {
+            runInAction(() => {
+                this.previewError = 'Open a project before previewing components.';
+            });
+            return;
+        }
+        runInAction(() => {
+            this.previewLoading = true;
+            this.previewComponent = componentName;
+            this.previewError = null;
+            this.previewUrl = null;
+            this.previewSessionId = null;
+        });
         try {
             const result = (await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_START, {
                 projectPath,
                 component: componentName,
-            })) as { url: string | null; error: string | null; log: string | null };
+            })) as {
+                url: string | null;
+                sessionId?: string | null;
+                error: string | null;
+                log: string | null;
+            };
             runInAction(() => {
                 this.previewUrl = result.url;
+                this.previewSessionId = result.sessionId ?? null;
                 this.previewError = result.error;
                 if (result.log) {
                     this.lastLog = result.log;
@@ -181,6 +269,7 @@ export class ComponentsManager {
             });
         } catch (error: any) {
             runInAction(() => {
+                this.previewSessionId = null;
                 this.previewError = error?.message ?? 'Failed to start the component preview.';
             });
         } finally {
@@ -190,9 +279,124 @@ export class ComponentsManager {
         }
     }
 
+    /**
+     * Requests live previews for the given catalog components. Requests are
+     * batched so a screenful of cards costs one install, and a component is
+     * never prepared twice. Resolves once the batch it joined has loaded.
+     */
+    ensureCatalogPreviews(names: string[]): Promise<void> {
+        const wanted = names.filter(
+            (name) =>
+                name &&
+                !this.catalogPreviews[name] &&
+                !this.catalogItemLoading[name] &&
+                !this.catalogItemErrors[name],
+        );
+        if (wanted.length === 0) {
+            return names.some((name) => this.catalogItemLoading[name])
+                ? new Promise<void>((resolve) => this.catalogWaiters.push(resolve))
+                : this.catalogChain;
+        }
+        for (const name of wanted) {
+            this.catalogPending.add(name);
+            this.catalogItemLoading[name] = true;
+        }
+        if (!this.catalogReady) {
+            this.catalogBaseLoading = true;
+        }
+        const promise = new Promise<void>((resolve) => this.catalogWaiters.push(resolve));
+        if (this.catalogTimer) {
+            clearTimeout(this.catalogTimer);
+        }
+        this.catalogTimer = setTimeout(() => this.flushCatalog(), 150);
+        return promise;
+    }
+
+    retryCatalogPreview(name: string): Promise<void> {
+        runInAction(() => {
+            delete this.catalogItemErrors[name];
+            // The URL may point at a preview server that has since stopped, so
+            // ask for a fresh one instead of reusing the cached address.
+            delete this.catalogPreviews[name];
+            delete this.catalogSessions[name];
+        });
+        return this.ensureCatalogPreviews([name]);
+    }
+
+    /**
+     * Rebuilds the preview of an item and its URL, then the host can remount the
+     * iframe. Used when a cached preview address no longer answers.
+     */
+    async retryPreview(componentName: string): Promise<void> {
+        await this.retryCatalogPreview(componentName);
+        await this.openPreview(componentName);
+    }
+
+    private flushCatalog(): void {
+        this.catalogTimer = null;
+        const batch = [...this.catalogPending];
+        this.catalogPending.clear();
+        if (batch.length === 0) {
+            this.resolveCatalogWaiters();
+            return;
+        }
+        this.catalogChain = this.catalogChain
+            .then(() => this.loadCatalogBatch(batch))
+            .finally(() => {
+                if (this.catalogPending.size === 0) {
+                    this.resolveCatalogWaiters();
+                }
+            });
+    }
+
+    private resolveCatalogWaiters(): void {
+        const waiters = this.catalogWaiters;
+        this.catalogWaiters = [];
+        waiters.forEach((resolve) => resolve());
+    }
+
+    private async loadCatalogBatch(batch: string[]): Promise<void> {
+        try {
+            const result = (await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_CATALOG, {
+                components: batch,
+            })) as ShadcnCatalogPreview;
+            runInAction(() => {
+                this.catalogPreviews = { ...this.catalogPreviews, ...(result.urls ?? {}) };
+                this.catalogSessions = { ...this.catalogSessions, ...(result.sessions ?? {}) };
+                for (const name of batch) {
+                    this.catalogItemLoading[name] = false;
+                    if (this.catalogPreviews[name]) {
+                        delete this.catalogItemErrors[name];
+                        continue;
+                    }
+                    this.catalogItemErrors[name] =
+                        result.error ??
+                        `Kumite could not prepare ${name} for preview. Check the CLI output for details.`;
+                }
+                this.catalogReady = true;
+                this.catalogBaseLoading = false;
+                this.catalogBaseError = result.error;
+                if (result.log) {
+                    this.lastLog = result.log;
+                }
+            });
+        } catch (error: any) {
+            const message = error?.message ?? 'Could not prepare the component previews.';
+            runInAction(() => {
+                for (const name of batch) {
+                    this.catalogItemLoading[name] = false;
+                    this.catalogItemErrors[name] = message;
+                }
+                this.catalogBaseLoading = false;
+                this.catalogBaseError = message;
+            });
+        }
+    }
+
     async closePreview(): Promise<void> {
         this.previewComponent = null;
         this.previewUrl = null;
+        this.previewSessionId = null;
         this.previewError = null;
         try {
             await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_STOP);
@@ -336,13 +540,9 @@ export class ComponentsManager {
         return null;
     }
 
-    private reloadPreviews(): void {
-        this.editorEngine.webviews.getAll().forEach((webview) => {
-            webview.reload();
-        });
-    }
-
     dispose(): void {
+        this.unsubscribeProgress?.();
+        this.unsubscribeProgress = null;
         void this.closePreview();
     }
 }

@@ -4,6 +4,13 @@ import { detect } from 'detect-port';
 import fs from 'fs';
 import path from 'path';
 import { readComponentsJson, resolveAlias } from './inspect';
+import {
+    buildHandshakeScript,
+    PREVIEW_MARKER,
+    PreviewRuntimeManager,
+    safeEntryId,
+    stableSessionId,
+} from './preview-runtime';
 
 const PREVIEW_STEM = '__kumite_preview';
 const HTML_MARKER = '<!-- kumite-preview -->';
@@ -24,20 +31,36 @@ class ComponentPreviewServer {
     async start(
         status: ShadcnProjectStatus,
         definition: ShadcnLibraryItem,
-    ): Promise<{ url: string | null; error: string | null; log: string | null }> {
+    ): Promise<{
+        url: string | null;
+        error: string | null;
+        log: string | null;
+        sessionId: string | null;
+    }> {
         const projectPath = status.projectPath;
         if (definition.previewable === false) {
             return {
                 url: null,
                 error: definition.limitation ?? `${definition.title} cannot be previewed.`,
                 log: null,
+                sessionId: null,
             };
         }
         if (!status.supported) {
-            return { url: null, error: status.reason ?? 'Project is not supported.', log: null };
+            return {
+                url: null,
+                error: status.reason ?? 'Project is not supported.',
+                log: null,
+                sessionId: null,
+            };
         }
         if (!status.uiDir) {
-            return { url: null, error: 'Could not resolve the shadcn/ui directory.', log: null };
+            return {
+                url: null,
+                error: 'Could not resolve the shadcn/ui directory.',
+                log: null,
+                sessionId: null,
+            };
         }
         const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
         if (!fs.existsSync(viteBin)) {
@@ -45,20 +68,23 @@ class ComponentPreviewServer {
                 url: null,
                 error: 'An isolated preview needs a local Vite install. This project does not have one.',
                 log: null,
+                sessionId: null,
             };
         }
 
         await this.stop();
 
+        const sessionId = stableSessionId(projectPath, `component:${definition.name}`, 'component');
         let entrySource: string;
         try {
-            entrySource = buildEntryFile(projectPath, status, definition);
-            writePreviewFiles(projectPath, entrySource);
+            entrySource = buildEntryFile(projectPath, status, definition, sessionId);
+            writePreviewFiles(projectPath, entrySource, sessionId);
         } catch (error: any) {
             return {
                 url: null,
                 error: error?.message ?? 'Failed to build the preview entry.',
                 log: null,
+                sessionId: null,
             };
         }
 
@@ -82,6 +108,7 @@ class ComponentPreviewServer {
                 url: null,
                 error: error?.message ?? 'Failed to start the preview server.',
                 log: null,
+                sessionId: null,
             };
         }
 
@@ -104,11 +131,11 @@ class ComponentPreviewServer {
                 child.exitCode === null ? 'Preview server timed out.' : 'Preview server exited.';
             const log = running.log || null;
             cleanupRunning(running);
-            return { url: null, error, log };
+            return { url: null, error, log, sessionId: null };
         }
 
         this.current = running;
-        return { url: running.url, error: null, log: null };
+        return { url: running.url, error: null, log: null, sessionId };
     }
 
     async stop(): Promise<void> {
@@ -214,10 +241,57 @@ function resolveProjectImportFile(
     return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
+/**
+ * Shared mount reporting and error containment for every preview page. The
+ * host uses the `mounted` message to replace the skeleton and `error` to stop
+ * waiting on a preview that will never render.
+ */
+function previewShellLines(): string[] {
+    return [
+        `function PreviewHandshake() {`,
+        `    React.useEffect(() => {`,
+        `        window.__kumitePreview?.post('mounted');`,
+        `    }, []);`,
+        `    return null;`,
+        `}`,
+        ``,
+        `class PreviewErrorBoundary extends React.Component {`,
+        `    constructor(props) {`,
+        `        super(props);`,
+        `        this.state = { message: null };`,
+        `    }`,
+        `    static getDerivedStateFromError(error) {`,
+        `        return { message: (error && error.message) || 'The preview crashed.' };`,
+        `    }`,
+        `    componentDidCatch(error) {`,
+        `        window.__kumitePreview?.post('error', (error && error.message) || 'The preview crashed.');`,
+        `    }`,
+        `    render() {`,
+        `        if (this.state.message) {`,
+        `            return <div className="p-6 text-sm text-red-600">{this.state.message}</div>;`,
+        `        }`,
+        `        return this.props.children;`,
+        `    }`,
+        `}`,
+        ``,
+        `function PreviewRoot({ children }) {`,
+        `    return (`,
+        `        <React.StrictMode>`,
+        `            <PreviewErrorBoundary>`,
+        `                <PreviewHandshake />`,
+        `                {children}`,
+        `            </PreviewErrorBoundary>`,
+        `        </React.StrictMode>`,
+        `    );`,
+        `}`,
+    ];
+}
+
 function buildEntryFile(
     projectPath: string,
     status: ShadcnProjectStatus,
     definition: ShadcnLibraryItem,
+    sessionId: string,
 ): string {
     if (!status.uiDir) {
         throw new Error('Could not resolve the shadcn/ui directory.');
@@ -251,6 +325,8 @@ function buildEntryFile(
         lines.push(buildImportStatement(moduleImport.source, moduleImport));
     }
 
+    lines.push(`const PREVIEW_SESSION = ${JSON.stringify(sessionId)};`);
+    lines.push(...previewShellLines());
     lines.push(`function Preview() {`);
     lines.push(`    return (`);
     lines.push(`        <div className="min-h-screen bg-background p-10 text-foreground">`);
@@ -265,16 +341,16 @@ function buildEntryFile(
     lines.push(`}`);
     lines.push(``);
     lines.push(`createRoot(document.getElementById('root')!).render(`);
-    lines.push(`    <React.StrictMode>`);
+    lines.push(`    <PreviewRoot>`);
     lines.push(`        <Preview />`);
-    lines.push(`    </React.StrictMode>,`);
+    lines.push(`    </PreviewRoot>,`);
     lines.push(`);`);
     lines.push(``);
     return lines.join('\n');
 }
 
-function writePreviewFiles(projectPath: string, entrySource: string): void {
-    const html = `${HTML_MARKER}
+function buildPreviewHtml(sessionId: string): string {
+    return `${HTML_MARKER}
 <!doctype html>
 <html lang="en">
     <head>
@@ -284,12 +360,16 @@ function writePreviewFiles(projectPath: string, entrySource: string): void {
     </head>
     <body>
         <div id="root"></div>
+        ${buildHandshakeScript(sessionId)}
         <script type="module" src="/${PREVIEW_STEM}.tsx"></script>
     </body>
 </html>
 `;
+}
+
+function writePreviewFiles(projectPath: string, entrySource: string, sessionId: string): void {
     const files = [
-        [path.join(projectPath, `${PREVIEW_STEM}.html`), html],
+        [path.join(projectPath, `${PREVIEW_STEM}.html`), buildPreviewHtml(sessionId)],
         [path.join(projectPath, `${PREVIEW_STEM}.tsx`), entrySource],
     ] as const;
     if (files.some(([file]) => fs.existsSync(file))) {
@@ -342,3 +422,139 @@ function removePreviewFiles(projectPath: string): void {
 }
 
 export const componentPreviewServer = new ComponentPreviewServer();
+
+function buildCatalogEntry(definition: ShadcnLibraryItem, sessionId: string): string {
+    const lines: string[] = [ENTRY_MARKER];
+    lines.push(`import React from 'react';`);
+    lines.push(`import { createRoot } from 'react-dom/client';`);
+    lines.push(`import '@/index.css';`);
+    for (const moduleImport of definition.imports) {
+        lines.push(buildImportStatement(moduleImport.source, moduleImport));
+    }
+    lines.push(`const PREVIEW_SESSION = ${JSON.stringify(sessionId)};`);
+    lines.push(...previewShellLines());
+    lines.push(`function Preview() {`);
+    lines.push(`    return (`);
+    lines.push(
+        `        <div className="flex min-h-screen w-full items-center justify-center bg-background p-6 text-foreground">`,
+    );
+    lines.push(`            ${definition.previewCode.trim()}`);
+    lines.push(`        </div>`);
+    lines.push(`    );`);
+    lines.push(`}`);
+    lines.push(``);
+    lines.push(`createRoot(document.getElementById('root')!).render(`);
+    lines.push(`    <PreviewRoot>`);
+    lines.push(`        <Preview />`);
+    lines.push(`    </PreviewRoot>,`);
+    lines.push(`);`);
+    lines.push(``);
+    return lines.join('\n');
+}
+
+export function buildCatalogHtml(title: string, sessionId: string, entryId: string): string {
+    return `${HTML_MARKER}
+<!-- ${PREVIEW_MARKER} -->
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${title}</title>
+    </head>
+    <body class="bg-background text-foreground">
+        <div id="root"></div>
+        ${buildHandshakeScript(sessionId)}
+        <script type="module" src="./${entryId}.tsx"></script>
+    </body>
+</html>
+`;
+}
+
+export interface CatalogPreviewStart {
+    urls: Record<string, string>;
+    sessions: Record<string, string>;
+    error: string | null;
+    log: string | null;
+}
+
+/**
+ * Serves catalog items from Kumite's private preview workspace.
+ *
+ * The workspace belongs to Kumite, so a dev server can be reused across
+ * projects and every item gets its own session directory. Entries are additive:
+ * batches arrive as the library scrolls, and a later batch never deletes the
+ * previews already on screen. The runtime owns the process, its refcount, and
+ * its cleanup.
+ */
+export class CatalogPreviewServer {
+    private runtime = new PreviewRuntimeManager();
+
+    async start(
+        projectPath: string,
+        definitions: ShadcnLibraryItem[],
+    ): Promise<CatalogPreviewStart> {
+        const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
+        if (!fs.existsSync(viteBin)) {
+            return {
+                urls: {},
+                sessions: {},
+                error: 'The preview workspace has no local Vite install.',
+                log: null,
+            };
+        }
+        const items = definitions.filter(
+            (definition) => definition.previewable !== false && definition.previewCode.trim(),
+        );
+        if (items.length === 0) {
+            return {
+                urls: {},
+                sessions: {},
+                error: 'The catalog has no previewable components.',
+                log: null,
+            };
+        }
+
+        const entries = items.map((definition) => {
+            const sessionId = stableSessionId(projectPath, definition.name, 'catalog');
+            // The written module name and the HTML script src must agree.
+            const entryId = safeEntryId(definition.name);
+            return {
+                sessionId,
+                entryId,
+                html: buildCatalogHtml(definition.title, sessionId, entryId),
+                source: buildCatalogEntry(definition, sessionId),
+            };
+        });
+
+        const result = await this.runtime.ensure({
+            projectPath,
+            kind: 'catalog',
+            viteBin,
+            basePort: 3320,
+            entries,
+        });
+        if (result.error) {
+            return { urls: {}, sessions: {}, error: result.error, log: result.log };
+        }
+
+        const urls: Record<string, string> = {};
+        const sessions: Record<string, string> = {};
+        for (const [index, definition] of items.entries()) {
+            const sessionId = entries[index].sessionId;
+            const url = result.urls[sessionId];
+            if (!url) {
+                continue;
+            }
+            urls[definition.name] = url;
+            sessions[definition.name] = sessionId;
+        }
+        return { urls, sessions, error: null, log: null };
+    }
+
+    async stop(): Promise<void> {
+        this.runtime.stopAll();
+    }
+}
+
+export const catalogPreviewServer = new CatalogPreviewServer();

@@ -1,6 +1,11 @@
 import { useEditorEngine } from '@/components/Context';
-import type { ShadcnLibraryItem } from '@kumite/models';
-import { isShadcnBlock, SHADCN_BLOCKS } from '@kumite/models';
+import type { PreviewLifecycleState, ShadcnLibraryItem } from '@kumite/models';
+import {
+    advancePreviewState,
+    isShadcnBlock,
+    parsePreviewMessage,
+    SHADCN_BLOCKS,
+} from '@kumite/models';
 import { Button } from '@kumite/ui/button';
 import {
     Dialog,
@@ -11,10 +16,11 @@ import {
 } from '@kumite/ui/dialog';
 import { Icons } from '@kumite/ui/icons';
 import { Input } from '@kumite/ui/input';
+import { Skeleton } from '@kumite/ui/skeleton';
 import { toast } from '@kumite/ui/use-toast';
 import { cn } from '@kumite/ui/utils';
 import { observer } from 'mobx-react-lite';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type ProviderId = 'shadcn' | '21st-dev' | 'magic-ui';
 type CatalogKind = 'all' | 'components' | 'blocks';
@@ -90,6 +96,277 @@ function getImportCode(item: ShadcnLibraryItem): string {
             return `import ${clause} from "${moduleImport.source}";`;
         })
         .join('\n');
+}
+
+type ShimmerShape = 'avatar' | 'pills' | 'field' | 'panel' | 'rows' | 'bars' | 'grid' | 'lines';
+
+const FIELD_COMPONENTS = [
+    'input',
+    'input-group',
+    'input-otp',
+    'textarea',
+    'field',
+    'form',
+    'label',
+    'select',
+    'checkbox',
+    'radio-group',
+    'combobox',
+];
+
+/**
+ * Each kind of component gets a skeleton with the same silhouette, so a loading
+ * card hints at what is coming instead of showing the same three bars 54 times.
+ */
+function shimmerShape(name: string): ShimmerShape {
+    if (name === 'avatar') {
+        return 'avatar';
+    }
+    if (name === 'chart') {
+        return 'bars';
+    }
+    if (['calendar', 'table', 'data-table', 'date-picker', 'input-otp'].includes(name)) {
+        return 'grid';
+    }
+    if (['badge', 'button', 'button-group', 'toggle', 'toggle-group'].includes(name)) {
+        return 'pills';
+    }
+    if (FIELD_COMPONENTS.includes(name)) {
+        return 'field';
+    }
+    switch (getCategory(name)) {
+        case 'Forms':
+            return 'pills';
+        case 'Feedback':
+            return 'pills';
+        case 'Navigation':
+            return 'rows';
+        case 'Layout':
+        case 'Overlays':
+            return 'panel';
+        default:
+            return 'lines';
+    }
+}
+
+function PreviewShimmer({ name }: { name?: string }) {
+    const shape: ShimmerShape = name ? shimmerShape(name) : 'lines';
+    return (
+        <div
+            className="flex h-full w-full items-center justify-center p-4"
+            role="status"
+            aria-label="Loading preview"
+        >
+            {shape === 'avatar' && (
+                <div className="flex w-full flex-col items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <Skeleton className="h-2.5 w-24" />
+                    <Skeleton className="h-7 w-32 rounded-md" />
+                </div>
+            )}
+            {shape === 'pills' && (
+                <div className="flex w-full flex-wrap items-center justify-center gap-2">
+                    <Skeleton className="h-8 w-24 rounded-md" />
+                    <Skeleton className="h-8 w-20 rounded-md" />
+                    <Skeleton className="h-8 w-16 rounded-md" />
+                </div>
+            )}
+            {shape === 'field' && (
+                <div className="w-3/4 space-y-2">
+                    <Skeleton className="h-2.5 w-20" />
+                    <Skeleton className="h-8 w-full rounded-md" />
+                    <Skeleton className="h-2 w-24" />
+                </div>
+            )}
+            {shape === 'panel' && (
+                <div className="w-4/5 space-y-3 rounded-lg border border-border/70 p-3">
+                    <div className="flex items-center justify-between">
+                        <Skeleton className="h-2.5 w-24" />
+                        <Skeleton className="h-5 w-5 rounded-full" />
+                    </div>
+                    <Skeleton className="h-2 w-full" />
+                    <Skeleton className="h-2 w-4/5" />
+                    <Skeleton className="h-8 w-24 rounded-md" />
+                </div>
+            )}
+            {shape === 'rows' && (
+                <div className="w-4/5 space-y-2">
+                    <div className="flex gap-3">
+                        <Skeleton className="h-2.5 w-16" />
+                        <Skeleton className="h-2.5 w-14" />
+                        <Skeleton className="h-2.5 w-12" />
+                    </div>
+                    <Skeleton className="h-7 w-full rounded-md" />
+                    <Skeleton className="h-7 w-full rounded-md" />
+                </div>
+            )}
+            {shape === 'bars' && (
+                <div className="flex h-20 w-4/5 items-end gap-1.5 border-b border-border/70 px-2">
+                    {[40, 65, 48, 82, 56, 92, 70].map((height, index) => (
+                        <Skeleton
+                            key={index}
+                            className="flex-1 rounded-t-sm"
+                            style={{ height: `${height}%` }}
+                        />
+                    ))}
+                </div>
+            )}
+            {shape === 'grid' && (
+                <div className="w-4/5 space-y-2">
+                    <Skeleton className="h-2 w-24" />
+                    <div className="grid grid-cols-7 gap-1.5">
+                        {Array.from({ length: 21 }, (_, cell) => (
+                            <Skeleton key={cell} className="h-5 rounded-sm" />
+                        ))}
+                    </div>
+                </div>
+            )}
+            {shape === 'lines' && (
+                <div className="w-3/4 space-y-2">
+                    <Skeleton className="h-2.5 w-2/5" />
+                    <Skeleton className="h-2 w-full" />
+                    <Skeleton className="h-2 w-4/5" />
+                    <Skeleton className="h-8 w-28 rounded-md" />
+                </div>
+            )}
+            <span className="sr-only">Loading preview</span>
+        </div>
+    );
+}
+
+const PREVIEW_HANDSHAKE_TIMEOUT_MS = 15_000;
+
+/**
+ * Waits for the preview page's handshake instead of trusting `load`: a Vite
+ * iframe fires `load` on the empty shell before React commits, which left the
+ * shimmer covering a blank frame. Messages are accepted only from this iframe
+ * and only for this session id.
+ */
+function usePreviewHandshake(sessionId: string | null) {
+    const frameRef = useRef<HTMLIFrameElement | null>(null);
+    const [state, setState] = useState<PreviewLifecycleState | 'idle'>('idle');
+    const [detail, setDetail] = useState<string | null>(null);
+    const [attempt, setAttempt] = useState(0);
+
+    useEffect(() => {
+        setState('idle');
+        setDetail(null);
+        if (!sessionId) {
+            return;
+        }
+        // The timer is cleared when the page reports mounted or error, so firing
+        // here always means the handshake never arrived.
+        let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+            setDetail('The preview did not finish loading. Vite may still be compiling it.');
+            setState('error');
+        }, PREVIEW_HANDSHAKE_TIMEOUT_MS);
+
+        const stopTimer = () => {
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+        };
+        const listener = (event: MessageEvent) => {
+            if (event.source !== frameRef.current?.contentWindow) {
+                return;
+            }
+            const message = parsePreviewMessage(event.data);
+            if (!message || message.sessionId !== sessionId) {
+                return;
+            }
+            if (message.state === 'error') {
+                stopTimer();
+                setState('error');
+                setDetail(message.detail ?? 'The preview crashed while rendering.');
+                return;
+            }
+            if (message.state === 'mounted') {
+                stopTimer();
+                setState('mounted');
+                setDetail(null);
+                return;
+            }
+            setState((current) => advancePreviewState(current, message) ?? current);
+        };
+        window.addEventListener('message', listener);
+        return () => {
+            stopTimer();
+            window.removeEventListener('message', listener);
+        };
+    }, [sessionId, attempt]);
+
+    return {
+        frameRef,
+        state,
+        detail,
+        frameKey: `${attempt}`,
+        retry: () => setAttempt((value) => value + 1),
+    };
+}
+
+function PreviewFrame({
+    src,
+    title,
+    name,
+    sessionId,
+    onRetry,
+}: {
+    src: string;
+    title: string;
+    name?: string;
+    sessionId?: string | null;
+    onRetry?: () => Promise<void> | void;
+}) {
+    const { frameRef, state, detail, frameKey, retry } = usePreviewHandshake(sessionId ?? null);
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        setLoaded(false);
+    }, [src]);
+
+    // Without a handshake id (an official block preview) fall back to `load`.
+    const ready = sessionId ? state === 'mounted' : loaded;
+    const failed = Boolean(sessionId) && state === 'error';
+
+    return (
+        <div className="relative h-full min-h-[300px] w-full">
+            {!ready && !failed && (
+                <div className="absolute inset-0 z-10 bg-background">
+                    <PreviewShimmer name={name} />
+                </div>
+            )}
+            {failed && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background p-6 text-center text-sm text-muted-foreground">
+                    <p>{detail ?? 'The preview failed to render.'}</p>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                            // Rebuild the preview first: the cached address can
+                            // point at a server that has since been stopped.
+                            await onRetry?.();
+                            retry();
+                        }}
+                    >
+                        Retry preview
+                    </Button>
+                </div>
+            )}
+            <iframe
+                ref={frameRef}
+                key={`${src}#${frameKey}`}
+                title={title}
+                src={src}
+                onLoad={() => setLoaded(true)}
+                className={cn(
+                    'h-full min-h-[300px] w-full bg-background transition-opacity',
+                    ready ? 'opacity-100' : 'opacity-0',
+                )}
+                sandbox="allow-scripts allow-same-origin allow-forms"
+            />
+        </div>
+    );
 }
 
 function ComponentThumbnail({ name }: { name: string }) {
@@ -248,15 +525,108 @@ function ComponentThumbnail({ name }: { name: string }) {
     );
 }
 
+function CardPreview({
+    src,
+    title,
+    name,
+    sessionId,
+}: {
+    src: string;
+    title: string;
+    name?: string;
+    sessionId?: string | null;
+}) {
+    const { frameRef, state, frameKey } = usePreviewHandshake(sessionId ?? null);
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        setLoaded(false);
+    }, [src]);
+
+    const ready = sessionId ? state === 'mounted' : loaded;
+    const failed = Boolean(sessionId) && state === 'error';
+
+    if (failed) {
+        return (
+            <div className="flex h-full items-center justify-center px-4">
+                <ComponentThumbnail name={name ?? ''} />
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative h-full w-full overflow-hidden">
+            {!ready && (
+                <div className="absolute inset-0 z-10 bg-muted/35">
+                    <PreviewShimmer name={name} />
+                </div>
+            )}
+            <iframe
+                ref={frameRef}
+                key={`${src}#${frameKey}`}
+                title={title}
+                src={src}
+                loading="lazy"
+                tabIndex={-1}
+                onLoad={() => setLoaded(true)}
+                className={cn(
+                    'pointer-events-none h-full w-full border-0 bg-background transition-opacity',
+                    ready ? 'opacity-100' : 'opacity-0',
+                )}
+                sandbox="allow-scripts allow-same-origin"
+            />
+        </div>
+    );
+}
+
 function DefinitionCard({
     definition,
     installed,
+    previewUrl,
+    previewSessionId,
+    previewLoading,
+    previewError,
+    onVisible,
     onSelect,
 }: {
     definition: ShadcnLibraryItem;
     installed: boolean;
+    previewUrl?: string;
+    previewSessionId?: string;
+    previewLoading: boolean;
+    previewError?: string;
+    onVisible: (name: string) => void;
     onSelect: () => void;
 }) {
+    const previewRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const node = previewRef.current;
+        // Blocks have their own thumbnails and never need the catalog workspace.
+        if (
+            !node ||
+            previewUrl ||
+            previewLoading ||
+            previewError ||
+            definition.previewable === false ||
+            isShadcnBlock(definition)
+        ) {
+            return;
+        }
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (!entries.some((entry) => entry.isIntersecting)) {
+                    return;
+                }
+                observer.disconnect();
+                onVisible(definition.name);
+            },
+            { rootMargin: '160px' },
+        );
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [definition, previewUrl, previewLoading, previewError, onVisible]);
+
     return (
         <article className="group overflow-hidden rounded-xl border border-border/70 bg-background transition-colors hover:border-border-hover">
             <button
@@ -265,8 +635,23 @@ function DefinitionCard({
                 onClick={onSelect}
                 aria-label={`View ${definition.title} details`}
             >
-                <div className="flex h-36 items-center justify-center overflow-hidden bg-muted/35 px-4">
-                    <ComponentThumbnail name={definition.name} />
+                <div ref={previewRef} className="h-36 overflow-hidden bg-muted/35">
+                    {previewUrl ? (
+                        <CardPreview
+                            src={previewUrl}
+                            title={`${definition.title} preview`}
+                            name={definition.name}
+                            sessionId={previewSessionId}
+                        />
+                    ) : (
+                        <div className="flex h-full items-center justify-center px-4">
+                            {previewLoading ? (
+                                <PreviewShimmer name={definition.name} />
+                            ) : (
+                                <ComponentThumbnail name={definition.name} />
+                            )}
+                        </div>
+                    )}
                 </div>
                 <div className="px-3 pb-3 pt-3">
                     <div className="flex items-center justify-between gap-2">
@@ -315,6 +700,33 @@ const ComponentsTab = observer(() => {
     }, [manager, projectPath]);
 
     const selectedDefinition = manager.catalog.find((item) => item.name === selectedName);
+    const selectedCatalogUrl = selectedDefinition
+        ? manager.catalogPreviews[selectedDefinition.name]
+        : undefined;
+    const selectedItemLoading = selectedDefinition
+        ? Boolean(manager.catalogItemLoading[selectedDefinition.name])
+        : false;
+    const selectedItemError = selectedDefinition
+        ? manager.catalogItemErrors[selectedDefinition.name]
+        : undefined;
+
+    // The detail pane needs one item; the grid asks for its own as it scrolls.
+    useEffect(() => {
+        if (!libraryOpen || !selectedDefinition || isShadcnBlock(selectedDefinition)) {
+            return;
+        }
+        if (selectedDefinition.previewable === false) {
+            return;
+        }
+        void manager.ensureCatalogPreviews([selectedDefinition.name]);
+    }, [libraryOpen, manager, selectedDefinition]);
+
+    const requestPreview = useCallback(
+        (name: string) => {
+            void manager.ensureCatalogPreviews([name]);
+        },
+        [manager],
+    );
     const filteredCatalog = useMemo(() => {
         const needle = query.trim().toLowerCase();
         if (provider !== 'shadcn') {
@@ -347,21 +759,15 @@ const ComponentsTab = observer(() => {
     };
 
     const selectDefinition = (name: string) => {
-        if (manager.previewComponent) {
-            void manager.closePreview();
-        }
         setSelectedName(name);
-        const definition = manager.catalog.find((item) => item.name === name);
-        if (definition && isShadcnBlock(definition) && definition.previewUrl) {
-            void manager.openPreview(name);
-        }
+        void manager.openPreview(name);
     };
 
     const install = async (definition: ShadcnLibraryItem) => {
         const wasInstalled = Boolean(manager.status?.installed[definition.name]);
         try {
             const result = await manager.install(definition.name);
-            if (!wasInstalled || !result.success) {
+            if (!wasInstalled || !result.success || result.addedDependencies?.length) {
                 toast({
                     title: result.success
                         ? `${definition.title} ready`
@@ -382,12 +788,8 @@ const ComponentsTab = observer(() => {
     };
 
     const preview = async (definition: ShadcnLibraryItem) => {
-        if (isShadcnBlock(definition) && definition.previewUrl) {
-            await manager.openPreview(definition.name);
-            return;
-        }
-        if (!(await install(definition))) {
-            return;
+        if (manager.catalogItemErrors[definition.name]) {
+            await manager.retryCatalogPreview(definition.name);
         }
         await manager.openPreview(definition.name);
     };
@@ -414,7 +816,7 @@ const ComponentsTab = observer(() => {
             return 'Adding…';
         }
         if (manager.installing === definition.name) {
-            return 'Installing…';
+            return manager.installProgress?.phase === 'queued' ? 'Queued…' : 'Installing…';
         }
         return manager.status?.installed[definition.name]
             ? 'Use in Kumite'
@@ -448,7 +850,7 @@ const ComponentsTab = observer(() => {
             <div className="flex items-center justify-between border-b px-3 py-3">
                 <div className="min-w-0">
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Component library
+                        Library
                     </div>
                     <div className="mt-0.5 text-[11px] text-muted-foreground">
                         {projectPath
@@ -547,19 +949,14 @@ const ComponentsTab = observer(() => {
                                         size="sm"
                                         variant="ghost"
                                         className="h-7 px-2 text-[11px]"
-                                        disabled={
-                                            !(isShadcnBlock(definition) && definition.previewUrl) &&
-                                            !manager.status?.previewSupported
-                                        }
                                         title={
                                             isShadcnBlock(definition) && definition.previewUrl
                                                 ? 'Preview from the official shadcn registry'
-                                                : (manager.status?.previewReason ?? undefined)
+                                                : 'Preview from Kumite’s catalog workspace'
                                         }
                                         onClick={() => {
                                             setLibraryOpen(true);
                                             selectDefinition(definition.name);
-                                            void preview(definition);
                                         }}
                                     >
                                         Preview
@@ -595,6 +992,27 @@ const ComponentsTab = observer(() => {
                     </div>
                 )}
             </div>
+
+            {manager.installProgress && (
+                <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-[11px] text-muted-foreground">
+                    <span className="line-clamp-2">{manager.installProgress.message}</span>
+                    {manager.installProgress.phase === 'queued' && manager.installing && (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 shrink-0 px-2 text-[10px]"
+                            onClick={() => {
+                                const name = manager.installing;
+                                if (name) {
+                                    void manager.cancelInstall(name);
+                                }
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                    )}
+                </div>
+            )}
 
             {manager.lastLog && (
                 <details className="border-t px-3 py-2 text-[11px] text-muted-foreground">
@@ -742,35 +1160,44 @@ const ComponentsTab = observer(() => {
                         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
                             <div className="relative m-4 flex min-h-[300px] items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/20 lg:m-5">
                                 {manager.previewComponent === selectedDefinition.name &&
-                                    manager.previewLoading && (
-                                        <div className="text-sm text-muted-foreground">
-                                            Starting live preview…
-                                        </div>
-                                    )}
-                                {manager.previewComponent === selectedDefinition.name &&
-                                    manager.previewError && (
-                                        <div className="max-w-sm p-6 text-center text-sm text-muted-foreground">
-                                            <p>{manager.previewError}</p>
-                                            <Button
-                                                className="mt-4"
-                                                size="sm"
-                                                onClick={() => void preview(selectedDefinition)}
-                                            >
-                                                Retry preview
-                                            </Button>
-                                        </div>
-                                    )}
-                                {manager.previewComponent === selectedDefinition.name &&
-                                    manager.previewUrl && (
-                                        <iframe
-                                            key={manager.previewUrl}
-                                            title={`${selectedDefinition.title} live preview`}
-                                            src={manager.previewUrl}
-                                            className="h-full min-h-[300px] w-full bg-background"
-                                            sandbox="allow-scripts allow-same-origin allow-forms"
-                                        />
-                                    )}
-                                {manager.previewComponent !== selectedDefinition.name && (
+                                manager.previewError ? (
+                                    <div className="max-w-sm p-6 text-center text-sm text-muted-foreground">
+                                        <p>{manager.previewError}</p>
+                                        <Button
+                                            className="mt-4"
+                                            size="sm"
+                                            onClick={() => void preview(selectedDefinition)}
+                                        >
+                                            Retry preview
+                                        </Button>
+                                    </div>
+                                ) : manager.previewComponent === selectedDefinition.name &&
+                                  manager.previewUrl ? (
+                                    <PreviewFrame
+                                        key={manager.previewUrl}
+                                        src={manager.previewUrl}
+                                        title={`${selectedDefinition.title} live preview`}
+                                        name={selectedDefinition.name}
+                                        sessionId={manager.previewSessionId}
+                                        onRetry={() =>
+                                            manager.retryPreview(selectedDefinition.name)
+                                        }
+                                    />
+                                ) : selectedCatalogUrl ? (
+                                    <PreviewFrame
+                                        key={selectedCatalogUrl}
+                                        src={selectedCatalogUrl}
+                                        title={`${selectedDefinition.title} live preview`}
+                                        name={selectedDefinition.name}
+                                        sessionId={
+                                            manager.catalogSessions[selectedDefinition.name]
+                                        }
+                                    />
+                                ) : manager.previewLoading ||
+                                  selectedItemLoading ||
+                                  manager.catalogBaseLoading ? (
+                                    <PreviewShimmer name={selectedDefinition.name} />
+                                ) : (
                                     <div className="w-full p-5">
                                         <div className="mx-auto flex min-h-[250px] max-w-xl items-center justify-center rounded-lg border border-border/70 bg-background p-8">
                                             <div className="w-full">
@@ -780,12 +1207,14 @@ const ComponentsTab = observer(() => {
                                             </div>
                                         </div>
                                         <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                                            {isShadcnBlock(selectedDefinition) &&
-                                            selectedDefinition.previewUrl
-                                                ? 'Previewed from the pinned official shadcn blocks registry.'
-                                                : manager.status?.installed[selectedDefinition.name]
-                                                  ? 'Open a live preview of the installed component.'
-                                                  : 'Install to render this component with your project’s actual source and theme.'}
+                                            {selectedItemError
+                                                ? `Live preview is unavailable: ${selectedItemError}`
+                                                : manager.catalogBaseError
+                                                  ? `Live previews are unavailable: ${manager.catalogBaseError}`
+                                                  : isShadcnBlock(selectedDefinition) &&
+                                                      selectedDefinition.previewUrl
+                                                    ? 'Previewed from the pinned official shadcn blocks registry.'
+                                                    : 'Live preview is unavailable for this item.'}
                                         </p>
                                     </div>
                                 )}
@@ -834,50 +1263,33 @@ const ComponentsTab = observer(() => {
                                             {manager.status.reason}
                                         </p>
                                     )}
-                                    {(!isShadcnBlock(selectedDefinition) ||
-                                        !selectedDefinition.previewUrl) &&
-                                        manager.status?.supported &&
-                                        !manager.status.previewSupported && (
-                                            <p className="text-xs leading-5 text-muted-foreground">
-                                                {manager.status.previewReason}
-                                            </p>
-                                        )}
                                 </div>
                                 <div className="mt-auto flex flex-col gap-2 pt-6">
                                     {selectedDefinition.previewable !== false && (
                                         <Button
                                             variant="outline"
                                             disabled={
-                                                (!(
-                                                    isShadcnBlock(selectedDefinition) &&
-                                                    selectedDefinition.previewUrl
-                                                ) &&
-                                                    (!projectPath ||
-                                                        !manager.status?.supported ||
-                                                        !manager.status.previewSupported)) ||
                                                 manager.installing === selectedDefinition.name ||
-                                                manager.previewLoading
+                                                manager.previewLoading ||
+                                                selectedItemLoading ||
+                                                manager.catalogBaseLoading
                                             }
                                             title={
                                                 isShadcnBlock(selectedDefinition) &&
                                                 selectedDefinition.previewUrl
                                                     ? 'Preview from the official shadcn registry'
-                                                    : (manager.status?.previewReason ?? undefined)
+                                                    : 'Preview from Kumite’s catalog workspace'
                                             }
                                             onClick={() => void preview(selectedDefinition)}
                                         >
-                                            {manager.previewLoading
+                                            {manager.previewLoading ||
+                                            selectedItemLoading ||
+                                            manager.catalogBaseLoading
                                                 ? 'Preparing preview…'
                                                 : isShadcnBlock(selectedDefinition) &&
                                                     selectedDefinition.previewUrl
                                                   ? 'Preview block'
-                                                  : !manager.status?.previewSupported
-                                                    ? 'Live preview unavailable'
-                                                    : manager.status?.installed[
-                                                            selectedDefinition.name
-                                                        ]
-                                                      ? 'Live preview'
-                                                      : 'Install & preview'}
+                                                  : 'Live preview'}
                                         </Button>
                                     )}
                                     {selectedDefinition.insertable !== false && (
@@ -912,6 +1324,31 @@ const ComponentsTab = observer(() => {
                         </div>
                     ) : (
                         <div className="min-h-0 flex-1 overflow-auto p-5">
+                            {manager.catalogBaseError && (
+                                <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-muted-foreground">
+                                    <span className="line-clamp-2">
+                                        Live previews are unavailable: {manager.catalogBaseError}
+                                    </span>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 shrink-0 px-2 text-[11px]"
+                                        disabled={manager.catalogBaseLoading}
+                                        onClick={() => {
+                                            const target = filteredCatalog.find(
+                                                (item) =>
+                                                    !isShadcnBlock(item) &&
+                                                    item.previewable !== false,
+                                            );
+                                            if (target) {
+                                                void manager.retryCatalogPreview(target.name);
+                                            }
+                                        }}
+                                    >
+                                        Retry
+                                    </Button>
+                                </div>
+                            )}
                             {provider !== 'shadcn' ? (
                                 <div className="flex h-full min-h-48 flex-col items-center justify-center text-center">
                                     <p className="font-medium">
@@ -932,6 +1369,17 @@ const ComponentsTab = observer(() => {
                                             installed={Boolean(
                                                 manager.status?.installed[definition.name],
                                             )}
+                                            previewUrl={manager.catalogPreviews[definition.name]}
+                                            previewSessionId={
+                                                manager.catalogSessions[definition.name]
+                                            }
+                                            previewLoading={Boolean(
+                                                manager.catalogItemLoading[definition.name],
+                                            )}
+                                            previewError={
+                                                manager.catalogItemErrors[definition.name]
+                                            }
+                                            onVisible={requestPreview}
                                             onSelect={() => selectDefinition(definition.name)}
                                         />
                                     ))}

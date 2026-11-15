@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
-import { inspectProject } from './inspect';
+import { collectShadcnDependencies, getShadcnLibraryItem } from '@kumite/models';
+import { inspectProject, missingPackages } from './inspect';
 
 const roots: string[] = [];
 
@@ -69,5 +70,59 @@ describe('component project compatibility', () => {
         assert.equal(status.componentsAlias, '~/components');
         assert.equal(status.uiAlias, '~/components/ui');
         assert.equal(status.installed['login-01'], true);
+    });
+});
+
+function dependencyProject(
+    manifest: Record<string, unknown>,
+    installedPackages: string[] = [],
+): string {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-dependencies-'));
+    roots.push(root);
+    fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify(manifest));
+    for (const name of installedPackages) {
+        const packageDir = path.join(root, 'node_modules', ...name.split('/'));
+        fs.mkdirSync(packageDir, { recursive: true });
+        fs.writeFileSync(path.join(packageDir, 'package.json'), '{}');
+    }
+    return root;
+}
+
+describe('component dependency closure', () => {
+    it('includes packages declared by the registry dependencies of a block', () => {
+        const block = getShadcnLibraryItem('sidebar-01');
+        assert.ok(block);
+        assert.ok(collectShadcnDependencies(block).includes('lucide-react'));
+    });
+
+    it('reports a declared package that is not installed', () => {
+        const root = dependencyProject({ dependencies: { 'lucide-react': '^0.400.0' } });
+        const block = getShadcnLibraryItem('sidebar-01');
+        assert.ok(block);
+
+        assert.ok(missingPackages(root, block).includes('lucide-react'));
+    });
+
+    it('skips a package that is declared and installed', () => {
+        const root = dependencyProject({ dependencies: { 'lucide-react': '^0.400.0' } }, [
+            'lucide-react',
+        ]);
+        const block = getShadcnLibraryItem('sidebar-01');
+        assert.ok(block);
+
+        assert.ok(!missingPackages(root, block).includes('lucide-react'));
+    });
+
+    it('reads packages from installed source, not only registry metadata', () => {
+        const root = dependencyProject({ dependencies: { react: '^18.0.0' } });
+        fs.mkdirSync(path.join(root, 'components'), { recursive: true });
+        fs.writeFileSync(
+            path.join(root, 'components', 'calendar-30.tsx'),
+            'import { formatDateRange } from "little-date";\n',
+        );
+        const block = getShadcnLibraryItem('calendar-30');
+        assert.ok(block);
+
+        assert.ok(missingPackages(root, block).includes('little-date'));
     });
 });

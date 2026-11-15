@@ -182,7 +182,9 @@ export const LayersPanel = observer(() => {
                     onMouseEnter={() => handleMouseEnter(LayersPanelTabValue.COMPONENTS)}
                 >
                     <Icons.Component className="w-5 h-5" />
-                    <span className="text-xs leading-tight">Components</span>
+                    <span className="text-xs leading-tight">
+                        {t('editor.panels.layers.tabs.components')}
+                    </span>
                 </button>
 
                 <div className="mt-auto flex flex-col gap-0 items-center mb-4">

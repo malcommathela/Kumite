@@ -42,7 +42,7 @@ export function publishRemoveElement(location: ActionLocation) {
     ipcRenderer.sendToHost(WebviewChannels.ELEMENT_REMOVED, { parentDomEl, layerMap });
 }
 
-export function publishMoveElement(domEl: DomElement) {
+export function publishMoveElement(domEl: DomElement, previousParent?: HTMLElement | null) {
     const parent = elementFromDomId(domEl.domId)?.parentElement;
     const layerMap = parent ? buildLayerTree(parent as HTMLElement) : null;
 
@@ -50,6 +50,21 @@ export function publishMoveElement(domEl: DomElement) {
         console.warn('No domEl or layerMap found for move element event');
         return;
     }
+
+    // A reparent changes two parents. The map above only covers the new one, so
+    // merge the old parent's children too; otherwise the layer panel keeps
+    // showing the moved element under its previous parent.
+    if (previousParent && previousParent !== parent) {
+        const previousMap = buildLayerTree(previousParent as HTMLElement);
+        if (previousMap) {
+            for (const [domId, node] of previousMap) {
+                if (!layerMap.has(domId)) {
+                    layerMap.set(domId, node);
+                }
+            }
+        }
+    }
+
     ipcRenderer.sendToHost(WebviewChannels.ELEMENT_MOVED, { domEl, layerMap });
 }
 

@@ -38,7 +38,7 @@ export function groupElementsInNode(path: NodePath<t.JSXElement>, element: CodeG
         children: [],
         oid: element.container.oid,
         tagName: element.container.tagName,
-        attributes: {},
+        attributes: element.container.attributes,
         location: {
             type: 'index',
             targetDomId: element.container.domId,

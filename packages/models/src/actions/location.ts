@@ -10,6 +10,12 @@ export const IndexActionLocationSchema = BaseActionLocationSchema.extend({
     type: z.literal('index'),
     index: z.number(),
     originalIndex: z.number(),
+    /**
+     * Present when the element moved between parents. The target fields above
+     * describe the new parent, so undo needs the old one to move it back.
+     */
+    originalParentDomId: z.string().optional(),
+    originalParentOid: z.string().nullable().optional(),
 });
 
 export const ActionLocationSchema = z.discriminatedUnion('type', [

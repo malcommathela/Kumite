@@ -70,9 +70,7 @@ export class MoveManager {
 
         if (Math.max(Math.abs(dx), Math.abs(dy)) > this.MIN_DRAG_DISTANCE) {
             this.editorEngine.overlay.clear();
-            webview.executeJavaScript(
-                `window.api?.drag('${this.dragTarget.domId}', ${dx}, ${dy}, ${x}, ${y})`,
-            );
+            webview.executeJavaScript(`window.api?.drag('${this.dragTarget.domId}', ${dx}, ${dy})`);
         }
     }
 
@@ -117,6 +115,7 @@ export class MoveManager {
             this.editorEngine.history.commitTransaction();
             this.isDraggingAbsolute = false;
             this.clear();
+            return;
         }
 
         if (this.originalIndex === undefined || !this.dragTarget) {
@@ -132,26 +131,19 @@ export class MoveManager {
             return;
         }
 
-        const res: {
-            newIndex: number;
-            child: DomElement;
-            parent: DomElement;
-        } | null = await webview.executeJavaScript(
+        const offset: { left: number; top: number } | null = await webview.executeJavaScript(
             `window.api?.endDrag('${this.dragTarget.domId}')`,
         );
 
-        if (res) {
-            const { child, parent, newIndex } = res;
-            if (newIndex !== this.originalIndex) {
-                const moveAction = this.createMoveAction(
-                    webview.id,
-                    child,
-                    parent,
-                    newIndex,
-                    this.originalIndex,
-                );
-                this.editorEngine.action.run(moveAction);
-            }
+        if (offset) {
+            // Free positioning: the element stays where it was dropped and keeps
+            // its place in the layout tree, carrying only the distance it moved.
+            // The target is explicit so a multi-selection is not shifted along.
+            this.editorEngine.style.updateElement(this.dragTarget, {
+                position: 'relative',
+                left: `${offset.left}px`,
+                top: `${offset.top}px`,
+            });
         }
         this.clear();
     }
@@ -230,6 +222,7 @@ export class MoveManager {
         parent: DomElement,
         newIndex: number,
         originalIndex: number,
+        originalParent?: DomElement,
     ): MoveElementAction {
         return {
             type: 'move-element',
@@ -239,6 +232,13 @@ export class MoveManager {
                 targetOid: parent.instanceId || parent.oid,
                 index: newIndex,
                 originalIndex: originalIndex,
+                ...(originalParent
+                    ? {
+                          originalParentDomId: originalParent.domId,
+                          originalParentOid:
+                              originalParent.instanceId ?? originalParent.oid ?? null,
+                      }
+                    : {}),
             },
             targets: [
                 {

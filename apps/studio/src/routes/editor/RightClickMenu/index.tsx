@@ -93,6 +93,57 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
         },
     ];
 
+    const LAYOUT_ITEMS: MenuItem[] = [
+        {
+            label: 'Align left',
+            action: () => editorEngine.layout.align('left'),
+            icon: <Icons.AlignLeft className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canAlign(),
+        },
+        {
+            label: 'Align center',
+            action: () => editorEngine.layout.align('center'),
+            icon: <Icons.AlignCenterHorizontally className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canAlign(),
+        },
+        {
+            label: 'Align right',
+            action: () => editorEngine.layout.align('right'),
+            icon: <Icons.AlignRight className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canAlign(),
+        },
+        {
+            label: 'Align top',
+            action: () => editorEngine.layout.align('top'),
+            icon: <Icons.AlignTop className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canAlign(),
+        },
+        {
+            label: 'Align middle',
+            action: () => editorEngine.layout.align('middle'),
+            icon: <Icons.AlignCenterVertically className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canAlign(),
+        },
+        {
+            label: 'Align bottom',
+            action: () => editorEngine.layout.align('bottom'),
+            icon: <Icons.AlignBottom className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canAlign(),
+        },
+        {
+            label: 'Distribute horizontally',
+            action: () => editorEngine.layout.distribute('horizontal'),
+            icon: <Icons.SpaceBetweenHorizontally className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canDistribute(),
+        },
+        {
+            label: 'Distribute vertically',
+            action: () => editorEngine.layout.distribute('vertical'),
+            icon: <Icons.SpaceBetweenVertically className="mr-2 h-4 w-4" />,
+            disabled: !editorEngine.layout.canDistribute(),
+        },
+    ];
+
     const EDITING_ITEMS: MenuItem[] = [
         {
             label: 'Edit text',
@@ -183,7 +234,7 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
                 ...TOOL_ITEMS,
             ].filter(Boolean) as MenuItem[];
 
-            menuItems = [updatedToolItems, GROUP_ITEMS, EDITING_ITEMS];
+            menuItems = [updatedToolItems, GROUP_ITEMS, LAYOUT_ITEMS, EDITING_ITEMS];
         }
 
         setMenuItems(menuItems);
