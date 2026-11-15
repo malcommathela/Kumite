@@ -11,6 +11,8 @@ import type { PlaywrightTestConfig } from '@playwright/test';
  */
 const config: PlaywrightTestConfig = {
     testDir: './e2e',
+    /* Bun's runner owns *.spec.ts / *.test.ts, so the Electron specs use *.pw.ts. */
+    testMatch: '**/*.pw.ts',
     /* Maximum time one test can run for. */
     timeout: 30 * 1000,
     expect: {

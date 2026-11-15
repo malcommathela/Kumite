@@ -31,7 +31,12 @@ class ComponentPreviewServer {
     async start(
         status: ShadcnProjectStatus,
         definition: ShadcnLibraryItem,
-    ): Promise<{ url: string | null; error: string | null; log: string | null; sessionId: string | null }> {
+    ): Promise<{
+        url: string | null;
+        error: string | null;
+        log: string | null;
+        sessionId: string | null;
+    }> {
         const projectPath = status.projectPath;
         if (definition.previewable === false) {
             return {
@@ -398,10 +403,7 @@ function removePreviewFiles(projectPath: string): void {
     const htmlPath = path.join(projectPath, `${PREVIEW_STEM}.html`);
     const entryPath = path.join(projectPath, `${PREVIEW_STEM}.tsx`);
     try {
-        if (
-            fs.existsSync(htmlPath) &&
-            fs.readFileSync(htmlPath, 'utf8').startsWith(HTML_MARKER)
-        ) {
+        if (fs.existsSync(htmlPath) && fs.readFileSync(htmlPath, 'utf8').startsWith(HTML_MARKER)) {
             fs.unlinkSync(htmlPath);
         }
     } catch {
@@ -450,8 +452,9 @@ function buildCatalogEntry(definition: ShadcnLibraryItem, sessionId: string): st
     return lines.join('\n');
 }
 
-function buildCatalogHtml(title: string, sessionId: string, entryId: string): string {
-    return `${HTML_MARKER} ${PREVIEW_MARKER}
+export function buildCatalogHtml(title: string, sessionId: string, entryId: string): string {
+    return `${HTML_MARKER}
+<!-- ${PREVIEW_MARKER} -->
 <!doctype html>
 <html lang="en">
     <head>
@@ -487,7 +490,10 @@ export interface CatalogPreviewStart {
 export class CatalogPreviewServer {
     private runtime = new PreviewRuntimeManager();
 
-    async start(projectPath: string, definitions: ShadcnLibraryItem[]): Promise<CatalogPreviewStart> {
+    async start(
+        projectPath: string,
+        definitions: ShadcnLibraryItem[],
+    ): Promise<CatalogPreviewStart> {
         const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
         if (!fs.existsSync(viteBin)) {
             return {

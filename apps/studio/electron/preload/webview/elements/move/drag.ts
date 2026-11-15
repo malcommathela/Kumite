@@ -1,10 +1,21 @@
 import { EditorAttributes } from '@kumite/models/constants';
-import type { DomElement } from '@kumite/models/element';
 import { getOrAssignDomId } from '../../ids';
-import { getDomElement, restoreElementStyle } from '../helpers';
-import { getDisplayDirection } from './helpers';
-import { createStub, getCurrentStubIndex, moveStub, removeStub } from './stub';
 import { elementFromDomId, isValidHtmlElement } from '/common/helpers';
+import { restoreElementStyle } from '../helpers';
+
+/** Where the element sat, and how far it was already offset, when the drag started. */
+interface DragOrigin {
+    left: number;
+    top: number;
+    offsetLeft: number;
+    offsetTop: number;
+}
+
+/** The offset the element should end up with, relative to its layout slot. */
+export interface DragOffset {
+    left: number;
+    top: number;
+}
 
 export function startDrag(domId: string): number | null {
     const el = elementFromDomId(domId);
@@ -19,41 +30,50 @@ export function startDrag(domId: string): number | null {
     }
     const htmlChildren = Array.from(parent.children).filter(isValidHtmlElement);
     const originalIndex = htmlChildren.indexOf(el);
+
+    const rect = el.getBoundingClientRect();
+    const computed = window.getComputedStyle(el);
+    const origin: DragOrigin = {
+        left: rect.left + window.scrollX,
+        top: rect.top + window.scrollY,
+        offsetLeft: parseFloat(computed.left) || 0,
+        offsetTop: parseFloat(computed.top) || 0,
+    };
+    el.setAttribute(EditorAttributes.DATA_KUMITE_DRAG_START_POSITION, JSON.stringify(origin));
+
     prepareElementForDragging(el);
-    createStub(el);
-    const pos = getAbsolutePosition(el);
-    el.setAttribute(EditorAttributes.DATA_KUMITE_DRAG_START_POSITION, JSON.stringify(pos));
     return originalIndex;
 }
 
-export function drag(domId: string, dx: number, dy: number, x: number, y: number) {
+/**
+ * Moves the element with the pointer. Dragging is free positioning: the element
+ * is taken out of the flow visually (`fixed`) and never reparented, so it can be
+ * released anywhere instead of snapping into a layout slot.
+ */
+export function drag(domId: string, dx: number, dy: number) {
     const el = elementFromDomId(domId);
     if (!el) {
         console.warn('Dragging element not found');
         return;
     }
+    const origin = readOrigin(el);
+    if (!origin) {
+        return;
+    }
+
     const styles = window.getComputedStyle(el);
-    const pos = JSON.parse(
-        el.getAttribute(EditorAttributes.DATA_KUMITE_DRAG_START_POSITION) || '{}',
-    );
-    const left = pos.left + dx - window.scrollX;
-    const top = pos.top + dy - window.scrollY;
-
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
-    el.style.width = styles.width + 1;
-    el.style.height = styles.height + 1;
+    el.style.width = styles.width;
+    el.style.height = styles.height;
+    el.style.left = `${origin.left + dx - window.scrollX}px`;
+    el.style.top = `${origin.top + dy - window.scrollY}px`;
     el.style.position = 'fixed';
-
-    moveStub(el, x, y);
 }
 
-export function endDrag(domId: string): {
-    newIndex: number;
-    child: DomElement;
-    parent: DomElement;
-    originalParent: DomElement;
-} | null {
+/**
+ * Finishes the drag and reports the offset that keeps the element where it was
+ * released. Nothing moves in the document tree, so the drop point is exact.
+ */
+export function endDrag(domId: string): DragOffset | null {
     const el = elementFromDomId(domId);
     if (!el) {
         console.warn('End drag element not found');
@@ -61,31 +81,36 @@ export function endDrag(domId: string): {
         return null;
     }
 
-    const originalParent = el.parentElement;
-    if (!originalParent) {
-        console.warn('End drag parent not found');
-        cleanUpElementAfterDragging(el);
+    const origin = readOrigin(el);
+    const rect = el.getBoundingClientRect();
+    cleanUpElementAfterDragging(el);
+
+    if (!origin) {
         return null;
     }
 
-    // The stub lives in the container under the pointer, which may no longer be
-    // the element's own parent. Capture both before cleanup removes the stub.
-    const stub = document.getElementById(EditorAttributes.KUMITE_STUB_ID);
-    const dropParent = stub?.parentElement ?? originalParent;
-    const stubIndex = getCurrentStubIndex(dropParent, el);
-    cleanUpElementAfterDragging(el);
-    removeStub();
-
-    if (stubIndex === -1) {
+    const dx = Math.round(rect.left + window.scrollX - origin.left);
+    const dy = Math.round(rect.top + window.scrollY - origin.top);
+    if (dx === 0 && dy === 0) {
         return null;
     }
 
     return {
-        newIndex: stubIndex,
-        child: getDomElement(el, false),
-        parent: getDomElement(dropParent, false),
-        originalParent: getDomElement(originalParent, false),
+        left: Math.round(origin.offsetLeft) + dx,
+        top: Math.round(origin.offsetTop) + dy,
     };
+}
+
+function readOrigin(el: HTMLElement): DragOrigin | null {
+    const raw = el.getAttribute(EditorAttributes.DATA_KUMITE_DRAG_START_POSITION);
+    if (!raw) {
+        return null;
+    }
+    try {
+        return JSON.parse(raw) as DragOrigin;
+    } catch {
+        return null;
+    }
 }
 
 function prepareElementForDragging(el: HTMLElement) {
@@ -105,24 +130,6 @@ function prepareElementForDragging(el: HTMLElement) {
 
     el.setAttribute(EditorAttributes.DATA_KUMITE_DRAG_SAVED_STYLE, JSON.stringify(style));
     el.setAttribute(EditorAttributes.DATA_KUMITE_DRAGGING, 'true');
-
-    if (el.getAttribute(EditorAttributes.DATA_KUMITE_DRAG_DIRECTION) !== null) {
-        const parent = el.parentElement;
-        if (parent) {
-            const displayDirection = getDisplayDirection(parent);
-            el.setAttribute(EditorAttributes.DATA_KUMITE_DRAG_DIRECTION, displayDirection);
-        }
-    }
-}
-
-function getDragElement(): HTMLElement | undefined {
-    const el = document.querySelector(
-        `[${EditorAttributes.DATA_KUMITE_DRAGGING}]`,
-    ) as HTMLElement | null;
-    if (!el) {
-        return;
-    }
-    return el;
 }
 
 function cleanUpElementAfterDragging(el: HTMLElement) {
@@ -138,14 +145,6 @@ function removeDragAttributes(el: HTMLElement) {
     el.removeAttribute(EditorAttributes.DATA_KUMITE_DRAG_START_POSITION);
 }
 
-function getAbsolutePosition(element: HTMLElement) {
-    const rect = element.getBoundingClientRect();
-    return {
-        left: rect.left + window.scrollX,
-        top: rect.top + window.scrollY,
-    };
-}
-
 export function endAllDrag() {
     const draggingElements = document.querySelectorAll(
         `[${EditorAttributes.DATA_KUMITE_DRAGGING}]`,
@@ -153,5 +152,4 @@ export function endAllDrag() {
     for (const el of draggingElements) {
         cleanUpElementAfterDragging(el as HTMLElement);
     }
-    removeStub();
 }
