@@ -122,10 +122,12 @@ export function extractContent(
             element: elementName(element),
             text,
             attributes,
-            data: data.ok ? data.value : adapterExtraction?.data ?? null,
+            data: data.ok ? data.value : (adapterExtraction?.data ?? null),
             dataReason: data.ok
                 ? null
-                : (adapterExtraction?.data ? null : (adapterExtraction?.reason ?? data.message)),
+                : adapterExtraction?.data
+                  ? null
+                  : (adapterExtraction?.reason ?? data.message),
             adapter: adapterExtraction,
             evidence,
         },
@@ -219,8 +221,8 @@ function attributeFields(element: t.JSXElement): ContentField[] {
  * their source is not in this file, so the model cannot address an edit.
  */
 function extractDataTable(ast: t.File, element: t.JSXElement): DataTableLookup {
-    const containers = element.children.filter(
-        (child): child is t.JSXExpressionContainer => t.isJSXExpressionContainer(child),
+    const containers = element.children.filter((child): child is t.JSXExpressionContainer =>
+        t.isJSXExpressionContainer(child),
     );
     if (containers.length !== 1) {
         return noTable('The element does not render one array expression.');
@@ -255,10 +257,7 @@ export type DataTableLookup = { ok: true; value: DataTable } | { ok: false; mess
  * literals whose values are plain strings or numbers. Anything else is refused
  * rather than flattened, so a cell always addresses one literal.
  */
-export function dataTableFromArray(
-    source: string,
-    array: t.ArrayExpression,
-): DataTableLookup {
+export function dataTableFromArray(source: string, array: t.ArrayExpression): DataTableLookup {
     const tableSpan = spanOf(array);
     if (!tableSpan) {
         return noTable(`${source} has no source location.`);
@@ -315,16 +314,14 @@ function noTable(message: string): DataTableLookup {
  */
 export function findLocalConst(ast: t.File, name: string): t.Expression | null {
     for (const statement of ast.program.body) {
-        const declaration = t.isExportNamedDeclaration(statement) ? statement.declaration : statement;
+        const declaration = t.isExportNamedDeclaration(statement)
+            ? statement.declaration
+            : statement;
         if (!t.isVariableDeclaration(declaration)) {
             continue;
         }
         for (const declarator of declaration.declarations) {
-            if (
-                t.isIdentifier(declarator.id) &&
-                declarator.id.name === name &&
-                declarator.init
-            ) {
+            if (t.isIdentifier(declarator.id) && declarator.id.name === name && declarator.init) {
                 return unwrapExpression(declarator.init);
             }
         }
@@ -367,9 +364,7 @@ export function elementName(element: t.JSXElement): string {
     return jsxName(element.openingElement.name);
 }
 
-function jsxName(
-    name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName,
-): string {
+function jsxName(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName): string {
     if (t.isJSXIdentifier(name)) {
         return name.name;
     }

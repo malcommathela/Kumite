@@ -145,7 +145,10 @@ export function resolveOwnership(
                 `The recorded part belongs to ${node.part.owner}, not ${definition.name}.`,
             );
         }
-        if (node.part.name !== definition.name && !declaresName(file.ast, definition, node.part.name)) {
+        if (
+            node.part.name !== definition.name &&
+            !declaresName(file.ast, definition, node.part.name)
+        ) {
             return failure(
                 'part-not-found',
                 'ambiguous',
@@ -236,9 +239,7 @@ interface Span {
 function enclosingDeclarations(ast: t.File, position: Span): string[] {
     const found: Array<{ name: string; start: Span }> = [];
     collectEnclosing(ast.program, position, found);
-    return found
-        .sort((a, b) => comparePositions(b.start, a.start))
-        .map((item) => item.name);
+    return found.sort((a, b) => comparePositions(b.start, a.start)).map((item) => item.name);
 }
 
 function collectEnclosing(
@@ -449,7 +450,8 @@ export function describeCallSite(
         );
     }
 
-    const importedName = binding.imported === '*' ? name.split('.').at(-1) ?? root : binding.imported;
+    const importedName =
+        binding.imported === '*' ? (name.split('.').at(-1) ?? root) : binding.imported;
     const target =
         binding.imported === 'default'
             ? registry.defaultDefinition(binding.resolvedPath)

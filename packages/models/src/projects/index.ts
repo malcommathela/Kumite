@@ -60,6 +60,8 @@ export interface Project {
     } | null;
     metadata: PageMetadata | null;
     env?: Record<string, string>;
+    /** Set when the project is moved out of Files into Archive. */
+    archivedAt?: string | null;
 }
 
 export enum WindowCommand {

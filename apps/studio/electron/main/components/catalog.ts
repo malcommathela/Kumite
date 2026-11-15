@@ -213,14 +213,19 @@ async function installCatalogBatch(
             message: `Preparing ${label} for preview…`,
             output: null,
         });
-        const add = await runShadcnCommand(root, 'bun', ['add', ...missing, '-y', '--overwrite'], (progress) => {
-            onProgress?.({
-                component: missing.join(', '),
-                phase: 'installing',
-                message: `Preparing ${label} for preview…`,
-                output: progress.chunk || null,
-            });
-        });
+        const add = await runShadcnCommand(
+            root,
+            'bun',
+            ['add', ...missing, '-y', '--overwrite'],
+            (progress) => {
+                onProgress?.({
+                    component: missing.join(', '),
+                    phase: 'installing',
+                    message: `Preparing ${label} for preview…`,
+                    output: progress.chunk || null,
+                });
+            },
+        );
         log += `${add.command}\n${add.output}\n\n`;
         status = inspectProject(root);
     }

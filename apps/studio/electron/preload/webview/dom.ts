@@ -103,8 +103,7 @@ function processNode(node: HTMLElement): LayerNode {
         .slice(0, 500);
     const style = window.getComputedStyle(node);
     const component = node.getAttribute(EditorAttributes.DATA_KUMITE_COMPONENT_NAME) as
-        | string
-        | null;
+        string | null;
 
     const layerNode: LayerNode = {
         domId,

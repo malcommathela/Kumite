@@ -1,11 +1,8 @@
-import backgroundImageDark from '@/assets/dunes-create-dark.png';
-import backgroundImageLight from '@/assets/dunes-create-light.png';
 import { useAuthManager, useEditorEngine, useProjectsManager } from '@/components/Context';
-import { useTheme } from '@/components/ThemeProvider';
 import { SettingsTabValue } from '@/lib/models';
 import { ProjectTabs } from '@/lib/projects';
 import { CreateState } from '@/lib/projects/create';
-import { Links, Theme } from '@kumite/models/constants';
+import { Links } from '@kumite/models/constants';
 import { Button } from '@kumite/ui/button';
 import {
     DropdownMenu,
@@ -13,11 +10,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@kumite/ui/dropdown-menu';
-import { Icons } from '@kumite/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
-import { cn } from '@kumite/ui/utils';
+import { Download, MoreHorizontal, Settings, X } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreateErrorCard } from './CreateError';
 import { CreateLoadingCard } from './CreateLoading';
@@ -25,11 +21,9 @@ import { PromptingCard } from './PromptingCard';
 
 export const PromptCreation = observer(({ initialScreen = false }: { initialScreen?: boolean }) => {
     const { t } = useTranslation();
-    const { theme } = useTheme();
     const editorEngine = useEditorEngine();
     const authManager = useAuthManager();
     const projectsManager = useProjectsManager();
-    const [backgroundImage, setBackgroundImage] = useState(backgroundImageLight);
 
     useEffect(() => {
         const handleEscapeKey = (e: KeyboardEvent) => {
@@ -50,23 +44,6 @@ export const PromptCreation = observer(({ initialScreen = false }: { initialScre
         projectsManager.projectsTab = ProjectTabs.PROJECTS;
     };
 
-    useEffect(() => {
-        const determineBackgroundImage = () => {
-            if (theme === Theme.Dark) {
-                return backgroundImageDark;
-            } else if (theme === Theme.Light) {
-                return backgroundImageLight;
-            } else if (theme === Theme.System) {
-                return window.matchMedia('(prefers-color-scheme: dark)').matches
-                    ? backgroundImageDark
-                    : backgroundImageLight;
-            }
-            return backgroundImageLight;
-        };
-
-        setBackgroundImage(determineBackgroundImage());
-    }, [theme]);
-
     const renderCard = () => {
         switch (projectsManager.create.state) {
             case CreateState.PROMPT:
@@ -79,88 +56,67 @@ export const PromptCreation = observer(({ initialScreen = false }: { initialScre
     };
 
     return (
-        <div className="fixed inset-0">
-            <div
-                className="relative w-full h-full flex items-center justify-center"
-                style={{
-                    backgroundImage: `url(${backgroundImage})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                }}
-            >
-                <div className="absolute inset-0 bg-background/50" />
-                <div className="relative z-10">
-                    <div className="h-fit w-fit flex group fixed top-10 right-10 gap-2">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="secondary"
-                                    className="w-fit h-fit flex flex-col gap-1 text-foreground-secondary hover:text-foreground-active backdrop-blur-md bg-background/30"
-                                    onClick={() => {
-                                        editorEngine.isSettingsOpen = true;
-                                        editorEngine.settingsTab = SettingsTabValue.ADVANCED;
-                                    }}
+        <div className="relative flex min-h-full flex-1 flex-col items-center justify-center px-6 py-20">
+            <div className="absolute right-6 top-6 flex items-center gap-1.5">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground-tertiary transition-colors hover:bg-background-hover hover:text-foreground"
+                            onClick={() => {
+                                editorEngine.isSettingsOpen = true;
+                                editorEngine.settingsTab = SettingsTabValue.ADVANCED;
+                            }}
+                        >
+                            <Settings className="h-4 w-4" strokeWidth={1.7} />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                        {t('projects.create.settings.tooltip')}
+                    </TooltipContent>
+                </Tooltip>
+
+                {initialScreen ? (
+                    <>
+                        <Button
+                            variant="secondary"
+                            className="h-8"
+                            onClick={() =>
+                                (projectsManager.projectsTab = ProjectTabs.IMPORT_PROJECT)
+                            }
+                        >
+                            <Download className="h-3.5 w-3.5" strokeWidth={1.7} />
+                            {t('projects.actions.import')}
+                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="flex h-8 w-8 items-center justify-center rounded-full text-foreground-tertiary transition-colors hover:bg-background-hover hover:text-foreground">
+                                    <MoreHorizontal className="h-4 w-4" strokeWidth={1.7} />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                    onClick={() => window.open(Links.GITHUB, '_blank')}
                                 >
-                                    <Icons.Gear className="w-4 h-4 cursor-pointer" />
-                                    <p className="text-microPlus">
-                                        {t('projects.create.settings.title')}
-                                    </p>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                <p>{t('projects.create.settings.tooltip')}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        {initialScreen ? (
-                            <div className="flex flex-row gap-2">
-                                <Button
-                                    variant="outline"
-                                    className={cn('bg-transparent')}
-                                    onClick={() =>
-                                        (projectsManager.projectsTab = ProjectTabs.IMPORT_PROJECT)
-                                    }
-                                >
-                                    <p className="text-microPlus">{t('projects.actions.import')}</p>
-                                </Button>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            className={cn('bg-transparent')}
-                                        >
-                                            <Icons.Gear className="w-4 h-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem
-                                            onClick={() => window.open(Links.GITHUB, '_blank')}
-                                        >
-                                            {t('projects.actions.about')}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => authManager.signOut()}>
-                                            {t('projects.actions.signOut')}
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        ) : (
-                            <Button
-                                variant="secondary"
-                                className={cn(
-                                    'w-fit h-fit flex flex-col gap-1 text-foreground-secondary hover:text-foreground-active backdrop-blur-md bg-background/30',
-                                    projectsManager.create.state !== CreateState.PROMPT && 'hidden',
-                                )}
-                                onClick={returnToProjects}
-                            >
-                                <Icons.CrossL className="w-4 h-4 cursor-pointer" />
-                                <p className="text-microPlus">{t('projects.actions.close')}</p>
-                            </Button>
-                        )}
-                    </div>
-                    <div className="flex items-center justify-center p-4">{renderCard()}</div>
-                </div>
+                                    {t('projects.actions.about')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => authManager.signOut()}>
+                                    {t('projects.actions.signOut')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </>
+                ) : (
+                    <button
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-foreground-tertiary transition-colors hover:bg-background-hover hover:text-foreground"
+                        onClick={returnToProjects}
+                        aria-label={t('projects.actions.close')}
+                    >
+                        <X className="h-4 w-4" strokeWidth={1.7} />
+                    </button>
+                )}
             </div>
+
+            <div className="w-full max-w-[680px]">{renderCard()}</div>
         </div>
     );
 });

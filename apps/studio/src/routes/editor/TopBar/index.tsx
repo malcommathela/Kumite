@@ -32,15 +32,15 @@ export const EditorTopBar = observer(() => {
     ];
 
     return (
-        <div className="bg-background-kumite/60 backdrop-blur-sm flex flex-row h-10 p-2 justify-center items-center">
-            <div className="flex flex-row flex-grow basis-0 space-x-1 justify-start items-center">
+        <div className="flex h-11 items-center gap-2 px-3">
+            <div className="flex min-w-0 flex-1 items-center">
                 <ProjectBreadcrumb />
             </div>
             <ModeToggle />
-            <div className="flex flex-grow basis-0 justify-end items-center gap-2">
-                <div className="flex flex-row items-center layout">
+            <div className="flex flex-1 items-center justify-end gap-2">
+                <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface/85 p-0.5 shadow-lg backdrop-blur-xl">
                     <motion.div
-                        className="space-x-0 hidden lg:block"
+                        className="hidden space-x-0 lg:block"
                         layout
                         transition={{
                             type: 'spring',
@@ -56,7 +56,7 @@ export const EditorTopBar = observer(() => {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8"
+                                            className="h-7 w-7 rounded-full"
                                             onClick={click}
                                             disabled={isDisabled}
                                         >
@@ -75,7 +75,7 @@ export const EditorTopBar = observer(() => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8"
+                                className="h-7 w-7 rounded-full"
                                 onClick={() => {
                                     editorEngine.settingsTab = SettingsTabValue.VERSIONS;
                                     editorEngine.isSettingsOpen = true;

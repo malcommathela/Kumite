@@ -30,11 +30,7 @@ import { IdeType } from '@kumite/models/ide';
 import { toast } from '@kumite/ui/use-toast';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '..';
-import {
-    addTailwindToRequest,
-    getEditTargetRequest,
-    getOrCreateCodeDiffRequest,
-} from './helpers';
+import { addTailwindToRequest, getEditTargetRequest, getOrCreateCodeDiffRequest } from './helpers';
 
 import { getInsertedElement } from './insert';
 import { assertNever } from '/common/helpers';

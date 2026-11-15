@@ -138,8 +138,8 @@ export function getCapabilities(
 
     const shape = readPropsShape(declaration.fn);
     const elements = collectElements(declaration.fn);
-    const receiving = elements.find(
-        (item) => forwardsClassName(item.element.openingElement.attributes, shape),
+    const receiving = elements.find((item) =>
+        forwardsClassName(item.element.openingElement.attributes, shape),
     );
 
     const explicitClassName = receiving
@@ -165,9 +165,10 @@ export function getCapabilities(
         depth: receiving?.depth ?? null,
         spread,
         expression,
-        confidence: status === 'absent' || status === 'proven-root' || status === 'proven-nested'
-            ? 'proven'
-            : 'ambiguous',
+        confidence:
+            status === 'absent' || status === 'proven-root' || status === 'proven-nested'
+                ? 'proven'
+                : 'ambiguous',
         evidence: [
             ...(receiving
                 ? [
@@ -335,7 +336,10 @@ function collectElements(fn: t.Function): ElementAtDepth[] {
     }
 }
 
-function forwardsClassName(attributes: t.JSXOpeningElement['attributes'], shape: PropsShape): boolean {
+function forwardsClassName(
+    attributes: t.JSXOpeningElement['attributes'],
+    shape: PropsShape,
+): boolean {
     const explicit = explicitClassNameForwarding(attributes, shape);
     if (explicit) {
         return true;
@@ -355,8 +359,7 @@ function explicitClassNameForwarding(
     shape: PropsShape,
 ): boolean {
     const attribute = attributes.find(
-        (item): item is t.JSXAttribute =>
-            t.isJSXAttribute(item) && item.name.name === 'className',
+        (item): item is t.JSXAttribute => t.isJSXAttribute(item) && item.name.name === 'className',
     );
     return attribute ? referencesProp(attribute.value, shape, 'className') : false;
 }
@@ -396,13 +399,9 @@ function classifySpread(
     return !explicitClassName || shape.classNameName !== null ? 'safe-rest' : 'unsafe';
 }
 
-function readExpression(
-    openingElement: t.JSXOpeningElement,
-    path: string,
-): ClassExpressionProof {
+function readExpression(openingElement: t.JSXOpeningElement, path: string): ClassExpressionProof {
     const attribute = openingElement.attributes.find(
-        (item): item is t.JSXAttribute =>
-            t.isJSXAttribute(item) && item.name.name === 'className',
+        (item): item is t.JSXAttribute => t.isJSXAttribute(item) && item.name.name === 'className',
     );
     if (!attribute) {
         return emptyExpression(path);
@@ -410,29 +409,74 @@ function readExpression(
 
     const staticClasses = readStaticClassValue(attribute.value);
     const value = attribute.value;
-    if (t.isStringLiteral(value) || (t.isJSXExpressionContainer(value) && t.isStringLiteral(value.expression))) {
-        return proof('static', staticClasses ?? [], null, true, path, 'className is a static string.');
+    if (
+        t.isStringLiteral(value) ||
+        (t.isJSXExpressionContainer(value) && t.isStringLiteral(value.expression))
+    ) {
+        return proof(
+            'static',
+            staticClasses ?? [],
+            null,
+            true,
+            path,
+            'className is a static string.',
+        );
     }
 
     if (!t.isJSXExpressionContainer(value)) {
-        return proof('none', null, null, false, path, 'className has a value this engine cannot read.');
+        return proof(
+            'none',
+            null,
+            null,
+            false,
+            path,
+            'className has a value this engine cannot read.',
+        );
     }
 
     const expression = value.expression;
     if (t.isTemplateLiteral(expression)) {
         if (staticClasses) {
-            return proof('template-static', staticClasses, null, true, path, 'className is a template literal without interpolations.');
+            return proof(
+                'template-static',
+                staticClasses,
+                null,
+                true,
+                path,
+                'className is a template literal without interpolations.',
+            );
         }
-        return proof('template-dynamic', null, null, false, path, 'className is a template literal with interpolations.');
+        return proof(
+            'template-dynamic',
+            null,
+            null,
+            false,
+            path,
+            'className is a template literal with interpolations.',
+        );
     }
     if (t.isCallExpression(expression) && isSupportedClassUtilityCall(expression)) {
         const utility = t.isIdentifier(expression.callee) ? expression.callee.name : null;
-        return proof('utility-call', null, utility, true, path, `className is an argument to ${utility}().`);
+        return proof(
+            'utility-call',
+            null,
+            utility,
+            true,
+            path,
+            `className is an argument to ${utility}().`,
+        );
     }
     if (t.isConditionalExpression(expression) || t.isLogicalExpression(expression)) {
         return proof('conditional', null, null, false, path, 'className is conditional.');
     }
-    return proof('computed', null, null, false, path, 'className is an expression this engine cannot append to.');
+    return proof(
+        'computed',
+        null,
+        null,
+        false,
+        path,
+        'className is an expression this engine cannot append to.',
+    );
 }
 
 function proof(
@@ -452,11 +496,7 @@ function proof(
     };
 }
 
-function readChildren(
-    elements: ElementAtDepth[],
-    shape: PropsShape,
-    path: string,
-): ChildrenProof {
+function readChildren(elements: ElementAtDepth[], shape: PropsShape, path: string): ChildrenProof {
     for (const { element } of elements) {
         const rendersChildren = element.children.some((child) =>
             t.isJSXExpressionContainer(child)

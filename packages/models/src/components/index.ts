@@ -13,11 +13,7 @@ export {
     SHADCN_BLOCKS,
 } from './blocks';
 export type { ShadcnBlockDefinition } from './blocks';
-export {
-    advancePreviewState,
-    parsePreviewMessage,
-    PREVIEW_MESSAGE_SOURCE,
-} from './preview';
+export { advancePreviewState, parsePreviewMessage, PREVIEW_MESSAGE_SOURCE } from './preview';
 export type { PreviewLifecycleState, PreviewMessage } from './preview';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';

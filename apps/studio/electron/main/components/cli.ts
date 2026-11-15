@@ -104,9 +104,7 @@ export async function runPackageManagerInstall(
     return runProjectCommand(command, ['install'], projectPath, packageManager, onProgress);
 }
 
-function commandEnvironment(
-    packageManager: PackageManager,
-): NodeJS.ProcessEnv {
+function commandEnvironment(packageManager: PackageManager): NodeJS.ProcessEnv {
     return {
         ...process.env,
         // The desktop app runs with NODE_ENV=production. npm would otherwise omit

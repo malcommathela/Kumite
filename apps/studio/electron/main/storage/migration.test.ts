@@ -63,7 +63,10 @@ describe('user data migration', () => {
             fs.readFileSync(path.join(target, 'user-settings.json'), 'utf8'),
             '{"theme":"dark"}',
         );
-        assert.equal(fs.readFileSync(path.join(target, 'auth-tokens-v1.json'), 'utf8'), 'ZW5jcnlwdGVk');
+        assert.equal(
+            fs.readFileSync(path.join(target, 'auth-tokens-v1.json'), 'utf8'),
+            'ZW5jcnlwdGVk',
+        );
         assert.ok(fs.existsSync(path.join(target, 'migration.json')));
         assert.equal(fs.existsSync(path.join(target, '.migration-staging')), false);
     });
@@ -113,7 +116,10 @@ describe('user data migration', () => {
         assert.equal(fs.existsSync(path.join(target, 'user-settings.json')), false);
         assert.ok(fs.existsSync(path.join(target, 'projects.json')));
         assert.match(report.message, /originals are untouched/);
-        assert.equal(fs.readFileSync(path.join(legacy, 'user-settings.json'), 'utf8'), '{ this is not json');
+        assert.equal(
+            fs.readFileSync(path.join(legacy, 'user-settings.json'), 'utf8'),
+            '{ this is not json',
+        );
     });
 
     it('clears a staging directory left by an interrupted run', () => {

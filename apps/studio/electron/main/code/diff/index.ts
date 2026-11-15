@@ -1,4 +1,9 @@
-import type { CodeDiff, CodeDiffFailureReason, CodeDiffRequest, CodeDiffResult } from '@kumite/models/code';
+import type {
+    CodeDiff,
+    CodeDiffFailureReason,
+    CodeDiffRequest,
+    CodeDiffResult,
+} from '@kumite/models/code';
 import { GENERATE_CODE_OPTIONS } from '../../run/helpers';
 import { parseJsxFile } from '../helpers';
 import { resolveEditTarget } from '../edit-target';
@@ -13,8 +18,7 @@ interface SourceGroup {
 }
 
 type GroupResult =
-    | { ok: true; diff: CodeDiff }
-    | { ok: false; reason: CodeDiffFailureReason; message: string };
+    { ok: true; diff: CodeDiff } | { ok: false; reason: CodeDiffFailureReason; message: string };
 
 /**
  * Produces source diffs for a whole batch, or refuses the batch.

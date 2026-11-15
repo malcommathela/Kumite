@@ -14,7 +14,7 @@ const LoadWarning: StepComponent = ({ props, variant }) => {
     );
 
     const renderContent = () => (
-        <p>
+        <p className="text-[13px] leading-5 text-foreground-secondary">
             Kumite will make code changes to your project.
             <br />
             Please save your progress before importing.

@@ -95,8 +95,7 @@ export const SignIn = observer(() => {
                         >
                             {t('welcome.terms.privacy')}
                         </button>{' '}
-                        {t('welcome.terms.and')}{' '}
-                        {/* TODO(kumite): placeholder, same as above. */}
+                        {t('welcome.terms.and')} {/* TODO(kumite): placeholder, same as above. */}
                         <button
                             onClick={() => openExternalLink(Links.GITHUB)}
                             className="text-gray-300 hover:text-gray-50 underline transition-colors duration-200"

@@ -174,7 +174,10 @@ function exportedDeclaration(statement: t.Program['body'][number]): t.Declaratio
     return t.isDeclaration(statement) ? statement : null;
 }
 
-function collectDeclaration(declaration: t.Declaration, target: Map<string, DeclarationKind>): void {
+function collectDeclaration(
+    declaration: t.Declaration,
+    target: Map<string, DeclarationKind>,
+): void {
     if (t.isFunctionDeclaration(declaration) && declaration.id) {
         target.set(declaration.id.name, 'function');
         return;
@@ -261,17 +264,11 @@ export function buildDefinitionRegistry(files: IndexedFile[]): DefinitionRegistr
             ),
         importsOf: (path) => indexed.get(normalizePath(path))?.imports ?? [],
         resolveImport: (path, local) =>
-            indexed
-                .get(normalizePath(path))
-                ?.imports.find((binding) => binding.local === local),
+            indexed.get(normalizePath(path))?.imports.find((binding) => binding.local === local),
     };
 }
 
-function resolveBinding(
-    fromPath: string,
-    binding: ImportBinding,
-    keys: string[],
-): ImportBinding {
+function resolveBinding(fromPath: string, binding: ImportBinding, keys: string[]): ImportBinding {
     const specifier = binding.specifier;
     if (specifier.startsWith('.') || specifier.startsWith('/')) {
         const base = specifier.startsWith('/')

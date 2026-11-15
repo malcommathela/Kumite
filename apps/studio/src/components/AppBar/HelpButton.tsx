@@ -20,7 +20,19 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@kumite/ui/dropdown-menu';
-import { Icons } from '@kumite/ui/icons';
+import {
+    CircleHelp,
+    Code2,
+    Globe,
+    Laptop,
+    Mail,
+    MessageCircle,
+    Moon,
+    RefreshCw,
+    Settings,
+    Sun,
+    TriangleAlert,
+} from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -41,78 +53,54 @@ export const HelpButton = observer(() => {
     return (
         <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
-                <button className="w-12 h-12 rounded-xl flex flex-col items-center justify-center gap-1.5 p-2 px-4 text-muted-foreground hover:text-foreground">
-                    <Icons.QuestionMarkCircled className="w-5 h-5" />
+                <button className="no-drag flex h-full w-9 items-center justify-center text-foreground-tertiary transition-colors hover:text-foreground">
+                    <CircleHelp className="h-4 w-4" strokeWidth={1.7} />
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-                className="w-48"
-                align="start"
-                side="left"
-                alignOffset={30}
-                sideOffset={-10}
-            >
+            <DropdownMenuContent className="w-52" align="end" sideOffset={6}>
                 <DropdownMenuItem onClick={() => invokeMainChannel(MainChannels.RELOAD_APP)}>
-                    <Icons.Reload className="w-4 h-4 mr-2" />
+                    <RefreshCw />
                     {t('help.menu.reloadKumite')}
                 </DropdownMenuItem>
                 <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="text-sm">
-                        {theme === Theme.Dark && <Icons.Moon className="w-4 h-4 mr-2" />}
-                        {theme === Theme.Light && <Icons.Sun className="w-4 h-4 mr-2" />}
-                        {theme === Theme.System && <Icons.Laptop className="w-4 h-4 mr-2" />}
+                    <DropdownMenuSubTrigger>
+                        {theme === Theme.Dark && <Moon />}
+                        {theme === Theme.Light && <Sun />}
+                        {theme === Theme.System && <Laptop />}
                         {t('help.menu.theme.title')}
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-32 mr-2">
-                        <DropdownMenuItem
-                            className="text-sm"
-                            onClick={() => {
-                                setTheme(Theme.Light);
-                            }}
-                        >
-                            <Icons.Sun className="w-4 h-4 mr-2" />
+                    <DropdownMenuSubContent className="w-36">
+                        <DropdownMenuItem onClick={() => setTheme(Theme.Light)}>
+                            <Sun />
                             {t('help.menu.theme.light')}
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="text-sm"
-                            onClick={() => {
-                                setTheme(Theme.Dark);
-                            }}
-                        >
-                            <Icons.Moon className="w-4 h-4 mr-2" />
+                        <DropdownMenuItem onClick={() => setTheme(Theme.Dark)}>
+                            <Moon />
                             {t('help.menu.theme.dark')}
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="text-sm"
-                            onClick={() => {
-                                setTheme(Theme.System);
-                            }}
-                        >
-                            <Icons.Laptop className="w-4 h-4 mr-2" />
+                        <DropdownMenuItem onClick={() => setTheme(Theme.System)}>
+                            <Laptop />
                             {t('help.menu.theme.system')}
                         </DropdownMenuItem>
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="text-sm">
-                        <Icons.Globe className="w-4 h-4 mr-2" />
+                    <DropdownMenuSubTrigger>
+                        <Globe />
                         {t('help.menu.language')}
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-32 mr-2">
+                    <DropdownMenuSubContent className="w-36">
                         <DropdownMenuItem
-                            className="text-sm"
                             onClick={() => userManager.language.update(Language.English)}
                         >
                             {LANGUAGE_DISPLAY_NAMES[Language.English]}
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                            className="text-sm"
                             onClick={() => userManager.language.update(Language.Japanese)}
                         >
                             {LANGUAGE_DISPLAY_NAMES[Language.Japanese]}
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                            className="text-sm"
                             onClick={() => userManager.language.update(Language.Chinese)}
                         >
                             {LANGUAGE_DISPLAY_NAMES[Language.Chinese]}
@@ -120,42 +108,41 @@ export const HelpButton = observer(() => {
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuItem
-                    className="text-sm"
                     onClick={() => {
                         editorEngine.isSettingsOpen = true;
                         editorEngine.settingsTab = SettingsTabValue.PREFERENCES;
                     }}
                 >
-                    <Icons.Gear className="w-4 h-4 mr-2" />
+                    <Settings />
                     {t('help.menu.openSettings')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="text-sm">
-                        <Icons.EnvelopeClosed className="w-4 h-4 mr-2" />
+                    <DropdownMenuSubTrigger>
+                        <Mail />
                         {t('help.menu.contactUs.title')}
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="mr-2">
+                    <DropdownMenuSubContent>
                         <DropdownMenuItem onClick={() => window.open(Links.GITHUB, '_blank')}>
-                            <Icons.Globe className="w-4 h-4 mr-2" />
+                            <Globe />
                             {t('help.menu.contactUs.website')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => window.open(Links.DISCORD, '_blank')}>
-                            <Icons.DiscordLogo className="w-4 h-4 mr-2" />
+                            <MessageCircle />
                             {t('help.menu.contactUs.discord')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => window.open(Links.GITHUB, '_blank')}>
-                            <Icons.GitHubLogo className="w-4 h-4 mr-2" />
+                            <Code2 />
                             {t('help.menu.contactUs.github')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => window.open(Links.OPEN_ISSUE, '_blank')}>
-                            <Icons.EnvelopeClosed className="w-4 h-4 mr-2" />
+                            <Mail />
                             {t('help.menu.contactUs.email')}
                         </DropdownMenuItem>
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuItem onClick={() => window.open(Links.OPEN_ISSUE, '_blank')}>
-                    <Icons.ExclamationTriangle className="w-4 h-4 mr-2" />
+                    <TriangleAlert />
                     {t('help.menu.reportIssue')}
                 </DropdownMenuItem>
             </DropdownMenuContent>

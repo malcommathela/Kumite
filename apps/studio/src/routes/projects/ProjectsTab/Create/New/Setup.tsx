@@ -143,10 +143,7 @@ const NewSetupProject: StepComponent = ({ props, variant }) => {
             return (
                 <p>
                     {`Please try again or `}
-                    <a
-                        href="https://github.com/malcommathela/Kumite/issues"
-                        className="underline"
-                    >
+                    <a href="https://github.com/malcommathela/Kumite/issues" className="underline">
                         {'contact support'}
                     </a>
                     {` for help.`}

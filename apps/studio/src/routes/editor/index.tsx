@@ -9,16 +9,16 @@ import { WebviewArea } from './WebviewArea';
 export function ProjectEditor() {
     return (
         <>
-            <div className="relative flex flex-row h-[calc(100vh-2.60rem)] select-none">
+            <div className="relative flex min-h-0 flex-1 flex-row select-none overflow-hidden">
                 <Canvas>
                     <WebviewArea />
                 </Canvas>
 
-                <div className="fixed top-20 left-0 h-[calc(100%-5rem)] animate-layer-panel-in">
+                <div className="fixed left-0 top-20 h-[calc(100%-5rem)] animate-layer-panel-in">
                     <LayersPanel />
                 </div>
 
-                <div className="fixed top-20 right-0 h-[calc(100%-5rem)] animate-edit-panel-in">
+                <div className="fixed right-0 top-20 h-[calc(100%-5rem)] animate-edit-panel-in p-2">
                     <EditPanel />
                 </div>
 

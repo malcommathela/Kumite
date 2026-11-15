@@ -11,8 +11,7 @@ const LoadSelectFolder: StepComponent = ({ props, variant }) => {
 
     async function pickProjectFolder() {
         const path = (await invokeMainChannel(MainChannels.PICK_COMPONENTS_DIRECTORY)) as
-            | string
-            | null;
+            string | null;
         if (path == null) {
             return;
         }
@@ -63,7 +62,7 @@ const LoadSelectFolder: StepComponent = ({ props, variant }) => {
                 </div>
             ) : (
                 <Button
-                    className="w-full h-32 text-regularPlus text-foreground-kumite border-[0.5px] bg-background-kumite/50 hover:bg-background-kumite/60"
+                    className="h-32 w-full rounded-xl border border-dashed border-border bg-background-secondary/40 text-[13px] text-foreground-secondary hover:bg-background-hover hover:text-foreground"
                     variant={'outline'}
                     onClick={pickProjectFolder}
                 >

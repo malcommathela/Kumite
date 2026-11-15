@@ -38,11 +38,7 @@ export interface NodeFingerprint {
 }
 
 export type FingerprintStatus =
-    | 'unchanged'
-    | 'file-changed-span-intact'
-    | 'span-changed'
-    | 'unknown-node'
-    | 'unreadable-span';
+    'unchanged' | 'file-changed-span-intact' | 'span-changed' | 'unknown-node' | 'unreadable-span';
 
 export interface FingerprintCheck {
     ok: boolean;
@@ -52,8 +48,7 @@ export interface FingerprintCheck {
 }
 
 export type WatchEvent =
-    | { path: string; type: 'create' | 'update'; content: string }
-    | { path: string; type: 'delete' };
+    { path: string; type: 'create' | 'update'; content: string } | { path: string; type: 'delete' };
 
 export function hashContent(content: string): Hash {
     return `sha256:${createHash('sha256').update(content, 'utf8').digest('hex')}`;

@@ -1189,9 +1189,7 @@ const ComponentsTab = observer(() => {
                                         src={selectedCatalogUrl}
                                         title={`${selectedDefinition.title} live preview`}
                                         name={selectedDefinition.name}
-                                        sessionId={
-                                            manager.catalogSessions[selectedDefinition.name]
-                                        }
+                                        sessionId={manager.catalogSessions[selectedDefinition.name]}
                                     />
                                 ) : manager.previewLoading ||
                                   selectedItemLoading ||

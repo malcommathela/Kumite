@@ -1,15 +1,10 @@
-import backgroundImageDark from '@/assets/dunes-create-dark.png';
-import backgroundImageLight from '@/assets/dunes-create-light.png';
 import { useProjectsManager } from '@/components/Context';
-import { useTheme } from '@/components/ThemeProvider';
 import { sendAnalytics } from '@/lib/utils';
 import { CreateMethod, getStepName } from '@/routes/projects/helpers';
-import { DefaultSettings, Theme } from '@kumite/models/constants';
+import { DefaultSettings } from '@kumite/models/constants';
 import type { Project } from '@kumite/models/projects';
-import { MotionCard, MotionCardFooter } from '@kumite/ui/motion-card';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import { useEffect, useState } from 'react';
-import useResizeObserver from 'use-resize-observer';
 import { loadProjectSteps, newProjectSteps, type StepContent } from './stepContents';
 
 export interface StepProps {
@@ -51,28 +46,6 @@ const CreateProject = ({
     const [projectData, setProjectData] =
         useState<Partial<Project & { hasCopied?: boolean }>>(DEFAULT_PROJECT_DATA);
     const [direction, setDirection] = useState(0);
-
-    const { ref, height } = useResizeObserver();
-    const { theme } = useTheme();
-
-    const [backgroundImage, setBackgroundImage] = useState(backgroundImageLight);
-
-    useEffect(() => {
-        const determineBackgroundImage = () => {
-            if (theme === Theme.Dark) {
-                return backgroundImageDark;
-            } else if (theme === Theme.Light) {
-                return backgroundImageLight;
-            } else if (theme === Theme.System) {
-                return window.matchMedia('(prefers-color-scheme: dark)').matches
-                    ? backgroundImageDark
-                    : backgroundImageLight;
-            }
-            return backgroundImageLight;
-        };
-
-        setBackgroundImage(determineBackgroundImage());
-    }, [theme]);
 
     useEffect(() => {
         setCurrentStep(0);
@@ -178,68 +151,50 @@ const CreateProject = ({
     };
 
     return (
-        <div className="fixed inset-0">
-            <div
-                className="relative w-full h-full flex items-center justify-center"
-                style={{
-                    backgroundImage: `url(${backgroundImage})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                }}
-            >
-                <div className="absolute inset-0 bg-background/50" />
-                <div className="relative z-10">
-                    <MotionConfig transition={{ duration: 0.5, type: 'spring', bounce: 0 }}>
-                        <MotionCard
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ height, opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            className="w-[30rem] min-h-[12rem] backdrop-blur-md bg-background/30 overflow-hidden p-0"
-                        >
-                            <motion.div ref={ref} layout="position" className="flex flex-col">
-                                <AnimatePresence
-                                    mode="popLayout"
-                                    initial={false}
-                                    custom={direction}
-                                >
-                                    <motion.div
-                                        key={currentStep}
-                                        custom={direction}
-                                        variants={variants}
-                                        initial="initial"
-                                        animate="active"
-                                        exit="exit"
-                                    >
-                                        {renderStep()}
-                                    </motion.div>
-                                </AnimatePresence>
-                                <MotionCardFooter
-                                    initial={{ opacity: 0, y: 200 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 200 }}
-                                    layout="position"
-                                    className="text-sm pb-4"
-                                >
-                                    <p className="text-foreground-kumite">{`${currentStep + 1} of ${steps.length}`}</p>
-                                    <div id="footer-buttons" className="flex ml-auto gap-2">
-                                        {steps[currentStep]?.footerButtons({
-                                            projectData,
-                                            setProjectData: (newData) =>
-                                                setProjectData((prevData) => ({
-                                                    ...prevData,
-                                                    ...newData,
-                                                })),
-                                            currentStep,
-                                            totalSteps: steps.length,
-                                            prevStep,
-                                            nextStep,
-                                        })}
-                                    </div>
-                                </MotionCardFooter>
+        <div className="flex min-h-full flex-1 flex-col items-center justify-center px-6 py-16">
+            <div className="w-full max-w-[560px]">
+                <h1 className="text-center font-display text-[2.7rem] leading-[1.05] tracking-[-0.02em] text-foreground">
+                    {createMethod === CreateMethod.NEW ? 'Start a project' : 'Import a project'}
+                </h1>
+                <p className="mx-auto mt-3 max-w-[420px] text-center text-[13px] leading-5 text-foreground-tertiary">
+                    {createMethod === CreateMethod.NEW
+                        ? 'Pick a name and a folder, then Kumite sets everything up.'
+                        : 'Point Kumite at a folder you already have. You can review the settings before anything changes.'}
+                </p>
+
+                <MotionConfig transition={{ duration: 0.5, type: 'spring', bounce: 0 }}>
+                    <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-surface">
+                        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                            <motion.div
+                                key={currentStep}
+                                custom={direction}
+                                variants={variants}
+                                initial="initial"
+                                animate="active"
+                                exit="exit"
+                            >
+                                {renderStep()}
                             </motion.div>
-                        </MotionCard>
-                    </MotionConfig>
-                </div>
+                        </AnimatePresence>
+                        <div className="flex items-center border-t border-border/60 px-6 py-4 text-[12px] text-foreground-tertiary">
+                            <p>{`${currentStep + 1} of ${steps.length}`}</p>
+                            <div id="footer-buttons" className="ml-auto flex gap-2">
+                                {steps[currentStep]?.footerButtons({
+                                    projectData,
+                                    setProjectData: (newData) =>
+                                        setProjectData((prevData) => ({
+                                            ...prevData,
+                                            ...newData,
+                                        })),
+                                    currentStep,
+                                    totalSteps: steps.length,
+                                    prevStep,
+                                    nextStep,
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </MotionConfig>
             </div>
         </div>
     );

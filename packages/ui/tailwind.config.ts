@@ -15,6 +15,20 @@ const config = {
             },
         },
         extend: {
+            fontFamily: {
+                sans: [
+                    'Inter Variable',
+                    'Inter',
+                    'ui-sans-serif',
+                    'system-ui',
+                    '-apple-system',
+                    'Segoe UI',
+                    'sans-serif',
+                ],
+                display: ['Instrument Serif', 'Iowan Old Style', 'Times New Roman', 'serif'],
+                serif: ['Instrument Serif', 'Iowan Old Style', 'Times New Roman', 'serif'],
+                mono: ['JetBrains Mono', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+            },
             colors: {
                 background: {
                     DEFAULT: 'hsl(var(--background))',
@@ -31,6 +45,12 @@ const config = {
                     hover: 'hsl(var(--background-hover))',
                     active: 'hsl(var(--background-active))',
                 },
+                sidebar: 'hsl(var(--sidebar))',
+                surface: {
+                    DEFAULT: 'hsl(var(--surface))',
+                    hover: 'hsl(var(--surface-hover))',
+                },
+                overlay: 'hsl(var(--overlay))',
                 foreground: {
                     DEFAULT: 'hsl(var(--foreground))',
                     kumite: 'hsl(var(--foreground-kumite))',
@@ -126,6 +146,38 @@ const config = {
                 ...colors,
             },
             fontSize: {
+                display1: [
+                    '4.5rem',
+                    {
+                        lineHeight: '1',
+                        letterSpacing: '-0.02em',
+                        fontWeight: '400',
+                    },
+                ],
+                display2: [
+                    '3.5rem',
+                    {
+                        lineHeight: '1.02',
+                        letterSpacing: '-0.02em',
+                        fontWeight: '400',
+                    },
+                ],
+                display3: [
+                    '2.75rem',
+                    {
+                        lineHeight: '1.05',
+                        letterSpacing: '-0.015em',
+                        fontWeight: '400',
+                    },
+                ],
+                display4: [
+                    '2.125rem',
+                    {
+                        lineHeight: '1.1',
+                        letterSpacing: '-0.01em',
+                        fontWeight: '400',
+                    },
+                ],
                 title1: [
                     '2.25rem',
                     {

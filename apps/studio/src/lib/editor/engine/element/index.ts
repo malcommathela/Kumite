@@ -117,7 +117,8 @@ export class ElementManager {
                 this.clearSelectedElements();
                 toast({
                     title: 'Selection cleared',
-                    description: 'The page changed and the selected element no longer exists. Select it again.',
+                    description:
+                        'The page changed and the selected element no longer exists. Select it again.',
                 });
                 return;
             }

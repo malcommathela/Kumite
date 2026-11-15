@@ -49,5 +49,4 @@ export type ResolutionFailure =
  * into a typed refusal instead of falling back to a guess.
  */
 export type Lookup<T> =
-    | { ok: true; value: T }
-    | { ok: false; reason: ResolutionFailure; message: string };
+    { ok: true; value: T } | { ok: false; reason: ResolutionFailure; message: string };

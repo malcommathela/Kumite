@@ -150,7 +150,9 @@ export function adapterForElement(name: string): ComponentAdapter | undefined {
     return COMPONENT_ADAPTERS.find((adapter) => adapter.elements.includes(name));
 }
 
-function seriesFields(config: t.ObjectExpression): { ok: true; fields: ContentField[] } | { ok: false; message: string } {
+function seriesFields(
+    config: t.ObjectExpression,
+): { ok: true; fields: ContentField[] } | { ok: false; message: string } {
     const fields: ContentField[] = [];
     for (const property of config.properties) {
         if (!t.isObjectProperty(property) || property.computed) {
@@ -236,9 +238,7 @@ function propExpression(element: t.JSXElement, name: string): t.Expression | nul
         if (!t.isJSXExpressionContainer(attribute.value)) {
             return null;
         }
-        return t.isExpression(attribute.value.expression)
-            ? attribute.value.expression
-            : null;
+        return t.isExpression(attribute.value.expression) ? attribute.value.expression : null;
     }
     return null;
 }

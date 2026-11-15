@@ -98,7 +98,8 @@ export function listenForCodeMessages() {
                 return {
                     ok: false,
                     reason: 'source-write-failure',
-                    message: 'The source file could not be written. Check file permissions and retry.',
+                    message:
+                        'The source file could not be written. Check file permissions and retry.',
                 };
             }
             return result;

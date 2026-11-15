@@ -109,6 +109,19 @@ export class ProjectsManager {
         this.updateProject({ ...this.project, ...newProject });
     }
 
+    /** Moves a project in or out of the archive without changing the active file. */
+    setProjectArchived(project: Project, archived: boolean) {
+        const updatedProject: Project = {
+            ...project,
+            archivedAt: archived ? new Date().toISOString() : null,
+        };
+        this.projects = this._projects.map((p) => (p.id === project.id ? updatedProject : p));
+        if (this._project?.id === project.id) {
+            this._project = updatedProject;
+        }
+        sendAnalytics(archived ? 'archive project' : 'restore project', { id: project.id });
+    }
+
     updateAppState(appState: AppState) {
         invokeMainChannel(MainChannels.REPLACE_APP_STATE, appState);
     }
