@@ -191,6 +191,8 @@ export enum MainChannels {
     COMPONENTS_PREVIEW_START = 'components-preview-start',
     COMPONENTS_PREVIEW_CATALOG = 'components-preview-catalog',
     COMPONENTS_PREVIEW_STOP = 'components-preview-stop',
+    COMPONENTS_INSTALL_PROGRESS = 'components-install-progress',
+    COMPONENTS_INSTALL_CANCEL = 'components-install-cancel',
 }
 
 export enum GitChannels {

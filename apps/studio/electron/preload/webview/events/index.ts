@@ -9,6 +9,7 @@ import type {
 import { WebviewChannels } from '@kumite/models/constants';
 import type { StyleChange } from '@kumite/models/style';
 import { ipcRenderer } from 'electron';
+import { elementFromDomId } from '/common/helpers';
 import { processDom } from '../dom';
 import { groupElements, ungroupElements } from '../elements/dom/group';
 import { insertImage, removeImage } from '../elements/dom/image';
@@ -69,13 +70,17 @@ function listenForEditEvents() {
     });
 
     ipcRenderer.on(WebviewChannels.MOVE_ELEMENT, (_, data) => {
-        const { domId, newIndex } = data as {
+        const { domId, newIndex, parentDomId } = data as {
             domId: string;
             newIndex: number;
+            parentDomId?: string;
         };
-        const domEl = moveElement(domId, newIndex);
+        // Capture the old parent before the move so the layer panel can refresh
+        // both sides of a reparent instead of keeping a stale child entry.
+        const previousParent = elementFromDomId(domId)?.parentElement ?? null;
+        const domEl = moveElement(domId, newIndex, parentDomId);
         if (domEl) {
-            publishMoveElement(domEl);
+            publishMoveElement(domEl, previousParent);
         }
     });
 

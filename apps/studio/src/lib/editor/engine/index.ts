@@ -29,6 +29,7 @@ import { GroupManager } from './group';
 import { HistoryManager } from './history';
 import { ImageManager } from './image';
 import { InsertManager } from './insert';
+import { LayoutManager } from './layout';
 import { MoveManager } from './move';
 import { OverlayManager } from './overlay';
 import { PagesManager } from './pages';
@@ -75,6 +76,7 @@ export class EditorEngine {
     private styleManager: StyleManager = new StyleManager(this);
     private copyManager: CopyManager = new CopyManager(this);
     private groupManager: GroupManager = new GroupManager(this);
+    private layoutManager: LayoutManager = new LayoutManager(this);
 
     constructor(
         private projectsManager: ProjectsManager,
@@ -142,6 +144,9 @@ export class EditorEngine {
     }
     get group() {
         return this.groupManager;
+    }
+    get layout() {
+        return this.layoutManager;
     }
     get chat() {
         return this.chatManager;
@@ -266,6 +271,7 @@ export class EditorEngine {
         this.styleManager?.dispose();
         this.copyManager?.dispose();
         this.groupManager?.dispose();
+        this.layoutManager?.dispose();
         this.canvasManager?.clear();
         this.imageManager?.dispose();
         this.themeManager?.dispose();

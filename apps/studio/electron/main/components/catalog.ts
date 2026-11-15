@@ -1,10 +1,11 @@
-import type { ShadcnProjectStatus } from '@kumite/models';
+import type { ShadcnInstallProgress, ShadcnProjectStatus } from '@kumite/models';
 import { COMPONENT_CLI_VERSION, SHADCN_COMPONENTS } from '@kumite/models';
 import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { runPackageManagerInstall, runShadcnCommand } from './cli';
 import { inspectProject } from './inspect';
+import { sharedInstallQueue } from './install-queue';
 import { guardEmptyChartContainer } from './patches';
 
 /**
@@ -111,7 +112,6 @@ export interface CatalogWorkspace {
 }
 
 let basePromise: Promise<CatalogWorkspace> | null = null;
-let installQueue: Promise<unknown> = Promise.resolve();
 
 /**
  * Prepares the empty workspace once per run: base files, dependencies, and
@@ -181,16 +181,24 @@ export interface CatalogInstall {
 /**
  * Installs the requested catalog items into the private workspace. Calls are
  * queued so two batches never edit the workspace at the same time; the files
- * belong to Kumite, so overwriting is safe.
+ * belong to Kumite, so overwriting is safe. The queue key is the batch itself:
+ * an identical batch requested twice (a fast scroll) is deduplicated, while a
+ * different batch waits its turn.
  */
-export function installCatalogItems(names: string[]): Promise<CatalogInstall> {
+export function installCatalogItems(
+    names: string[],
+    onProgress?: (progress: ShadcnInstallProgress) => void,
+): Promise<CatalogInstall> {
     const requested = [...new Set(names)].filter(isCatalogPreviewName);
-    const run = installQueue.then(() => installCatalogBatch(requested));
-    installQueue = run.catch(() => undefined);
-    return run;
+    const root = workspaceRoot();
+    const key = `catalog:${root}:${requested.slice().sort().join(',')}`;
+    return sharedInstallQueue.enqueue(key, () => installCatalogBatch(requested, onProgress));
 }
 
-async function installCatalogBatch(requested: string[]): Promise<CatalogInstall> {
+async function installCatalogBatch(
+    requested: string[],
+    onProgress?: (progress: ShadcnInstallProgress) => void,
+): Promise<CatalogInstall> {
     const base = await ensureCatalogBase();
     const { root } = base;
     let log = '';
@@ -198,7 +206,21 @@ async function installCatalogBatch(requested: string[]): Promise<CatalogInstall>
 
     const missing = requested.filter((name) => !status.installed[name]);
     if (missing.length > 0) {
-        const add = await runShadcnCommand(root, 'bun', ['add', ...missing, '-y', '--overwrite']);
+        const label = missing.length === 1 ? missing[0] : `${missing.length} components`;
+        onProgress?.({
+            component: missing.join(', '),
+            phase: 'installing',
+            message: `Preparing ${label} for preview…`,
+            output: null,
+        });
+        const add = await runShadcnCommand(root, 'bun', ['add', ...missing, '-y', '--overwrite'], (progress) => {
+            onProgress?.({
+                component: missing.join(', '),
+                phase: 'installing',
+                message: `Preparing ${label} for preview…`,
+                output: progress.chunk || null,
+            });
+        });
         log += `${add.command}\n${add.output}\n\n`;
         status = inspectProject(root);
     }

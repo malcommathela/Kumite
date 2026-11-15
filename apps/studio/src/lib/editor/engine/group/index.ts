@@ -6,6 +6,7 @@ import type {
     GroupElementsAction,
     UngroupElementsAction,
 } from '@kumite/models/actions';
+import { getGroupWrapperClass } from '@kumite/models/actions';
 import type { DomElement } from '@kumite/models/element';
 import type { EditorEngine } from '..';
 
@@ -124,11 +125,18 @@ export class GroupManager {
             oid: el.oid,
         }));
 
+        // Parent styles are not part of the selection payload, so read them to
+        // decide whether the wrapper must be display: contents.
+        const parentElement: DomElement | null = await webview.executeJavaScript(
+            `window.api?.getDomElementByDomId('${parentDomId}', true)`,
+        );
+        const wrapperClass = getGroupWrapperClass(parentElement?.styles?.computed?.display);
+
         const container: GroupContainer = {
             domId: createDomId(),
             oid: createOid(),
             tagName: 'div',
-            attributes: {},
+            attributes: wrapperClass ? { className: wrapperClass } : {},
         };
 
         return {

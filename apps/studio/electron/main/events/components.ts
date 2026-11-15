@@ -1,6 +1,8 @@
+import type { ShadcnInstallProgress } from '@kumite/models';
 import { MainChannels } from '@kumite/models/constants';
-import { ipcMain } from 'electron';
+import { ipcMain, type WebContents } from 'electron';
 import {
+    cancelComponentInstall,
     getComponentStatus,
     initializeComponents,
     installComponent,
@@ -8,6 +10,14 @@ import {
     startComponentPreview,
     stopComponentPreview,
 } from '../components';
+
+function progressReporter(sender: WebContents) {
+    return (progress: ShadcnInstallProgress) => {
+        if (!sender.isDestroyed()) {
+            sender.send(MainChannels.COMPONENTS_INSTALL_PROGRESS, progress);
+        }
+    };
+}
 
 export function listenForComponentMessages() {
     ipcMain.handle(MainChannels.COMPONENTS_GET_STATUS, (_event, projectPath: string) => {
@@ -20,8 +30,19 @@ export function listenForComponentMessages() {
 
     ipcMain.handle(
         MainChannels.COMPONENTS_INSTALL,
-        async (_event, args: { projectPath: string; component: string }) => {
-            return installComponent(args?.projectPath, args?.component);
+        async (event, args: { projectPath: string; component: string }) => {
+            return installComponent(
+                args?.projectPath,
+                args?.component,
+                progressReporter(event.sender),
+            );
+        },
+    );
+
+    ipcMain.handle(
+        MainChannels.COMPONENTS_INSTALL_CANCEL,
+        (_event, args: { projectPath: string; component: string }) => {
+            return cancelComponentInstall(args?.projectPath, args?.component);
         },
     );
 
@@ -38,8 +59,8 @@ export function listenForComponentMessages() {
 
     ipcMain.handle(
         MainChannels.COMPONENTS_PREVIEW_CATALOG,
-        async (_event, args: { components?: string[] }) => {
-            return startCatalogPreview(args?.components);
+        async (event, args: { components?: string[] }) => {
+            return startCatalogPreview(args?.components, progressReporter(event.sender));
         },
     );
 }

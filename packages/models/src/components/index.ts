@@ -13,6 +13,12 @@ export {
     SHADCN_BLOCKS,
 } from './blocks';
 export type { ShadcnBlockDefinition } from './blocks';
+export {
+    advancePreviewState,
+    parsePreviewMessage,
+    PREVIEW_MESSAGE_SOURCE,
+} from './preview';
+export type { PreviewLifecycleState, PreviewMessage } from './preview';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
@@ -97,6 +103,8 @@ export interface ShadcnInitResult {
 export interface ShadcnPreviewResult {
     component: string;
     url: string | null;
+    /** Handshake id the preview page embeds in its lifecycle messages. */
+    sessionId?: string | null;
     error: string | null;
     log: string | null;
 }
@@ -105,12 +113,24 @@ export interface ShadcnPreviewResult {
  * URLs for the catalog components that are ready to preview, rendered from
  * Kumite's own preview workspace rather than the active project. Items are
  * installed in batches, so a batch reports the ones it could not prepare.
+ * `sessions` carries the handshake id for each URL so the renderer can ignore
+ * messages that do not belong to the iframe it rendered.
  */
 export interface ShadcnCatalogPreview {
     urls: Record<string, string>;
+    sessions?: Record<string, string>;
     missing?: string[];
     error: string | null;
     log: string | null;
+}
+
+/** Progress emitted while a component install runs. */
+export interface ShadcnInstallProgress {
+    component: string;
+    phase: 'queued' | 'running' | 'installing' | 'done';
+    message: string;
+    /** Tail of the CLI output, present while the command is running. */
+    output?: string | null;
 }
 
 /**

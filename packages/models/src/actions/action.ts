@@ -65,6 +65,24 @@ export interface GroupContainer {
     attributes: Record<string, string>;
 }
 
+/**
+ * Wrapper class for the container that grouping inserts.
+ *
+ * A plain div is a new flex/grid item, which changes the layout the user saw.
+ * `contents` removes the wrapper's box so the children keep participating in
+ * the parent's flex or grid exactly as before.
+ */
+export function getGroupWrapperClass(parentDisplay: string | null | undefined): string {
+    const display = (parentDisplay ?? '').trim().toLowerCase();
+    return display === 'flex' ||
+        display === 'inline-flex' ||
+        display === 'grid' ||
+        display === 'inline-grid' ||
+        display === 'contents'
+        ? 'contents'
+        : '';
+}
+
 // Reversible group and ungroup actions
 export interface BaseGroupAction {
     type: string;

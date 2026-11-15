@@ -91,6 +91,11 @@ export class StyleManager {
         this.editorEngine.action.run(action);
     }
 
+    /** Update an element that is not part of the current selection, such as a parent. */
+    updateElement(element: DomElement, styles: Record<string, string>) {
+        this.editorEngine.action.run(this.getUpdateStyleActionFor([element], styles));
+    }
+
     getUpdateStyleAction(
         styles: Record<string, string>,
         domIds: string[] = [],
@@ -99,8 +104,23 @@ export class StyleManager {
         const selected = this.editorEngine.elements.selected;
         const filteredSelected =
             domIds.length > 0 ? selected.filter((el) => domIds.includes(el.domId)) : selected;
+        return this.buildUpdateStyleAction(filteredSelected, styles, type);
+    }
 
-        const targets: Array<StyleActionTarget> = filteredSelected.map((selectedEl) => {
+    getUpdateStyleActionFor(
+        elements: DomElement[],
+        styles: Record<string, string>,
+        type: StyleChangeType = StyleChangeType.Value,
+    ): UpdateStyleAction {
+        return this.buildUpdateStyleAction(elements, styles, type);
+    }
+
+    private buildUpdateStyleAction(
+        elements: DomElement[],
+        styles: Record<string, string>,
+        type: StyleChangeType,
+    ): UpdateStyleAction {
+        const targets: Array<StyleActionTarget> = elements.map((selectedEl) => {
             const change: Change<Record<string, StyleChange>> = {
                 updated:
                     type === StyleChangeType.Custom

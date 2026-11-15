@@ -2,6 +2,7 @@ import type {
     PackageManager,
     ShadcnCatalogPreview,
     ShadcnInitResult,
+    ShadcnInstallProgress,
     ShadcnInstallResult,
     ShadcnLibraryItem,
     ShadcnPreviewResult,
@@ -12,7 +13,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { ensureCatalogBase, installCatalogItems } from './catalog';
-import { runPackageManagerCommand, runShadcnCommand } from './cli';
+import { runPackageManagerCommand, runShadcnCommand, runShadcnCommandWithRetry } from './cli';
 import { isEmptyFile, restoreFiles, snapshotFiles } from './files';
 import {
     findBlockComponent,
@@ -22,6 +23,7 @@ import {
     resolveAlias,
     resolveCssFile,
 } from './inspect';
+import { isInstallCancelled, sharedInstallQueue } from './install-queue';
 import { guardEmptyChartContainer } from './patches';
 import { catalogPreviewServer, componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
@@ -189,9 +191,49 @@ function missingRegistryItems(
     );
 }
 
+interface InstallProgressReporter {
+    (phase: ShadcnInstallProgress['phase'], message: string, chunk?: string | null): void;
+}
+
+function componentInstallKey(root: string, name: string): string {
+    return `component:${root}:${name}`;
+}
+
+function failedInstall(
+    component: string,
+    message: string,
+    status: ShadcnProjectStatus | null = null,
+    log = '',
+): ShadcnInstallResult {
+    return { component, success: false, initialized: false, message, log, status };
+}
+
+function createProgressReporter(
+    component: string,
+    onProgress?: (progress: ShadcnInstallProgress) => void,
+): InstallProgressReporter {
+    let output = '';
+    let lastSentAt = 0;
+    return (phase, message, chunk) => {
+        if (!onProgress) {
+            return;
+        }
+        if (chunk) {
+            output = `${output}${chunk}`.slice(-4000);
+            // The CLI writes many small chunks; the host only needs a tail.
+            if (phase === 'installing' && Date.now() - lastSentAt < 250) {
+                return;
+            }
+            lastSentAt = Date.now();
+        }
+        onProgress({ component, phase, message, output: output || null });
+    };
+}
+
 export async function installComponent(
     projectPath: unknown,
     componentName: unknown,
+    onProgress?: (progress: ShadcnInstallProgress) => void,
 ): Promise<ShadcnInstallResult> {
     const definition =
         typeof componentName === 'string' ? getShadcnLibraryItem(componentName) : undefined;
@@ -220,52 +262,92 @@ export async function installComponent(
     try {
         root = resolveProjectPath(projectPath);
     } catch (error: any) {
-        return {
-            component: definition.name,
-            success: false,
-            initialized: false,
-            message: error?.message ?? 'Invalid project.',
-            log: '',
-            status: null,
-        };
+        return failedInstall(definition.name, error?.message ?? 'Invalid project.');
     }
+
+    const report = createProgressReporter(definition.name, onProgress);
+    report('queued', `Waiting to install ${definition.title}…`);
+    try {
+        return await sharedInstallQueue.enqueue(
+            componentInstallKey(root, definition.name),
+            () => runInstallComponent(root, definition, report),
+        );
+    } catch (error) {
+        if (isInstallCancelled(error)) {
+            return failedInstall(
+                definition.name,
+                `The queued install for ${definition.title} was cancelled before it started.`,
+            );
+        }
+        throw error;
+    }
+}
+
+/** Cancels an install only while it is still waiting in the queue. */
+export function cancelComponentInstall(projectPath: unknown, componentName: unknown): boolean {
+    if (typeof componentName !== 'string') {
+        return false;
+    }
+    try {
+        return sharedInstallQueue.cancel(
+            componentInstallKey(resolveProjectPath(projectPath), componentName),
+        );
+    } catch {
+        return false;
+    }
+}
+
+async function runInstallComponent(
+    root: string,
+    definition: ShadcnLibraryItem,
+    report: InstallProgressReporter,
+): Promise<ShadcnInstallResult> {
+    report('running', `Preparing ${definition.title}…`);
+    const finish = (result: ShadcnInstallResult): ShadcnInstallResult => {
+        report(
+            'done',
+            result.success ? result.message : `Could not install ${definition.title}.`,
+        );
+        return result;
+    };
 
     let status = inspectProject(root);
     if (!status.supported) {
-        return {
+        return finish({
             component: definition.name,
             success: false,
             initialized: status.initialized,
             message: status.reason ?? 'Project is not supported.',
             log: '',
             status,
-        };
+        });
     }
     if (!status.packageManager) {
-        return {
+        return finish({
             component: definition.name,
             success: false,
             initialized: status.initialized,
             message: 'Could not detect a package manager.',
             log: '',
             status,
-        };
+        });
     }
 
     let log = '';
     let initialized = status.initialized;
     if (!initialized) {
+        report('running', `Initializing shadcn/ui for ${definition.title}…`);
         const init = await initializeComponents(root);
         log += `${init.log}\n\n`;
         if (!init.success || !init.status?.initialized) {
-            return {
+            return finish({
                 component: definition.name,
                 success: false,
                 initialized: false,
                 message: init.message,
                 log: log.trim(),
                 status: init.status,
-            };
+            });
         }
         initialized = true;
         status = init.status;
@@ -273,14 +355,14 @@ export async function installComponent(
 
     const packageManager = status.packageManager;
     if (!packageManager) {
-        return {
+        return finish({
             component: definition.name,
             success: false,
             initialized,
             message: 'Could not detect a package manager.',
             log: log.trim(),
             status,
-        };
+        });
     }
 
     // Never overwrite a component the project already owns.
@@ -312,14 +394,14 @@ export async function installComponent(
             .map((file) => findBlockComponent(root, status.componentsAlias ?? undefined, file))
             .find((file): file is string => Boolean(file));
         if (targetExists) {
-            return {
+            return finish({
                 component: definition.name,
                 success: false,
                 initialized,
                 message: `The block target ${path.relative(root, targetExists)} already exists. Kumite will not overwrite it.`,
                 log: log.trim(),
                 status,
-            };
+            });
         }
     }
     if (existing && !truncated) {
@@ -338,7 +420,7 @@ export async function installComponent(
             ensured.installed.length > 0
                 ? ` Added the missing packages ${ensured.installed.join(', ')}.`
                 : '';
-        return {
+        return finish({
             component: definition.name,
             success: problems.length === 0,
             initialized,
@@ -349,19 +431,24 @@ export async function installComponent(
                     : `${definition.title} exists at ${location}, but the project is missing ${problems.join(', ')}. See the log for the package manager output.`,
             log: log.trim(),
             status,
-        };
+        });
     }
 
     const itemReference = isShadcnBlock(definition) ? definition.registryUrl : definition.name;
     const snapshot = snapshotFiles(componentDirectories(root, status), [resolveCssFile(root)]);
+    report('installing', `Installing ${definition.title}…`);
     let result: Awaited<ReturnType<typeof runShadcnCommand>>;
     try {
-        result = await runShadcnCommand(root, packageManager, [
-            'add',
-            itemReference,
-            '-y',
-            '--overwrite',
-        ]);
+        result = await runShadcnCommandWithRetry(
+            root,
+            packageManager,
+            ['add', itemReference, '-y', '--overwrite'],
+            (progress) => {
+                if (progress.chunk) {
+                    report('installing', `Installing ${definition.title}…`, progress.chunk);
+                }
+            },
+        );
     } finally {
         restoreFiles(snapshot);
     }
@@ -372,16 +459,17 @@ export async function installComponent(
         ? findBlockComponent(root, refreshed.componentsAlias ?? undefined, definition.componentFile)
         : findComponentFile(refreshed.uiDir, definition.name);
     if (!result.success || !installedFile) {
-        return {
+        return finish({
             component: definition.name,
             success: false,
             initialized,
             message: `Installing ${definition.title} failed. See the log for the CLI output.`,
             log: log.trim(),
             status: refreshed,
-        };
+        });
     }
 
+    report('installing', `Checking ${definition.title} dependencies…`);
     const ensured = await ensurePackages(root, packageManager, definition);
     if (ensured.log) {
         log += `${ensured.log}\n\n`;
@@ -402,7 +490,7 @@ export async function installComponent(
         ensured.installed.length > 0
             ? ` Added the missing packages ${ensured.installed.join(', ')}.`
             : '';
-    return {
+    return finish({
         component: definition.name,
         success: problems.length === 0,
         initialized,
@@ -413,7 +501,7 @@ export async function installComponent(
                 : `Installed ${definition.title} to ${fileLabel}, but the project is missing ${problems.join(', ')}. See the log for the package manager output.${baseSuffix}`,
         log: `${log.trim()}${baseNote ? `\n\n${baseNote}` : ''}`,
         status: refreshed,
-    };
+    });
 }
 
 interface PackageInstall {
@@ -498,7 +586,13 @@ export async function startComponentPreview(
     }
 
     const result = await componentPreviewServer.start(status, definition);
-    return { component: definition.name, url: result.url, error: result.error, log: result.log };
+    return {
+        component: definition.name,
+        url: result.url,
+        sessionId: result.sessionId,
+        error: result.error,
+        log: result.log,
+    };
 }
 
 export async function stopComponentPreview(): Promise<boolean> {
@@ -512,7 +606,10 @@ export async function stopComponentPreview(): Promise<boolean> {
  * calls this as cards scroll into view, so opening it never installs the whole
  * catalog. Repeated calls reuse the server and the workspace.
  */
-export async function startCatalogPreview(components?: unknown): Promise<ShadcnCatalogPreview> {
+export async function startCatalogPreview(
+    components?: unknown,
+    onProgress?: (progress: ShadcnInstallProgress) => void,
+): Promise<ShadcnCatalogPreview> {
     try {
         const requested = Array.isArray(components)
             ? [
@@ -525,7 +622,8 @@ export async function startCatalogPreview(components?: unknown): Promise<ShadcnC
               ]
             : [];
         const base = await ensureCatalogBase();
-        const install = requested.length > 0 ? await installCatalogItems(requested) : null;
+        const install =
+            requested.length > 0 ? await installCatalogItems(requested, onProgress) : null;
         const status = install?.status ?? base.status;
         const definitions = SHADCN_COMPONENTS.filter(
             (component) => component.previewable !== false && status.installed[component.name],
@@ -534,6 +632,7 @@ export async function startCatalogPreview(components?: unknown): Promise<ShadcnC
         const log = [install?.log, result.log].filter(Boolean).join('\n\n');
         return {
             urls: result.urls,
+            sessions: result.sessions,
             missing: install?.missing ?? [],
             error: result.error,
             log: log || null,
@@ -541,6 +640,7 @@ export async function startCatalogPreview(components?: unknown): Promise<ShadcnC
     } catch (error: any) {
         return {
             urls: {},
+            sessions: {},
             missing: [],
             error: error?.message ?? 'Could not prepare the component previews.',
             log: null,

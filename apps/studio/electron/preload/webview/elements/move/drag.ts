@@ -52,6 +52,7 @@ export function endDrag(domId: string): {
     newIndex: number;
     child: DomElement;
     parent: DomElement;
+    originalParent: DomElement;
 } | null {
     const el = elementFromDomId(domId);
     if (!el) {
@@ -60,14 +61,18 @@ export function endDrag(domId: string): {
         return null;
     }
 
-    const parent = el.parentElement;
-    if (!parent) {
+    const originalParent = el.parentElement;
+    if (!originalParent) {
         console.warn('End drag parent not found');
         cleanUpElementAfterDragging(el);
         return null;
     }
 
-    const stubIndex = getCurrentStubIndex(parent, el);
+    // The stub lives in the container under the pointer, which may no longer be
+    // the element's own parent. Capture both before cleanup removes the stub.
+    const stub = document.getElementById(EditorAttributes.KUMITE_STUB_ID);
+    const dropParent = stub?.parentElement ?? originalParent;
+    const stubIndex = getCurrentStubIndex(dropParent, el);
     cleanUpElementAfterDragging(el);
     removeStub();
 
@@ -75,14 +80,11 @@ export function endDrag(domId: string): {
         return null;
     }
 
-    const elementIndex = Array.from(parent.children).indexOf(el);
-    if (stubIndex === elementIndex) {
-        return null;
-    }
     return {
         newIndex: stubIndex,
         child: getDomElement(el, false),
-        parent: getDomElement(parent, false),
+        parent: getDomElement(dropParent, false),
+        originalParent: getDomElement(originalParent, false),
     };
 }
 

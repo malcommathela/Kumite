@@ -81,7 +81,9 @@ export function ungroupElements(
 function createContainerElement(target: GroupContainer): HTMLElement {
     const containerEl = document.createElement(target.tagName);
     Object.entries(target.attributes).forEach(([key, value]) => {
-        containerEl.setAttribute(key, value);
+        // `attributes` mirrors JSX props, so a class is recorded as `className`;
+        // the DOM needs the real attribute name for the style to apply now.
+        containerEl.setAttribute(key === 'className' ? 'class' : key, value);
     });
     containerEl.setAttribute(EditorAttributes.DATA_KUMITE_INSERTED, 'true');
     containerEl.setAttribute(EditorAttributes.DATA_KUMITE_DOM_ID, target.domId);

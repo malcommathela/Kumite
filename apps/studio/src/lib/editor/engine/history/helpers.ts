@@ -12,6 +12,17 @@ export function reverse<T>(change: Change<T>): Change<T> {
 }
 
 export function reverseMoveLocation(location: IndexActionLocation): IndexActionLocation {
+    if (location.originalParentDomId && location.originalParentDomId !== location.targetDomId) {
+        return {
+            ...location,
+            targetDomId: location.originalParentDomId,
+            targetOid: location.originalParentOid ?? null,
+            originalParentDomId: location.targetDomId,
+            originalParentOid: location.targetOid,
+            index: location.originalIndex,
+            originalIndex: location.index,
+        };
+    }
     return {
         ...location,
         index: location.originalIndex,

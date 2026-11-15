@@ -1,6 +1,11 @@
 import { useEditorEngine } from '@/components/Context';
-import type { ShadcnLibraryItem } from '@kumite/models';
-import { isShadcnBlock, SHADCN_BLOCKS } from '@kumite/models';
+import type { PreviewLifecycleState, ShadcnLibraryItem } from '@kumite/models';
+import {
+    advancePreviewState,
+    isShadcnBlock,
+    parsePreviewMessage,
+    SHADCN_BLOCKS,
+} from '@kumite/models';
 import { Button } from '@kumite/ui/button';
 import {
     Dialog,
@@ -229,27 +234,134 @@ function PreviewShimmer({ name }: { name?: string }) {
     );
 }
 
-function PreviewFrame({ src, title, name }: { src: string; title: string; name?: string }) {
+const PREVIEW_HANDSHAKE_TIMEOUT_MS = 15_000;
+
+/**
+ * Waits for the preview page's handshake instead of trusting `load`: a Vite
+ * iframe fires `load` on the empty shell before React commits, which left the
+ * shimmer covering a blank frame. Messages are accepted only from this iframe
+ * and only for this session id.
+ */
+function usePreviewHandshake(sessionId: string | null) {
+    const frameRef = useRef<HTMLIFrameElement | null>(null);
+    const [state, setState] = useState<PreviewLifecycleState | 'idle'>('idle');
+    const [detail, setDetail] = useState<string | null>(null);
+    const [attempt, setAttempt] = useState(0);
+
+    useEffect(() => {
+        setState('idle');
+        setDetail(null);
+        if (!sessionId) {
+            return;
+        }
+        // The timer is cleared when the page reports mounted or error, so firing
+        // here always means the handshake never arrived.
+        let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+            setDetail('The preview did not finish loading. Vite may still be compiling it.');
+            setState('error');
+        }, PREVIEW_HANDSHAKE_TIMEOUT_MS);
+
+        const stopTimer = () => {
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+        };
+        const listener = (event: MessageEvent) => {
+            if (event.source !== frameRef.current?.contentWindow) {
+                return;
+            }
+            const message = parsePreviewMessage(event.data);
+            if (!message || message.sessionId !== sessionId) {
+                return;
+            }
+            if (message.state === 'error') {
+                stopTimer();
+                setState('error');
+                setDetail(message.detail ?? 'The preview crashed while rendering.');
+                return;
+            }
+            if (message.state === 'mounted') {
+                stopTimer();
+                setState('mounted');
+                setDetail(null);
+                return;
+            }
+            setState((current) => advancePreviewState(current, message) ?? current);
+        };
+        window.addEventListener('message', listener);
+        return () => {
+            stopTimer();
+            window.removeEventListener('message', listener);
+        };
+    }, [sessionId, attempt]);
+
+    return {
+        frameRef,
+        state,
+        detail,
+        frameKey: `${attempt}`,
+        retry: () => setAttempt((value) => value + 1),
+    };
+}
+
+function PreviewFrame({
+    src,
+    title,
+    name,
+    sessionId,
+    onRetry,
+}: {
+    src: string;
+    title: string;
+    name?: string;
+    sessionId?: string | null;
+    onRetry?: () => Promise<void> | void;
+}) {
+    const { frameRef, state, detail, frameKey, retry } = usePreviewHandshake(sessionId ?? null);
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
         setLoaded(false);
     }, [src]);
 
+    // Without a handshake id (an official block preview) fall back to `load`.
+    const ready = sessionId ? state === 'mounted' : loaded;
+    const failed = Boolean(sessionId) && state === 'error';
+
     return (
         <div className="relative h-full min-h-[300px] w-full">
-            {!loaded && (
+            {!ready && !failed && (
                 <div className="absolute inset-0 z-10 bg-background">
                     <PreviewShimmer name={name} />
                 </div>
             )}
+            {failed && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background p-6 text-center text-sm text-muted-foreground">
+                    <p>{detail ?? 'The preview failed to render.'}</p>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                            // Rebuild the preview first: the cached address can
+                            // point at a server that has since been stopped.
+                            await onRetry?.();
+                            retry();
+                        }}
+                    >
+                        Retry preview
+                    </Button>
+                </div>
+            )}
             <iframe
+                ref={frameRef}
+                key={`${src}#${frameKey}`}
                 title={title}
                 src={src}
                 onLoad={() => setLoaded(true)}
                 className={cn(
                     'h-full min-h-[300px] w-full bg-background transition-opacity',
-                    loaded ? 'opacity-100' : 'opacity-0',
+                    ready ? 'opacity-100' : 'opacity-0',
                 )}
                 sandbox="allow-scripts allow-same-origin allow-forms"
             />
@@ -413,21 +525,45 @@ function ComponentThumbnail({ name }: { name: string }) {
     );
 }
 
-function CardPreview({ src, title, name }: { src: string; title: string; name?: string }) {
+function CardPreview({
+    src,
+    title,
+    name,
+    sessionId,
+}: {
+    src: string;
+    title: string;
+    name?: string;
+    sessionId?: string | null;
+}) {
+    const { frameRef, state, frameKey } = usePreviewHandshake(sessionId ?? null);
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
         setLoaded(false);
     }, [src]);
 
+    const ready = sessionId ? state === 'mounted' : loaded;
+    const failed = Boolean(sessionId) && state === 'error';
+
+    if (failed) {
+        return (
+            <div className="flex h-full items-center justify-center px-4">
+                <ComponentThumbnail name={name ?? ''} />
+            </div>
+        );
+    }
+
     return (
         <div className="relative h-full w-full overflow-hidden">
-            {!loaded && (
+            {!ready && (
                 <div className="absolute inset-0 z-10 bg-muted/35">
                     <PreviewShimmer name={name} />
                 </div>
             )}
             <iframe
+                ref={frameRef}
+                key={`${src}#${frameKey}`}
                 title={title}
                 src={src}
                 loading="lazy"
@@ -435,7 +571,7 @@ function CardPreview({ src, title, name }: { src: string; title: string; name?: 
                 onLoad={() => setLoaded(true)}
                 className={cn(
                     'pointer-events-none h-full w-full border-0 bg-background transition-opacity',
-                    loaded ? 'opacity-100' : 'opacity-0',
+                    ready ? 'opacity-100' : 'opacity-0',
                 )}
                 sandbox="allow-scripts allow-same-origin"
             />
@@ -447,6 +583,7 @@ function DefinitionCard({
     definition,
     installed,
     previewUrl,
+    previewSessionId,
     previewLoading,
     previewError,
     onVisible,
@@ -455,6 +592,7 @@ function DefinitionCard({
     definition: ShadcnLibraryItem;
     installed: boolean;
     previewUrl?: string;
+    previewSessionId?: string;
     previewLoading: boolean;
     previewError?: string;
     onVisible: (name: string) => void;
@@ -503,6 +641,7 @@ function DefinitionCard({
                             src={previewUrl}
                             title={`${definition.title} preview`}
                             name={definition.name}
+                            sessionId={previewSessionId}
                         />
                     ) : (
                         <div className="flex h-full items-center justify-center px-4">
@@ -677,7 +816,7 @@ const ComponentsTab = observer(() => {
             return 'Adding…';
         }
         if (manager.installing === definition.name) {
-            return 'Installing…';
+            return manager.installProgress?.phase === 'queued' ? 'Queued…' : 'Installing…';
         }
         return manager.status?.installed[definition.name]
             ? 'Use in Kumite'
@@ -854,6 +993,27 @@ const ComponentsTab = observer(() => {
                 )}
             </div>
 
+            {manager.installProgress && (
+                <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-[11px] text-muted-foreground">
+                    <span className="line-clamp-2">{manager.installProgress.message}</span>
+                    {manager.installProgress.phase === 'queued' && manager.installing && (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 shrink-0 px-2 text-[10px]"
+                            onClick={() => {
+                                const name = manager.installing;
+                                if (name) {
+                                    void manager.cancelInstall(name);
+                                }
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                    )}
+                </div>
+            )}
+
             {manager.lastLog && (
                 <details className="border-t px-3 py-2 text-[11px] text-muted-foreground">
                     <summary className="cursor-pointer select-none">Last CLI output</summary>
@@ -1018,6 +1178,10 @@ const ComponentsTab = observer(() => {
                                         src={manager.previewUrl}
                                         title={`${selectedDefinition.title} live preview`}
                                         name={selectedDefinition.name}
+                                        sessionId={manager.previewSessionId}
+                                        onRetry={() =>
+                                            manager.retryPreview(selectedDefinition.name)
+                                        }
                                     />
                                 ) : selectedCatalogUrl ? (
                                     <PreviewFrame
@@ -1025,6 +1189,9 @@ const ComponentsTab = observer(() => {
                                         src={selectedCatalogUrl}
                                         title={`${selectedDefinition.title} live preview`}
                                         name={selectedDefinition.name}
+                                        sessionId={
+                                            manager.catalogSessions[selectedDefinition.name]
+                                        }
                                     />
                                 ) : manager.previewLoading ||
                                   selectedItemLoading ||
@@ -1203,6 +1370,9 @@ const ComponentsTab = observer(() => {
                                                 manager.status?.installed[definition.name],
                                             )}
                                             previewUrl={manager.catalogPreviews[definition.name]}
+                                            previewSessionId={
+                                                manager.catalogSessions[definition.name]
+                                            }
                                             previewLoading={Boolean(
                                                 manager.catalogItemLoading[definition.name],
                                             )}

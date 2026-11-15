@@ -4,6 +4,13 @@ import { detect } from 'detect-port';
 import fs from 'fs';
 import path from 'path';
 import { readComponentsJson, resolveAlias } from './inspect';
+import {
+    buildHandshakeScript,
+    PREVIEW_MARKER,
+    PreviewRuntimeManager,
+    safeEntryId,
+    stableSessionId,
+} from './preview-runtime';
 
 const PREVIEW_STEM = '__kumite_preview';
 const HTML_MARKER = '<!-- kumite-preview -->';
@@ -24,20 +31,31 @@ class ComponentPreviewServer {
     async start(
         status: ShadcnProjectStatus,
         definition: ShadcnLibraryItem,
-    ): Promise<{ url: string | null; error: string | null; log: string | null }> {
+    ): Promise<{ url: string | null; error: string | null; log: string | null; sessionId: string | null }> {
         const projectPath = status.projectPath;
         if (definition.previewable === false) {
             return {
                 url: null,
                 error: definition.limitation ?? `${definition.title} cannot be previewed.`,
                 log: null,
+                sessionId: null,
             };
         }
         if (!status.supported) {
-            return { url: null, error: status.reason ?? 'Project is not supported.', log: null };
+            return {
+                url: null,
+                error: status.reason ?? 'Project is not supported.',
+                log: null,
+                sessionId: null,
+            };
         }
         if (!status.uiDir) {
-            return { url: null, error: 'Could not resolve the shadcn/ui directory.', log: null };
+            return {
+                url: null,
+                error: 'Could not resolve the shadcn/ui directory.',
+                log: null,
+                sessionId: null,
+            };
         }
         const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
         if (!fs.existsSync(viteBin)) {
@@ -45,20 +63,23 @@ class ComponentPreviewServer {
                 url: null,
                 error: 'An isolated preview needs a local Vite install. This project does not have one.',
                 log: null,
+                sessionId: null,
             };
         }
 
         await this.stop();
 
+        const sessionId = stableSessionId(projectPath, `component:${definition.name}`, 'component');
         let entrySource: string;
         try {
-            entrySource = buildEntryFile(projectPath, status, definition);
-            writePreviewFiles(projectPath, entrySource);
+            entrySource = buildEntryFile(projectPath, status, definition, sessionId);
+            writePreviewFiles(projectPath, entrySource, sessionId);
         } catch (error: any) {
             return {
                 url: null,
                 error: error?.message ?? 'Failed to build the preview entry.',
                 log: null,
+                sessionId: null,
             };
         }
 
@@ -82,6 +103,7 @@ class ComponentPreviewServer {
                 url: null,
                 error: error?.message ?? 'Failed to start the preview server.',
                 log: null,
+                sessionId: null,
             };
         }
 
@@ -104,11 +126,11 @@ class ComponentPreviewServer {
                 child.exitCode === null ? 'Preview server timed out.' : 'Preview server exited.';
             const log = running.log || null;
             cleanupRunning(running);
-            return { url: null, error, log };
+            return { url: null, error, log, sessionId: null };
         }
 
         this.current = running;
-        return { url: running.url, error: null, log: null };
+        return { url: running.url, error: null, log: null, sessionId };
     }
 
     async stop(): Promise<void> {
@@ -214,10 +236,57 @@ function resolveProjectImportFile(
     return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
+/**
+ * Shared mount reporting and error containment for every preview page. The
+ * host uses the `mounted` message to replace the skeleton and `error` to stop
+ * waiting on a preview that will never render.
+ */
+function previewShellLines(): string[] {
+    return [
+        `function PreviewHandshake() {`,
+        `    React.useEffect(() => {`,
+        `        window.__kumitePreview?.post('mounted');`,
+        `    }, []);`,
+        `    return null;`,
+        `}`,
+        ``,
+        `class PreviewErrorBoundary extends React.Component {`,
+        `    constructor(props) {`,
+        `        super(props);`,
+        `        this.state = { message: null };`,
+        `    }`,
+        `    static getDerivedStateFromError(error) {`,
+        `        return { message: (error && error.message) || 'The preview crashed.' };`,
+        `    }`,
+        `    componentDidCatch(error) {`,
+        `        window.__kumitePreview?.post('error', (error && error.message) || 'The preview crashed.');`,
+        `    }`,
+        `    render() {`,
+        `        if (this.state.message) {`,
+        `            return <div className="p-6 text-sm text-red-600">{this.state.message}</div>;`,
+        `        }`,
+        `        return this.props.children;`,
+        `    }`,
+        `}`,
+        ``,
+        `function PreviewRoot({ children }) {`,
+        `    return (`,
+        `        <React.StrictMode>`,
+        `            <PreviewErrorBoundary>`,
+        `                <PreviewHandshake />`,
+        `                {children}`,
+        `            </PreviewErrorBoundary>`,
+        `        </React.StrictMode>`,
+        `    );`,
+        `}`,
+    ];
+}
+
 function buildEntryFile(
     projectPath: string,
     status: ShadcnProjectStatus,
     definition: ShadcnLibraryItem,
+    sessionId: string,
 ): string {
     if (!status.uiDir) {
         throw new Error('Could not resolve the shadcn/ui directory.');
@@ -251,6 +320,8 @@ function buildEntryFile(
         lines.push(buildImportStatement(moduleImport.source, moduleImport));
     }
 
+    lines.push(`const PREVIEW_SESSION = ${JSON.stringify(sessionId)};`);
+    lines.push(...previewShellLines());
     lines.push(`function Preview() {`);
     lines.push(`    return (`);
     lines.push(`        <div className="min-h-screen bg-background p-10 text-foreground">`);
@@ -265,16 +336,16 @@ function buildEntryFile(
     lines.push(`}`);
     lines.push(``);
     lines.push(`createRoot(document.getElementById('root')!).render(`);
-    lines.push(`    <React.StrictMode>`);
+    lines.push(`    <PreviewRoot>`);
     lines.push(`        <Preview />`);
-    lines.push(`    </React.StrictMode>,`);
+    lines.push(`    </PreviewRoot>,`);
     lines.push(`);`);
     lines.push(``);
     return lines.join('\n');
 }
 
-function writePreviewFiles(projectPath: string, entrySource: string): void {
-    const html = `${HTML_MARKER}
+function buildPreviewHtml(sessionId: string): string {
+    return `${HTML_MARKER}
 <!doctype html>
 <html lang="en">
     <head>
@@ -284,12 +355,16 @@ function writePreviewFiles(projectPath: string, entrySource: string): void {
     </head>
     <body>
         <div id="root"></div>
+        ${buildHandshakeScript(sessionId)}
         <script type="module" src="/${PREVIEW_STEM}.tsx"></script>
     </body>
 </html>
 `;
+}
+
+function writePreviewFiles(projectPath: string, entrySource: string, sessionId: string): void {
     const files = [
-        [path.join(projectPath, `${PREVIEW_STEM}.html`), html],
+        [path.join(projectPath, `${PREVIEW_STEM}.html`), buildPreviewHtml(sessionId)],
         [path.join(projectPath, `${PREVIEW_STEM}.tsx`), entrySource],
     ] as const;
     if (files.some(([file]) => fs.existsSync(file))) {
@@ -323,7 +398,10 @@ function removePreviewFiles(projectPath: string): void {
     const htmlPath = path.join(projectPath, `${PREVIEW_STEM}.html`);
     const entryPath = path.join(projectPath, `${PREVIEW_STEM}.tsx`);
     try {
-        if (fs.existsSync(htmlPath) && fs.readFileSync(htmlPath, 'utf8').startsWith(HTML_MARKER)) {
+        if (
+            fs.existsSync(htmlPath) &&
+            fs.readFileSync(htmlPath, 'utf8').startsWith(HTML_MARKER)
+        ) {
             fs.unlinkSync(htmlPath);
         }
     } catch {
@@ -343,9 +421,7 @@ function removePreviewFiles(projectPath: string): void {
 
 export const componentPreviewServer = new ComponentPreviewServer();
 
-const CATALOG_DIR = 'kumite-preview';
-
-function buildCatalogEntry(definition: ShadcnLibraryItem): string {
+function buildCatalogEntry(definition: ShadcnLibraryItem, sessionId: string): string {
     const lines: string[] = [ENTRY_MARKER];
     lines.push(`import React from 'react';`);
     lines.push(`import { createRoot } from 'react-dom/client';`);
@@ -353,6 +429,8 @@ function buildCatalogEntry(definition: ShadcnLibraryItem): string {
     for (const moduleImport of definition.imports) {
         lines.push(buildImportStatement(moduleImport.source, moduleImport));
     }
+    lines.push(`const PREVIEW_SESSION = ${JSON.stringify(sessionId)};`);
+    lines.push(...previewShellLines());
     lines.push(`function Preview() {`);
     lines.push(`    return (`);
     lines.push(
@@ -364,16 +442,16 @@ function buildCatalogEntry(definition: ShadcnLibraryItem): string {
     lines.push(`}`);
     lines.push(``);
     lines.push(`createRoot(document.getElementById('root')!).render(`);
-    lines.push(`    <React.StrictMode>`);
+    lines.push(`    <PreviewRoot>`);
     lines.push(`        <Preview />`);
-    lines.push(`    </React.StrictMode>,`);
+    lines.push(`    </PreviewRoot>,`);
     lines.push(`);`);
     lines.push(``);
     return lines.join('\n');
 }
 
-function buildCatalogHtml(title: string): string {
-    return `${HTML_MARKER}
+function buildCatalogHtml(title: string, sessionId: string, entryId: string): string {
+    return `${HTML_MARKER} ${PREVIEW_MARKER}
 <!doctype html>
 <html lang="en">
     <head>
@@ -383,59 +461,38 @@ function buildCatalogHtml(title: string): string {
     </head>
     <body class="bg-background text-foreground">
         <div id="root"></div>
+        ${buildHandshakeScript(sessionId)}
+        <script type="module" src="./${entryId}.tsx"></script>
     </body>
 </html>
 `;
 }
 
-/**
- * Writes one entry per definition. Entries are additive: batches arrive as the
- * library scrolls, and a later batch must not delete the previews already
- * shown. Files are only written when their content changes, so adding a batch
- * does not hot-reload the iframes that are already showing.
- */
-function writeCatalogEntries(projectPath: string, definitions: ShadcnLibraryItem[]): void {
-    const directory = path.join(projectPath, CATALOG_DIR);
-    fs.mkdirSync(directory, { recursive: true });
-    const writeIfChanged = (file: string, contents: string) => {
-        try {
-            if (fs.readFileSync(file, 'utf8') === contents) {
-                return;
-            }
-        } catch {
-            // Missing or unreadable: write it.
-        }
-        fs.writeFileSync(file, contents, 'utf8');
-    };
-    for (const definition of definitions) {
-        const entry = buildCatalogEntry(definition);
-        writeIfChanged(path.join(directory, `${definition.name}.tsx`), entry);
-        const html = buildCatalogHtml(definition.title).replace(
-            `<div id="root"></div>`,
-            `<div id="root"></div>\n        <script type="module" src="./${definition.name}.tsx"></script>`,
-        );
-        writeIfChanged(path.join(directory, `${definition.name}.html`), html);
-    }
+export interface CatalogPreviewStart {
+    urls: Record<string, string>;
+    sessions: Record<string, string>;
+    error: string | null;
+    log: string | null;
 }
 
 /**
- * Serves catalog items from Kumite's preview workspace. One dev server renders
- * every entry, so the library can show a live preview per card without starting
- * a process per component. Entries are added as batches arrive, without
- * restarting the server or invalidating the previews already on screen.
+ * Serves catalog items from Kumite's private preview workspace.
+ *
+ * The workspace belongs to Kumite, so a dev server can be reused across
+ * projects and every item gets its own session directory. Entries are additive:
+ * batches arrive as the library scrolls, and a later batch never deletes the
+ * previews already on screen. The runtime owns the process, its refcount, and
+ * its cleanup.
  */
 export class CatalogPreviewServer {
-    private current: RunningPreview | null = null;
-    private urls: Record<string, string> = {};
+    private runtime = new PreviewRuntimeManager();
 
-    async start(
-        projectPath: string,
-        definitions: ShadcnLibraryItem[],
-    ): Promise<{ urls: Record<string, string>; error: string | null; log: string | null }> {
+    async start(projectPath: string, definitions: ShadcnLibraryItem[]): Promise<CatalogPreviewStart> {
         const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
         if (!fs.existsSync(viteBin)) {
             return {
                 urls: {},
+                sessions: {},
                 error: 'The preview workspace has no local Vite install.',
                 log: null,
             };
@@ -443,97 +500,54 @@ export class CatalogPreviewServer {
         const items = definitions.filter(
             (definition) => definition.previewable !== false && definition.previewCode.trim(),
         );
-
-        const running = this.current;
-        const reuse = running !== null && running.projectPath === projectPath;
-        if (items.length === 0 && !reuse) {
-            return { urls: {}, error: 'The catalog has no previewable components.', log: null };
-        }
-
-        try {
-            writeCatalogEntries(projectPath, items);
-        } catch (error: any) {
+        if (items.length === 0) {
             return {
                 urls: {},
-                error: error?.message ?? 'Failed to write the catalog preview entries.',
+                sessions: {},
+                error: 'The catalog has no previewable components.',
                 log: null,
             };
         }
 
-        if (reuse) {
-            for (const definition of items) {
-                this.urls[definition.name] =
-                    `http://127.0.0.1:${running.port}/${CATALOG_DIR}/${definition.name}.html`;
-            }
-            return { urls: this.urls, error: null, log: null };
-        }
-
-        await this.stop();
-
-        let port: number;
-        let child: ChildProcess;
-        try {
-            port = await detect(3320);
-            child = spawn(
-                process.execPath,
-                [viteBin, '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
-                {
-                    cwd: projectPath,
-                    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', NODE_ENV: 'development' },
-                    windowsHide: true,
-                    stdio: ['ignore', 'pipe', 'pipe'],
-                },
-            );
-        } catch (error: any) {
+        const entries = items.map((definition) => {
+            const sessionId = stableSessionId(projectPath, definition.name, 'catalog');
+            // The written module name and the HTML script src must agree.
+            const entryId = safeEntryId(definition.name);
             return {
-                urls: {},
-                error: error?.message ?? 'Failed to start the catalog preview server.',
-                log: null,
+                sessionId,
+                entryId,
+                html: buildCatalogHtml(definition.title, sessionId, entryId),
+                source: buildCatalogEntry(definition, sessionId),
             };
-        }
+        });
 
-        const server: RunningPreview = {
+        const result = await this.runtime.ensure({
             projectPath,
-            port,
-            url: `http://127.0.0.1:${port}/${CATALOG_DIR}/${items[0].name}.html`,
-            process: child,
-            log: '',
-        };
-        const appendLog = (data: Buffer) => {
-            server.log = `${server.log}${data.toString()}`.slice(-8000);
-        };
-        child.stdout?.on('data', appendLog);
-        child.stderr?.on('data', appendLog);
-
-        const ready = await waitForServer(server);
-        if (!ready) {
-            const error =
-                child.exitCode === null
-                    ? 'Catalog preview server timed out.'
-                    : 'Catalog preview server exited.';
-            const log = server.log || null;
-            cleanupRunning(server);
-            return { urls: {}, error, log };
+            kind: 'catalog',
+            viteBin,
+            basePort: 3320,
+            entries,
+        });
+        if (result.error) {
+            return { urls: {}, sessions: {}, error: result.error, log: result.log };
         }
 
-        this.current = server;
-        this.urls = Object.fromEntries(
-            items.map((definition) => [
-                definition.name,
-                `http://127.0.0.1:${port}/${CATALOG_DIR}/${definition.name}.html`,
-            ]),
-        );
-        return { urls: this.urls, error: null, log: null };
+        const urls: Record<string, string> = {};
+        const sessions: Record<string, string> = {};
+        for (const [index, definition] of items.entries()) {
+            const sessionId = entries[index].sessionId;
+            const url = result.urls[sessionId];
+            if (!url) {
+                continue;
+            }
+            urls[definition.name] = url;
+            sessions[definition.name] = sessionId;
+        }
+        return { urls, sessions, error: null, log: null };
     }
 
     async stop(): Promise<void> {
-        const running = this.current;
-        this.current = null;
-        this.urls = {};
-        if (!running) {
-            return;
-        }
-        cleanupRunning(running);
+        this.runtime.stopAll();
     }
 }
 

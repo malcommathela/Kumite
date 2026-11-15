@@ -136,19 +136,22 @@ export class MoveManager {
             newIndex: number;
             child: DomElement;
             parent: DomElement;
+            originalParent: DomElement;
         } | null = await webview.executeJavaScript(
             `window.api?.endDrag('${this.dragTarget.domId}')`,
         );
 
         if (res) {
-            const { child, parent, newIndex } = res;
-            if (newIndex !== this.originalIndex) {
+            const { child, parent, newIndex, originalParent } = res;
+            const sameParent = parent.domId === originalParent.domId;
+            if (!sameParent || newIndex !== this.originalIndex) {
                 const moveAction = this.createMoveAction(
                     webview.id,
                     child,
                     parent,
                     newIndex,
                     this.originalIndex,
+                    sameParent ? undefined : originalParent,
                 );
                 this.editorEngine.action.run(moveAction);
             }
@@ -230,6 +233,7 @@ export class MoveManager {
         parent: DomElement,
         newIndex: number,
         originalIndex: number,
+        originalParent?: DomElement,
     ): MoveElementAction {
         return {
             type: 'move-element',
@@ -239,6 +243,12 @@ export class MoveManager {
                 targetOid: parent.instanceId || parent.oid,
                 index: newIndex,
                 originalIndex: originalIndex,
+                ...(originalParent
+                    ? {
+                          originalParentDomId: originalParent.domId,
+                          originalParentOid: originalParent.instanceId ?? originalParent.oid ?? null,
+                      }
+                    : {}),
             },
             targets: [
                 {
