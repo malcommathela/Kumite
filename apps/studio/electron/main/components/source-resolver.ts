@@ -784,14 +784,13 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     const response = await getResponse(url);
                     if (ASSET_EXTENSIONS.test(candidate)) {
                         const digest = sha256(response.bytes);
+                        storeAsset(response.bytes, digest, candidate, assetDirectory);
                         assets.set(candidate, {
                             path: candidate,
                             source: url,
                             mediaType: response.contentType || 'application/octet-stream',
                             sha256: digest,
                             size: response.bytes.byteLength,
-                            // Store by content hash; the artifact must not serialize this machine-local path.
-                            ...storeAsset(response.bytes, digest, candidate, assetDirectory) && {},
                             external: false,
                             referencedBy: from ? [from] : [],
                         });
@@ -874,14 +873,13 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 .join('/')}`;
             try {
                 const response = await getResponse(url);
+                storeAsset(response.bytes, sha256(response.bytes), assetPath, assetDirectory);
                 assets.set(assetPath, {
                     path: assetPath.replace(/^public\//, ''),
                     source: url,
                     mediaType: response.contentType || 'application/octet-stream',
                     sha256: sha256(response.bytes),
                     size: response.bytes.byteLength,
-                    // Store by content hash; the artifact must not serialize this machine-local path.
-                    ...storeAsset(response.bytes, sha256(response.bytes), assetPath, assetDirectory) && {},
                     external: false,
                     referencedBy: [from],
                 });
