@@ -62,6 +62,9 @@ export const ImplementationArtifactSchema = z.object({
         z.object({
             name: z.string().min(1),
             version: z.string().optional(),
+            // Optional for schema-v1 artifacts written before dependency provenance was added.
+            origins: z.array(z.enum(['registry', 'source-import'])).optional(),
+            versionSource: z.enum(['registry', 'unspecified']).optional(),
         }),
     ),
     assets: z.array(
@@ -71,6 +74,7 @@ export const ImplementationArtifactSchema = z.object({
             mediaType: z.string(),
             sha256: sha256.optional(),
             size: z.number().int().nonnegative().optional(),
+            // Legacy machine-local hint. Materializers must verify content and never trust this path.
             cachePath: z.string().optional(),
             external: z.boolean(),
             referencedBy: z.array(z.string()),
