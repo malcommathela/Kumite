@@ -790,12 +790,8 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                             mediaType: response.contentType || 'application/octet-stream',
                             sha256: digest,
                             size: response.bytes.byteLength,
-                            cachePath: storeAsset(
-                                response.bytes,
-                                digest,
-                                candidate,
-                                assetDirectory,
-                            ),
+                            // Store by content hash; the artifact must not serialize this machine-local path.
+                            ...storeAsset(response.bytes, digest, candidate, assetDirectory) && {},
                             external: false,
                             referencedBy: from ? [from] : [],
                         });
@@ -884,12 +880,8 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     mediaType: response.contentType || 'application/octet-stream',
                     sha256: sha256(response.bytes),
                     size: response.bytes.byteLength,
-                    cachePath: storeAsset(
-                        response.bytes,
-                        sha256(response.bytes),
-                        assetPath,
-                        assetDirectory,
-                    ),
+                    // Store by content hash; the artifact must not serialize this machine-local path.
+                    ...storeAsset(response.bytes, sha256(response.bytes), assetPath, assetDirectory) && {},
                     external: false,
                     referencedBy: [from],
                 });
@@ -990,7 +982,6 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 versionSource: dependency.versionSource,
             }))
             .sort((a, b) => a.name.localeCompare(b.name));
-        const rootFilePaths = new Set(root.item.files.map((file) => file.path));
         const sourceHash = sha256(
             stableStringify({
                 registryItems: registryRecords.map(({ item, url, sha256: hash }) => ({
@@ -1059,7 +1050,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     (file) =>
                         file.role === 'demo-data' ||
                         file.registryType === 'registry:example' ||
-                        (request.kind !== 'component' && rootFilePaths.has(file.path)),
+                        file.registryType === 'registry:page',
                 );
                 const available = demoFiles.length > 0;
                 return {
