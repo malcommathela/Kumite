@@ -306,7 +306,7 @@ function classifyFile(
     if (file.type === 'registry:hook' || /\/hooks\//.test(file.path)) {
         return 'hook';
     }
-    if (/\.(?:css|scss)$/.test(file.path)) {
+    if (/\.(?:css|scss|sass)$/.test(file.path)) {
         return 'stylesheet';
     }
     if (
@@ -335,6 +335,23 @@ function importedSpecifiers(sourcePath: string, content: string): string[] {
         const sassModules = [...content.matchAll(/@(use|forward)\s+['"]([^'"]+)['"]/g)].map(
             (match) => match[2],
         );
+        for (const moduleName of sassModules) {
+            if (
+                !moduleName.startsWith('sass:') &&
+                !moduleName.startsWith('./') &&
+                !moduleName.startsWith('../') &&
+                !moduleName.startsWith('@/') &&
+                !moduleName.startsWith('~/') &&
+                !moduleName.startsWith('@')
+            ) {
+                throw new SourceResolutionError({
+                    kind: 'file',
+                    source: moduleName,
+                    from: sourcePath,
+                    message: `Ambiguous Sass module "${moduleName}". Use a relative path for local modules or a package specifier with an explicit scope.`,
+                });
+            }
+        }
         return [...new Set([...cssImports, ...sassModules])];
     }
 
@@ -921,13 +938,18 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     continue;
                 }
                 const cleanImportSource = importSource.split(/[?#]/)[0];
-                const isPublicAsset = cleanImportSource.startsWith('/');
-                const base = isPublicAsset ? undefined : resolveImportPath(normalized, cleanImportSource);
                 if (ASSET_EXTENSIONS.test(cleanImportSource)) {
-                    const assetPath = await resolveAsset(importSource, normalized, base);
+                    const assetPath = await resolveAsset(
+                        importSource,
+                        normalized,
+                        cleanImportSource.startsWith('/')
+                            ? undefined
+                            : resolveImportPath(normalized, cleanImportSource),
+                    );
                     edges.push({ from: normalized, to: assetPath, kind: 'asset' });
                     continue;
                 }
+                const base = resolveImportPath(normalized, cleanImportSource);
                 const localPath = await resolveFile(base, normalized);
                 edges.push({ from: normalized, to: localPath, kind: 'import' });
                 await scanFile(localPath);
