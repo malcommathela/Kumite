@@ -416,13 +416,17 @@ describe('implementation artifact materializer', () => {
 
     it('rejects external assets with unsupported URL schemes before creating a destination', async () => {
         const { artifact } = await resolveAssetPathFixture();
-        for (const source of ['file:///etc/passwd', 'javascript:alert(1)', 'ftp://images.example.test/asset.png']) {
+        for (const source of [
+            'file:///etc/passwd',
+            'javascript:alert(1)',
+            'ftp://images.example.test/asset.png',
+        ]) {
             const invalid = cloneArtifact(artifact);
             const externalAsset = invalid.assets.find((asset) => asset.external)!;
             externalAsset.source = source;
             recomputeIntegrity(invalid);
             const root = temporaryDirectory();
-            const destination = root + '/out';
+            const destination = path.join(root, 'out');
 
             await assert.rejects(
                 materializeImplementationArtifact(invalid, destination),
