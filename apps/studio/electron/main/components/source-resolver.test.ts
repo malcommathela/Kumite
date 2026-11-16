@@ -165,9 +165,10 @@ describe('shadcn source resolver', () => {
         );
         assert.ok(artifact.demo.files.includes(dataFile.path));
         assert.ok(
-            artifact.demo.files.some((filePath) =>
+            !artifact.demo.files.some((filePath) =>
                 filePath.endsWith('/components/chart-area-interactive.tsx'),
             ),
+            'component dependencies must not be classified as demo-data files',
         );
         assert.equal(artifact.demo.available, true);
         assert.equal(artifact.demo.preserved, true);
@@ -219,13 +220,14 @@ describe('shadcn source resolver', () => {
         assert.ok(avatar);
         assert.equal(avatar.external, false);
         assert.ok(avatar.sha256);
-        assert.ok(avatar.cachePath);
-        assert.equal(fs.existsSync(avatar.cachePath), true);
-        assert.equal(
-            createHash('sha256').update(fs.readFileSync(avatar.cachePath)).digest('hex'),
-            avatar.sha256,
-        );
-        assert.equal(fs.readFileSync(avatar.cachePath).byteLength, avatar.size);
+        assert.equal(avatar.cachePath, undefined);
+        const materializedPath = await materializeImplementationAsset(avatar, {
+            assetDirectory: ASSET_CACHE,
+            fetcher: fixtureFetcher(),
+        });
+        const materializedBytes = fs.readFileSync(materializedPath);
+        assert.equal(createHash('sha256').update(materializedBytes).digest('hex'), avatar.sha256);
+        assert.equal(materializedBytes.byteLength, avatar.size);
         assert.ok(avatar.referencedBy.some((file) => file.includes('dashboard-01')));
     });
 
