@@ -474,11 +474,19 @@ describe('shadcn source resolver', () => {
     it('resolves aliased and public-root asset imports without serializing machine cache paths', async () => {
         const rootUrl = `${rootRegistryUrl}/asset-paths.json`;
         const item = registryItem('asset-paths', 'registry:example', [
-            { path: 'registry/new-york-v4/examples/asset-paths/page.tsx', type: 'registry:example', content: 'import logo from "@/assets/logo.svg"; export default () => <img src="/brand.png" />;' },
+            { path: 'registry/new-york-v4/examples/asset-paths/page.tsx', type: 'registry:example', content: 'import logo from "@/assets/logo.svg"; import "./styles.css"; export default () => <img src="/brand.png" />;' },
+            { path: 'registry/new-york-v4/examples/asset-paths/styles.css', content: 'body { background-image: url("./pattern.svg"); mask-image: url("@/assets/texture.svg"); }' },
         ]);
         const logoUrl = `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/registry/new-york-v4/assets/logo.svg`;
+        const textureUrl = `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/registry/new-york-v4/assets/texture.svg`;
+        const relativeUrl = `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/registry/new-york-v4/examples/asset-paths/pattern.svg`;
         const publicUrl = `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/public/brand.png`;
-        const bytesByUrl = new Map([[logoUrl, Buffer.from('<svg/>')], [publicUrl, Buffer.from('png-bytes')]]);
+        const bytesByUrl = new Map([
+            [logoUrl, Buffer.from('<svg/>')],
+            [textureUrl, Buffer.from('<svg/>')],
+            [relativeUrl, Buffer.from('<svg/>')],
+            [publicUrl, Buffer.from('png-bytes')],
+        ]);
         const artifact = await createFixtureResolver({
             fetcher: async (url) => {
                 if (url === rootUrl) return new Response(item, { status: 200 });
@@ -489,6 +497,8 @@ describe('shadcn source resolver', () => {
             },
         }).resolve({ provider: 'shadcn', kind: 'example', name: 'asset-paths' });
         assert.ok(artifact.assets.some((asset) => asset.source === logoUrl));
+        assert.ok(artifact.assets.some((asset) => asset.source === textureUrl));
+        assert.ok(artifact.assets.some((asset) => asset.source === relativeUrl));
         assert.ok(artifact.assets.some((asset) => asset.source === publicUrl));
         assert.ok(artifact.assets.every((asset) => asset.cachePath === undefined));
     });
