@@ -335,15 +335,37 @@ function importedSpecifiers(sourcePath: string, content: string): string[] {
     ];
     for (const call of sourceFile.getDescendantsOfKind(ts.SyntaxKind.CallExpression)) {
         const expression = call.getExpression();
+        const expressionText = expression.getText();
+        const isImport = expression.getKind() === ts.SyntaxKind.ImportKeyword;
+        const isRequire = expressionText === 'require';
         if (
-            expression.getKind() !== ts.SyntaxKind.ImportKeyword &&
-            expression.getText() !== 'require'
+            !isImport &&
+            !isRequire &&
+            (expressionText.startsWith('import.meta.glob') || expressionText.startsWith('require.'))
         ) {
+            throw new SourceResolutionError({
+                kind: 'file',
+                source: call.getText(),
+                from: sourcePath,
+                message: `Cannot resolve dynamic module reference "${call.getText()}".`,
+            });
+        }
+        if (!isImport && !isRequire) {
             continue;
         }
         const argument = call.getArguments()[0];
-        if (argument && Node.isStringLiteral(argument)) {
+        if (
+            argument &&
+            (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))
+        ) {
             specifiers.push(argument.getLiteralValue());
+        } else {
+            throw new SourceResolutionError({
+                kind: 'file',
+                source: call.getText(),
+                from: sourcePath,
+                message: `Cannot resolve non-static module reference "${call.getText()}".`,
+            });
         }
     }
     for (const declaration of sourceFile.getDescendantsOfKind(

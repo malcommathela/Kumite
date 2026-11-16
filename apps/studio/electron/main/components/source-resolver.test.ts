@@ -237,6 +237,17 @@ describe('shadcn source resolver', () => {
         assert.ok(dashboardMetadata);
         assert.ok(dashboardMetadata.registryDependencies.includes('sidebar'));
         assert.ok(dashboardMetadata.dependencies.includes('@dnd-kit/core'));
+        const resolvedRegistryNames = new Set(
+            artifact.source.registryItems.map((item) => item.name),
+        );
+        for (const item of artifact.source.registryItems) {
+            for (const dependency of item.registryDependencies) {
+                assert.ok(
+                    /^https?:\/\//i.test(dependency) || resolvedRegistryNames.has(dependency),
+                    `${item.name} registry dependency ${dependency} must be resolved`,
+                );
+            }
+        }
         assert.ok(
             dashboardMetadata.files.every((file) =>
                 artifact.files.some((resolvedFile) => resolvedFile.path === file),
@@ -285,6 +296,27 @@ describe('shadcn source resolver', () => {
                 error instanceof SourceResolutionError &&
                 error.message.includes('Could not resolve local import') &&
                 error.message.includes('missing-file.tsx'),
+        );
+    });
+
+    it('fails explicitly on non-static imports that cannot be resolved safely', async () => {
+        const rootUrl = `${rootRegistryUrl}/dynamic-import.json`;
+        const dynamicImport = registryItem('dynamic-import', 'registry:example', [
+            {
+                path: 'registry/new-york-v4/examples/dynamic-import.tsx',
+                type: 'registry:example',
+                content: 'const name = "./part"; export default import(name);',
+            },
+        ]);
+
+        await assert.rejects(
+            createFixtureResolver({
+                fetcher: fixtureFetcher({ [rootUrl]: dynamicImport }),
+            }).resolve({ provider: 'shadcn', kind: 'example', name: 'dynamic-import' }),
+            (error: unknown) =>
+                error instanceof SourceResolutionError &&
+                error.message.includes('Cannot resolve non-static module reference') &&
+                error.message.includes('dynamic-import.tsx'),
         );
     });
 
