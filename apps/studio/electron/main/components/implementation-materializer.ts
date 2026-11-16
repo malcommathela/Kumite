@@ -331,6 +331,18 @@ function verifyArtifact(artifactValue: ImplementationArtifact): ImplementationAr
     }
     for (const asset of artifact.assets) {
         if (asset.external) {
+            let externalUrl: URL;
+            try {
+                externalUrl = new URL(asset.source);
+            } catch (error) {
+                throw wrapError(error, 'asset', `Invalid external asset URL "${asset.source}"`);
+            }
+            if (!['http:', 'https:', 'data:', 'blob:'].includes(externalUrl.protocol)) {
+                throw new ImplementationMaterializationError(
+                    'asset',
+                    `External asset "${asset.path}" uses an unsupported URL scheme: "${externalUrl.protocol}".`,
+                );
+            }
             continue;
         }
         validateRelativePath(asset.path, 'Local asset path');
