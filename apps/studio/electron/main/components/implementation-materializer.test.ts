@@ -414,6 +414,29 @@ describe('implementation artifact materializer', () => {
         );
     });
 
+    it('rejects external assets with unsupported URL schemes before creating a destination', async () => {
+        const { artifact } = await resolveAssetPathFixture();
+        for (const source of ['file:///etc/passwd', 'javascript:alert(1)', 'ftp://images.example.test/asset.png']) {
+            const invalid = cloneArtifact(artifact);
+            const externalAsset = invalid.assets.find((asset) => asset.external)!;
+            externalAsset.source = source;
+            recomputeIntegrity(invalid);
+            const root = temporaryDirectory();
+            const destination = root + '/out';
+
+            await assert.rejects(
+                materializeImplementationArtifact(invalid, destination),
+                (error: unknown) =>
+                    error instanceof ImplementationMaterializationError &&
+                    error.code === 'asset' &&
+                    error.message.includes('unsupported URL scheme'),
+                source,
+            );
+            assert.equal(fs.existsSync(destination), false);
+            assert.deepEqual(fs.readdirSync(root), []);
+        }
+    });
+
     it('rejects downloaded assets with incorrect SHA-256 metadata', async () => {
         const { artifact, responses } = await resolveAssetPathFixture();
         const corrupted = cloneArtifact(artifact);
