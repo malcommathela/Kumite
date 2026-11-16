@@ -908,7 +908,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     message: `Resolved source file "${normalized}" is missing from the artifact.`,
                 });
             }
-            if (/\.(?:css|scss)$/.test(normalized)) {
+            if (/\.(?:css|scss|sass)$/.test(normalized)) {
                 configuration.add('stylesheet');
             }
             for (const importSource of importedSpecifiers(normalized, file.content)) {
