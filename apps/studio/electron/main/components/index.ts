@@ -27,6 +27,17 @@ import { guardEmptyChartContainer } from './patches';
 import { catalogPreviewServer, componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
+export {
+    createShadcnSourceResolver,
+    hashImplementationArtifact,
+    resolveShadcnImplementation,
+    SourceResolutionError,
+} from './source-resolver';
+export type {
+    ShadcnSourceResolverOptions,
+    SourceFetcher,
+    SourceResolutionIssue,
+} from './source-resolver';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {

@@ -35,6 +35,36 @@ verified reusable exports and preview sources (official live pages where
 published; project-local preview for calendar and OTP examples).
 The block manifest is in `packages/models/src/components/blocks.ts`.
 
+### Source resolution artifact (Phase 2)
+
+`packages/models/src/components/implementation.ts` defines the validated,
+serializable `ImplementationArtifact`. `electron/main/components/source-resolver.ts`
+resolves pinned shadcn components, examples, and blocks through
+`resolveShadcnImplementation` / `createShadcnSourceResolver`.
+
+The resolver reads the exact pinned registry JSON from
+`apps/v4/public/r/styles/new-york-v4`, follows every registry dependency, and
+recursively resolves local TypeScript/JavaScript, JSON, stylesheet, and asset
+references from the pinned repository. Registry metadata, imported package
+versions, source paths, file roles, providers, cycles, and SHA-256 provenance
+are retained in the artifact. Local binary assets are stored by content hash in
+Kumite's cache directory; the artifact records their cache path, source URL,
+size, hash, and original references. External URLs are preserved as external
+references rather than silently downloaded.
+
+The source resolver intentionally reads raw registry JSON rather than treating
+the shadcn CLI's project writes as source retrieval. A pinned block item can
+contain `registry:page` and `registry:file` entries (for example,
+`dashboard-01` has its page and 68-row `data.json`); these are source inputs
+needed by an artifact even when the CLI does not materialize a page in a Vite
+project. The CLI remains the project's installation mechanism. This phase does
+not yet change preview or insertion, which still use the existing templates.
+
+Resolver tests use compressed, deterministic response fixtures captured from
+the pinned upstream commit. The dashboard fixture includes the full registry
+dependency closure, original source files, the separate data file, and its
+referenced avatar.
+
 Blocks install from their direct JSON URL at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
 `calendar-01` and `dashboard-01` JSON installed their reusable source files and
