@@ -84,6 +84,8 @@ describe('shadcn source resolver', () => {
         assert.equal(artifact.source.provenance, 'official');
         assert.equal(artifact.entryPoint, 'registry/new-york-v4/ui/button.tsx');
         assert.equal(artifact.demo.available, false);
+        assert.equal(artifact.demo.preserved, false);
+        assert.equal(artifact.demo.editable, false);
         assert.deepEqual(artifact.demo.files, []);
         assert.ok(artifact.files.some((file) => file.path === artifact.entryPoint));
         assert.ok(artifact.source.registryItems.some((item) => item.name === 'button'));
@@ -103,6 +105,7 @@ describe('shadcn source resolver', () => {
         assert.ok(artifact.demo.files.includes(artifact.entryPoint));
         assert.equal(artifact.demo.available, true);
         assert.equal(artifact.demo.preserved, true);
+        assert.equal(artifact.demo.editable, false);
     });
 
     it('resolves the complete dashboard page, components, dependencies, and data file', async () => {
@@ -146,6 +149,11 @@ describe('shadcn source resolver', () => {
             upstreamBlock.files.find((file) => file.path === dataFile.path)?.content,
         );
         assert.equal(JSON.parse(dataFile.content).length, 68);
+        assert.ok(
+            artifact.demo.files.every(
+                (filePath) => filePath.endsWith('/page.tsx') || filePath.endsWith('/data.json'),
+            ),
+        );
         assert.ok(artifact.files.some((file) => file.path.endsWith('/components/data-table.tsx')));
         assert.ok(
             artifact.files.some((file) =>
