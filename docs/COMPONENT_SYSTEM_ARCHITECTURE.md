@@ -121,6 +121,24 @@ Phase 3A does not wire this directory into preview or insertion. Preview
 integration is Phase 3B; project installation, conflict resolution, and
 project-specific import/configuration transformations are Phase 3C.
 
+### Provider-neutral resolution service (Phase 3B foundation)
+
+`electron/main/components/implementation-service.ts` defines the adapter
+contract and the single resolution orchestration API. An adapter identifies its
+provider, discovers catalog entries, and resolves a typed component, example,
+or block request. The service validates the artifact schema, identity, kind,
+source hash, and artifact hash before returning an inventory of sources, assets,
+dependencies, demo files, requirements, and provenance. It reports progress and
+accepts cancellation.
+
+Only the pinned `shadcn` adapter is registered. It rejects requested versions
+and commits other than the audited `3.7.0` snapshot and commit. The current
+catalog discovery lists components and blocks; examples can still be resolved
+by exact name, but are not enumerated. `21st-dev` and `magic-ui` remain
+unsupported and return an explicit error without trying another provider.
+License information remains `unknown` unless verified source metadata is
+available; the service does not infer a license from provider identity.
+
 Blocks install from their direct JSON URL at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
 `calendar-01` and `dashboard-01` JSON installed their reusable source files and

@@ -17,6 +17,15 @@ export const ImplementationArtifactSchema = z.object({
         sourceUrl: z.string().url(),
         retrievedAt: z.string().datetime(),
         provenance: z.enum(['official', 'fallback']),
+        // Missing license evidence must remain unknown, never inferred as permissive.
+        license: z
+            .object({
+                identifier: z.string().optional(),
+                status: z.enum(['verified', 'unknown']),
+                attribution: z.string().optional(),
+                sourceUrl: z.string().url().optional(),
+            })
+            .optional(),
         registryItems: z.array(
             z.object({
                 name: z.string().min(1),
@@ -115,6 +124,8 @@ export interface ImplementationRequest {
     kind: ImplementationKind;
     name: string;
     registryUrl?: string;
+    version?: string;
+    commit?: string;
 }
 
 export function serializeImplementationArtifact(artifact: ImplementationArtifact): string {

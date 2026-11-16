@@ -52,6 +52,20 @@ export type {
     MaterializedLocalAsset,
     MaterializedSourceFile,
 } from './implementation-materializer';
+export {
+    createImplementationResolutionService,
+    ImplementationResolutionError,
+    implementationResolutionService,
+} from './implementation-service';
+export type {
+    ImplementationCatalogEntry,
+    ImplementationResolutionErrorCode,
+    ImplementationResolutionOptions,
+    ImplementationResolutionProgress,
+    ImplementationResolutionResult,
+    ImplementationResolutionPhase,
+    ImplementationSourceAdapter,
+} from './implementation-service';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
