@@ -100,7 +100,14 @@ describe('implementation insertion preparation', () => {
         assert.equal(plan.project.packageManager, 'npm');
         assert.equal(plan.project.compatible, true);
         assert.deepEqual(plan.filesToAdd, [
-            path.join(root, 'src', 'registry', 'new-york-v4', 'ui', 'fixture.tsx'),
+            path.join(
+                root,
+                'src',
+                'components',
+                'kumite',
+                artifact().integrity.artifactHash,
+                ...artifact().files[0].path.split('/'),
+            ),
         ]);
         assert.deepEqual(plan.dependenciesToInstall, ['clsx']);
         assert.equal(plan.dependencies[0].action, 'present');
@@ -111,7 +118,14 @@ describe('implementation insertion preparation', () => {
 
     it('reuses byte-identical files and reports differing files as conflicts', () => {
         const root = createProject();
-        const destination = path.join(root, 'src', 'registry', 'new-york-v4', 'ui', 'fixture.tsx');
+        const destination = path.join(
+            root,
+            'src',
+            'components',
+            'kumite',
+            artifact().integrity.artifactHash,
+            ...artifact().files[0].path.split('/'),
+        );
         fs.mkdirSync(path.dirname(destination), { recursive: true });
         fs.writeFileSync(destination, 'different existing file');
 
@@ -121,7 +135,8 @@ describe('implementation insertion preparation', () => {
         assert.deepEqual(plan.existingFiles, []);
         assert.equal(fs.readFileSync(destination, 'utf8'), 'different existing file');
 
-        fs.writeFileSync(destination, artifact().files[0].content);
+        const identicalPlan = prepareImplementationInsertion(artifact(), root);
+        fs.writeFileSync(destination, identicalPlan.files[0].content);
         const identical = prepareImplementationInsertion(artifact(), root);
         assert.deepEqual(identical.conflicts, []);
         assert.deepEqual(identical.existingFiles, [destination]);
@@ -136,5 +151,32 @@ describe('implementation insertion preparation', () => {
         unsafe.integrity.artifactHash = hashImplementationArtifact(unsafe);
 
         assert.throws(() => prepareImplementationInsertion(unsafe, root), /unsafe/i);
+    });
+
+    it('rewrites upstream aliases in an AST and records original/transformed hashes', () => {
+        const root = createProject();
+        const upstream = artifact();
+        upstream.files[0].content =
+            'import { cn } from "@/lib/utils"; export function FixtureButton() { return <button className={cn("x")} />; }';
+        upstream.files[0].sha256 = sha256(upstream.files[0].content);
+        upstream.integrity.sourceHash = hashImplementationSource(upstream);
+        upstream.integrity.artifactHash = hashImplementationArtifact(upstream);
+
+        const plan = prepareImplementationInsertion(upstream, root);
+        const file = plan.files[0];
+
+        assert.equal(file.sha256, upstream.files[0].sha256);
+        assert.notEqual(file.transformedSha256, file.sha256);
+        assert.match(file.content, /from "\.\.\/lib\/utils"/);
+        assert.deepEqual(file.transformations, [
+            {
+                kind: 'alias-import',
+                from: '@/lib/utils',
+                to: '../lib/utils',
+            },
+        ]);
+        assert.equal(plan.transformations[0].sourceHash, file.sha256);
+        assert.equal(plan.transformations[0].transformedHash, file.transformedSha256);
+        assert.match(plan.entryImport.source, /kumite\/[a-f0-9]{64}\/registry/);
     });
 });

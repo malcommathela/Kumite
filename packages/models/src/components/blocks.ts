@@ -15,7 +15,9 @@ export interface ShadcnBlockDefinition {
     dependencies: string[];
     registryDependencies: string[];
     imports: CodeImport[];
+    /** @deprecated Compatibility fallback while artifact insertion is migrated. */
     insertCode: string;
+    /** @deprecated Compatibility fallback; catalog preview uses resolved artifacts. */
     previewCode: string;
     installable?: boolean;
     insertable?: boolean;

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ImplementationArtifact, PackageManager } from '@kumite/models';
 import { ImplementationArtifactSchema } from '@kumite/models';
-import { Project } from 'ts-morph';
+import { Project, SyntaxKind } from 'ts-morph';
 import { hashImplementationArtifact, hashImplementationSource } from './source-resolver';
 
 export type InsertionFileAction = 'add' | 'reuse' | 'conflict';
@@ -12,6 +12,9 @@ export interface PreparedInsertionFile {
     sourcePath: string;
     destinationPath: string;
     sha256: string;
+    transformedSha256: string;
+    content: string;
+    transformations: Array<{ kind: 'alias-import'; from: string; to: string }>;
     action: InsertionFileAction;
 }
 
@@ -63,6 +66,13 @@ export interface ImplementationInsertionPreparation {
         source: string;
         export: { kind: 'default' } | { kind: 'named'; name: string } | null;
     };
+    transformations: Array<{
+        sourcePath: string;
+        destinationPath: string;
+        sourceHash: string;
+        transformedHash: string;
+        operations: Array<{ kind: 'alias-import'; from: string; to: string }>;
+    }>;
     requiredProviders: string[];
     warnings: string[];
     unsupportedRequirements: string[];
@@ -118,6 +128,26 @@ function resolveProjectAliasRoot(
     return fs.existsSync(path.join(root, 'src')) ? path.join(root, 'src') : root;
 }
 
+function resolveConfiguredAlias(
+    root: string,
+    tsconfigPath: string | null,
+    alias: string,
+    fallbackRoot: string,
+): string {
+    if (alias.startsWith('@/') || alias.startsWith('~/')) {
+        const prefix = alias.startsWith('@/') ? '@/*' : '~/*';
+        const config = tsconfigPath ? readJson(tsconfigPath) : null;
+        const target = (config?.compilerOptions?.paths as Record<string, string[]> | undefined)?.[
+            prefix
+        ]?.[0];
+        const base = target?.includes('*')
+            ? path.resolve(path.dirname(tsconfigPath!), target.replace(/\*.*$/, ''))
+            : fallbackRoot;
+        return path.resolve(base, alias.slice(2));
+    }
+    return path.resolve(root, alias);
+}
+
 function detectFramework(manifest: Record<string, any>): 'vite' | 'next' | 'react' | 'unknown' {
     const all = { ...manifest.dependencies, ...manifest.devDependencies };
     if (all.next) {
@@ -166,11 +196,80 @@ function destinationFor(root: string, aliasRoot: string, sourcePath: string): st
     return destination;
 }
 
-function formatImportSpecifier(root: string, sourceRoot: string, entryPoint: string): string {
-    const absolute = path.resolve(sourceRoot, entryPoint);
-    const relative = path.relative(root, absolute).split(path.sep).join('/');
-    const withoutExtension = relative.replace(/\.(tsx|jsx|ts|js)$/, '');
-    return `./${withoutExtension}`;
+function transformSourceFile(
+    sourcePath: string,
+    content: string,
+): {
+    content: string;
+    operations: Array<{ kind: 'alias-import'; from: string; to: string }>;
+} {
+    if (!/\.(tsx|jsx|ts|js)$/.test(sourcePath)) {
+        return { content, operations: [] };
+    }
+    const project = new Project({
+        skipAddingFilesFromTsConfig: true,
+        useInMemoryFileSystem: true,
+    });
+    const sourceFile = project.createSourceFile('implementation-source.tsx', content);
+    const operations: Array<{ kind: 'alias-import'; from: string; to: string }> = [];
+    const rewrite = (specifier: string): string => {
+        const mappings = [
+            ['@/registry/new-york-v4/', 'registry/new-york-v4/'],
+            ['~/registry/new-york-v4/', 'registry/new-york-v4/'],
+            ['@/components/ui/', 'registry/new-york-v4/ui/'],
+            ['~/components/ui/', 'registry/new-york-v4/ui/'],
+            ['@/components/', 'registry/new-york-v4/components/'],
+            ['~/components/', 'registry/new-york-v4/components/'],
+            ['@/assets/', 'registry/new-york-v4/assets/'],
+            ['~/assets/', 'registry/new-york-v4/assets/'],
+            ['@/hooks/', 'registry/new-york-v4/hooks/'],
+            ['~/hooks/', 'registry/new-york-v4/hooks/'],
+            ['@/lib/', 'registry/new-york-v4/lib/'],
+            ['~/lib/', 'registry/new-york-v4/lib/'],
+        ];
+        const mapping = mappings.find(([prefix]) => specifier.startsWith(prefix));
+        if (!mapping) {
+            return specifier;
+        }
+        const target = `${mapping[1]}${specifier.slice(mapping[0].length)}`;
+        const fromDirectory = path.posix.dirname(sourcePath);
+        let relative = path.posix.relative(fromDirectory, target);
+        if (!relative.startsWith('.')) {
+            relative = `./${relative}`;
+        }
+        operations.push({ kind: 'alias-import', from: specifier, to: relative });
+        return relative;
+    };
+    for (const declaration of [
+        ...sourceFile.getImportDeclarations(),
+        ...sourceFile.getExportDeclarations(),
+    ]) {
+        const original = declaration.getModuleSpecifierValue();
+        if (original === undefined) {
+            continue;
+        }
+        const updated = rewrite(original);
+        if (updated !== original) {
+            declaration.setModuleSpecifier(updated);
+        }
+    }
+    for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+        const expression = call.getExpression();
+        const isImport = expression.getKind() === SyntaxKind.ImportKeyword;
+        const isRequire =
+            expression.getKind() === SyntaxKind.Identifier &&
+            expression.getText() === 'require';
+        const argument = call.getArguments()[0];
+        if ((!isImport && !isRequire) || !argument?.isKind(SyntaxKind.StringLiteral)) {
+            continue;
+        }
+        const original = argument.getLiteralValue();
+        const updated = rewrite(original);
+        if (updated !== original) {
+            argument.setLiteralValue(updated);
+        }
+    }
+    return { content: sourceFile.getFullText(), operations };
 }
 
 /**
@@ -211,13 +310,38 @@ export function prepareImplementationInsertion(
     const framework = detectFramework(manifest);
     const hasReact = Boolean(manifest.dependencies?.react || manifest.devDependencies?.react);
     const aliasRoot = resolveProjectAliasRoot(root, tsconfigPath, componentsJson);
+    const componentsAlias =
+        typeof componentsJson?.aliases?.components === 'string'
+            ? componentsJson.aliases.components
+            : '@/components';
+    const componentsRoot = resolveConfiguredAlias(
+        root,
+        tsconfigPath,
+        componentsAlias,
+        aliasRoot,
+    );
+    const namespace = `kumite/${artifact.integrity.artifactHash}`;
+    const namespaceRoot = path.join(componentsRoot, namespace);
+    const namespaceAliasBase =
+        componentsAlias.startsWith('@/') || componentsAlias.startsWith('~/')
+            ? componentsAlias
+            : '@/components';
+    const namespaceAlias = `${namespaceAliasBase}/${namespace}`;
+    const tsconfig = tsconfigPath ? readJson(tsconfigPath) : null;
+    const configuredPaths = tsconfig?.compilerOptions?.paths as Record<string, string[]> | undefined;
+    const hasNamespaceAlias =
+        componentsAlias.startsWith('@/') && Boolean(configuredPaths?.['@/*']?.length)
+            ? true
+            : componentsAlias.startsWith('~/') && Boolean(configuredPaths?.['~/*']?.length);
     const files = artifact.files.map((file) => {
-        const destinationPath = destinationFor(root, aliasRoot, file.path);
+        const destinationPath = destinationFor(root, namespaceRoot, file.path);
+        const transformed = transformSourceFile(file.path, file.content);
+        const transformedSha256 = sha256(transformed.content);
         let action: InsertionFileAction = 'add';
         if (fs.existsSync(destinationPath)) {
             action =
                 fs.statSync(destinationPath).isFile() &&
-                sha256(fs.readFileSync(destinationPath)) === file.sha256
+                sha256(fs.readFileSync(destinationPath)) === transformedSha256
                     ? 'reuse'
                     : 'conflict';
         }
@@ -225,6 +349,9 @@ export function prepareImplementationInsertion(
             sourcePath: file.path,
             destinationPath,
             sha256: file.sha256,
+            transformedSha256,
+            content: transformed.content,
+            transformations: transformed.operations,
             action,
         };
     });
@@ -237,10 +364,10 @@ export function prepareImplementationInsertion(
         const compatible: boolean | 'unknown' =
             !installedVersion || !dependency.version
                 ? 'unknown'
-                : installedVersion === dependency.version
-                  ? true
+                : /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(dependency.version)
+                  ? installedVersion === dependency.version
                   : declaredVersion === dependency.version
-                    ? true
+                    ? 'unknown'
                     : 'unknown';
         return {
             name: dependency.name,
@@ -251,10 +378,15 @@ export function prepareImplementationInsertion(
             compatible,
         };
     });
+    const dependenciesToInstall = dependencies
+        .filter((dependency) => dependency.action === 'install')
+        .map((dependency) => dependency.name);
     const localAssets = artifact.assets.map((asset) => {
         const destinationPath = asset.external
             ? null
-            : destinationFor(root, aliasRoot, asset.path);
+            : asset.path.startsWith('public/')
+              ? destinationFor(root, root, asset.path)
+              : destinationFor(root, namespaceRoot, asset.path);
         return {
             sourcePath: asset.path,
             destinationPath,
@@ -278,12 +410,25 @@ export function prepareImplementationInsertion(
     }
     if (!tsconfigPath) {
         unsupportedRequirements.push('No tsconfig.json or jsconfig.json was found for source aliases.');
+    } else if (!hasNamespaceAlias) {
+        unsupportedRequirements.push(
+            'The project has no matching TypeScript path alias for its configured components alias.',
+        );
     }
     if (artifact.requirements.configuration.length > 0) {
         configurationChanges.push(...artifact.requirements.configuration);
     }
-    if (artifact.requirements.providers.length > 0) {
-        unsupportedRequirements.push(...artifact.requirements.providers.map((provider) => `Required provider: ${provider}`));
+    const entrySource = artifact.files.find((file) => file.path === artifact.entryPoint)?.content ?? '';
+    const entryProviders = new Set(
+        [...entrySource.matchAll(/<([A-Z][A-Za-z0-9]*Provider)\b/g)].map((match) => match[1]),
+    );
+    const missingProviders = artifact.requirements.providers.filter(
+        (provider) => !entryProviders.has(provider),
+    );
+    if (missingProviders.length > 0) {
+        unsupportedRequirements.push(
+            ...missingProviders.map((provider) => `Required provider "${provider}" is not present in the artifact entry composition.`),
+        );
     }
     if (artifact.assets.some((asset) => asset.external)) {
         warnings.push('The artifact references external assets that will not be downloaded.');
@@ -291,10 +436,33 @@ export function prepareImplementationInsertion(
     if (dependencies.some((dependency) => dependency.versionSource === 'unspecified')) {
         warnings.push('Some package versions are unspecified upstream; no version has been selected or installed.');
     }
+    const incompatibleDependencies = dependencies.filter(
+        (dependency) => dependency.compatible === false,
+    );
+    if (incompatibleDependencies.length > 0) {
+        unsupportedRequirements.push(
+            ...incompatibleDependencies.map(
+                (dependency) =>
+                    `Installed ${dependency.name}@${dependency.installedVersion} conflicts with required ${dependency.requestedVersion}.`,
+            ),
+        );
+    }
+    if (dependenciesToInstall.length > 0 && !packageManager(root)) {
+        unsupportedRequirements.push('No package manager lockfile was found to install missing dependencies safely.');
+    }
     if (conflicts.length > 0) {
         warnings.push('Conflicting project files must be resolved explicitly before insertion.');
     }
-    const sourceRoot = aliasRoot;
+    for (const file of artifact.files) {
+        if (
+            /\.(?:css|scss|sass)$/.test(file.path) &&
+            /(?:@import|@use|url\()\s*['"(]?[~@]\//.test(file.content)
+        ) {
+            unsupportedRequirements.push(
+                `Stylesheet alias transformation is not supported for "${file.path}".`,
+            );
+        }
+    }
     const entryFile = artifact.files.find((file) => file.path === artifact.entryPoint);
     let entryExport: { kind: 'default' } | { kind: 'named'; name: string } | null = null;
     if (entryFile) {
@@ -349,15 +517,20 @@ export function prepareImplementationInsertion(
         existingFiles,
         conflicts,
         dependencies,
-        dependenciesToInstall: dependencies
-            .filter((dependency) => dependency.action === 'install')
-            .map((dependency) => dependency.name),
+        dependenciesToInstall,
         configurationChanges,
         assetPaths: localAssets,
         entryImport: {
-            source: formatImportSpecifier(root, sourceRoot, artifact.entryPoint),
+            source: `${namespaceAlias}/${artifact.entryPoint.replace(/\.(tsx|jsx|ts|js)$/, '')}`,
             export: entryExport,
         },
+        transformations: files.map((file) => ({
+            sourcePath: file.sourcePath,
+            destinationPath: file.destinationPath,
+            sourceHash: file.sha256,
+            transformedHash: file.transformedSha256,
+            operations: file.transformations,
+        })),
         requiredProviders: artifact.requirements.providers,
         warnings,
         unsupportedRequirements,
