@@ -78,6 +78,13 @@ export type {
     ImplementationArtifactReference,
     StoredImplementationArtifact,
 } from './implementation-store';
+export { prepareImplementationInsertion } from './insertion-preparation';
+export type {
+    ImplementationInsertionPreparation,
+    InsertionFileAction,
+    PreparedInsertionDependency,
+    PreparedInsertionFile,
+} from './insertion-preparation';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {

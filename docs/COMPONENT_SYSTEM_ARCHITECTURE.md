@@ -2,7 +2,14 @@
 
 ## Pipeline
 
-Source adapter -> Normalization -> Dependency resolution -> Provenance validation -> Preview -> Registry -> Project insertion.
+Canonical target: `ImplementationRequest -> provider adapter -> validated
+ImplementationArtifact -> isolated preview or project-specific preparation ->
+approved materialization`.
+
+The provider-neutral resolver, immutable artifact store, demo inventory and
+read-only insertion preparation are implemented foundations. The currently
+wired catalog preview and insertion UI still use the legacy catalog templates
+and installation flow; they are not yet canonical artifact consumers.
 
 ## Component record
 
@@ -158,6 +165,18 @@ counts and all original file contents are retained; every inventory item remains
 `editable: false` until a structured editor is implemented. The dashboard
 fixture asserts its original 68-row data file remains in that inventory.
 
+### Project insertion preparation (Phase 3C foundation)
+
+`prepareImplementationInsertion(artifact, projectRoot)` is a read-only project
+adapter. It validates artifact integrity, inspects React/Vite or Next project
+metadata, `components.json`, JS/TS aliases, Tailwind and stylesheet paths, and
+the package-manager lockfile. It returns the complete source-file and asset
+inventory, identical-file reuse candidates, conflicts, installed/missing
+dependencies with version provenance, entry-point export semantics, required
+configuration, warnings, and unsupported requirements. It never writes files
+or invokes a package manager. The write/approval UI and transactional project
+publication are not wired to this preparation API yet.
+
 Blocks install from their direct JSON URL at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
 `calendar-01` and `dashboard-01` JSON installed their reusable source files and
@@ -251,6 +270,10 @@ CLI wrote them.
 
 ### Preview
 
+The flows described below are the legacy installed-source/catalog-template
+previews. Artifact-backed preview runtime integration remains outstanding; these
+legacy templates are compatibility fallbacks only, not the canonical source.
+
 Installed components preview their actual project source in an isolated Vite
 server on the first free port from 3310. Kumite creates its temporary entry files
 exclusively, refuses to overwrite either fixed-name file if it already exists,
@@ -276,6 +299,11 @@ modified. When the workspace cannot be prepared, cards fall back to the styled
 thumbnails and the failure is shown in the detail pane and the last CLI output.
 
 ### Insertion
+
+The following describes the currently wired legacy behavior, not the canonical
+artifact path. Artifact-backed preparation is available through
+`prepareImplementationInsertion`, but approval, publication, and the renderer
+flow remain to be integrated.
 
 `apps/studio/src/lib/components/index.ts` builds an element tree and a
 `CodeDiffRequest` that carries required `imports`. Component imports are remapped
