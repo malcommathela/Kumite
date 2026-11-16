@@ -433,49 +433,90 @@ describe('shadcn source resolver', () => {
     it('selects a block page entry regardless of registry file ordering', async () => {
         const rootUrl = `${rootRegistryUrl}/entry-order.json`;
         const item = registryItem('entry-order', 'registry:block', [
-            { path: 'registry/new-york-v4/blocks/entry-order/card.tsx', type: 'registry:component', content: 'export function Card() { return null; }' },
-            { path: 'registry/new-york-v4/blocks/entry-order/page.tsx', type: 'registry:page', content: 'export default function Page() { return null; }' },
+            {
+                path: 'registry/new-york-v4/blocks/entry-order/card.tsx',
+                type: 'registry:component',
+                content: 'export function Card() { return null; }',
+            },
+            {
+                path: 'registry/new-york-v4/blocks/entry-order/page.tsx',
+                type: 'registry:page',
+                content: 'export default function Page() { return null; }',
+            },
         ]);
         const artifact = await createFixtureResolver({
             fetcher: fixtureFetcher({ [rootUrl]: item }),
         }).resolve({ provider: 'shadcn', kind: 'block', name: 'entry-order' });
+
         assert.equal(artifact.entryPoint, 'registry/new-york-v4/blocks/entry-order/page.tsx');
     });
 
     it('resolves recursive Sass use and forward partials while ignoring sass built-ins', async () => {
         const rootUrl = `${rootRegistryUrl}/sass-example.json`;
         const item = registryItem('sass-example', 'registry:example', [
-            { path: 'registry/new-york-v4/examples/sass-example/page.scss', type: 'registry:example', content: '@use "./tokens"; @forward "./mixins"; @use "sass:color";' },
-            { path: 'registry/new-york-v4/examples/sass-example/_tokens.scss', content: '$surface: white;' },
-            { path: 'registry/new-york-v4/examples/sass-example/_mixins.scss', content: '@use "./tokens"; @mixin card { color: $surface; }' },
+            {
+                path: 'registry/new-york-v4/examples/sass-example/page.scss',
+                type: 'registry:example',
+                content: '@use "./tokens"; @forward "./mixins"; @use "sass:color";',
+            },
+            {
+                path: 'registry/new-york-v4/examples/sass-example/_tokens.scss',
+                content: '$surface: white;',
+            },
+            {
+                path: 'registry/new-york-v4/examples/sass-example/_mixins.scss',
+                content: '@use "./tokens"; @mixin card { color: $surface; }',
+            },
         ]);
         const artifact = await createFixtureResolver({
             fetcher: fixtureFetcher({ [rootUrl]: item }),
         }).resolve({ provider: 'shadcn', kind: 'example', name: 'sass-example' });
+
         assert.ok(artifact.files.some((file) => file.path.endsWith('/_tokens.scss')));
         assert.ok(artifact.files.some((file) => file.path.endsWith('/_mixins.scss')));
-        assert.ok(artifact.graph.edges.some((edge) => edge.from.endsWith('/page.scss') && edge.to.endsWith('/_tokens.scss')));
+        assert.ok(
+            artifact.graph.edges.some(
+                (edge) =>
+                    edge.from.endsWith('/page.scss') && edge.to.endsWith('/_tokens.scss'),
+            ),
+        );
         assert.equal(artifact.dependencies.some((dependency) => dependency.name === 'sass'), false);
     });
 
     it('fails explicitly for ambiguous bare Sass load paths', async () => {
         const rootUrl = `${rootRegistryUrl}/ambiguous-sass.json`;
         const item = registryItem('ambiguous-sass', 'registry:example', [
-            { path: 'registry/new-york-v4/examples/ambiguous-sass/page.scss', type: 'registry:example', content: '@use "variables";' },
+            {
+                path: 'registry/new-york-v4/examples/ambiguous-sass/page.scss',
+                type: 'registry:example',
+                content: '@use "variables";',
+            },
         ]);
+
         await assert.rejects(
-            createFixtureResolver({ fetcher: fixtureFetcher({ [rootUrl]: item }) }).resolve({
-                provider: 'shadcn', kind: 'example', name: 'ambiguous-sass',
-            }),
-            (error: unknown) => error instanceof SourceResolutionError && error.message.includes('Ambiguous Sass module "variables"'),
+            createFixtureResolver({
+                fetcher: fixtureFetcher({ [rootUrl]: item }),
+            }).resolve({ provider: 'shadcn', kind: 'example', name: 'ambiguous-sass' }),
+            (error: unknown) =>
+                error instanceof SourceResolutionError &&
+                error.message.includes('Ambiguous Sass module "variables"'),
         );
     });
 
     it('resolves aliased and public-root asset imports without serializing machine cache paths', async () => {
         const rootUrl = `${rootRegistryUrl}/asset-paths.json`;
         const item = registryItem('asset-paths', 'registry:example', [
-            { path: 'registry/new-york-v4/examples/asset-paths/page.tsx', type: 'registry:example', content: 'import logo from "@/assets/logo.svg"; import "./styles.css"; export default () => <img src="/brand.png" />;' },
-            { path: 'registry/new-york-v4/examples/asset-paths/styles.css', content: 'body { background-image: url("./pattern.svg"); mask-image: url("@/assets/texture.svg"); }' },
+            {
+                path: 'registry/new-york-v4/examples/asset-paths/page.tsx',
+                type: 'registry:example',
+                content:
+                    'import logo from "@/assets/logo.svg"; import "./styles.css"; export default () => <img src="/brand.png" />;',
+            },
+            {
+                path: 'registry/new-york-v4/examples/asset-paths/styles.css',
+                content:
+                    'body { background-image: url("./pattern.svg"); mask-image: url("@/assets/texture.svg"); }',
+            },
         ]);
         const logoUrl = `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/registry/new-york-v4/assets/logo.svg`;
         const textureUrl = `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/registry/new-york-v4/assets/texture.svg`;
@@ -489,13 +530,19 @@ describe('shadcn source resolver', () => {
         ]);
         const artifact = await createFixtureResolver({
             fetcher: async (url) => {
-                if (url === rootUrl) return new Response(item, { status: 200 });
+                if (url === rootUrl) {
+                    return new Response(item, { status: 200 });
+                }
                 const bytes = bytesByUrl.get(url);
                 return bytes
-                    ? new Response(bytes, { status: 200, headers: { 'content-type': 'image/png' } })
+                    ? new Response(bytes, {
+                          status: 200,
+                          headers: { 'content-type': 'image/png' },
+                      })
                     : new Response('not found', { status: 404 });
             },
         }).resolve({ provider: 'shadcn', kind: 'example', name: 'asset-paths' });
+
         assert.ok(artifact.assets.some((asset) => asset.source === logoUrl));
         assert.ok(artifact.assets.some((asset) => asset.source === textureUrl));
         assert.ok(artifact.assets.some((asset) => asset.source === relativeUrl));
@@ -506,14 +553,28 @@ describe('shadcn source resolver', () => {
     it('tracks dependency provenance and preserves registry versions', async () => {
         const rootUrl = `${rootRegistryUrl}/dependency-provenance.json`;
         const item = JSON.stringify({
-            name: 'dependency-provenance', type: 'registry:ui', dependencies: ['shared-package@1.2.3'],
-            files: [{ path: 'registry/new-york-v4/ui/dependency-provenance.tsx', type: 'registry:ui', content: 'import "shared-package"; import "source-only-package"; export function Example() { return null; }' }],
+            name: 'dependency-provenance',
+            type: 'registry:ui',
+            dependencies: ['shared-package@1.2.3'],
+            files: [
+                {
+                    path: 'registry/new-york-v4/ui/dependency-provenance.tsx',
+                    type: 'registry:ui',
+                    content:
+                        'import "shared-package"; import "source-only-package"; export function Example() { return null; }',
+                },
+            ],
         });
         const artifact = await createFixtureResolver({
             fetcher: fixtureFetcher({ [rootUrl]: item }),
         }).resolve({ provider: 'shadcn', kind: 'component', name: 'dependency-provenance' });
-        const shared = artifact.dependencies.find((dependency) => dependency.name === 'shared-package');
-        const sourceOnly = artifact.dependencies.find((dependency) => dependency.name === 'source-only-package');
+        const shared = artifact.dependencies.find(
+            (dependency) => dependency.name === 'shared-package',
+        );
+        const sourceOnly = artifact.dependencies.find(
+            (dependency) => dependency.name === 'source-only-package',
+        );
+
         assert.equal(shared?.version, '1.2.3');
         assert.deepEqual(shared?.origins, ['registry', 'source-import']);
         assert.equal(shared?.versionSource, 'registry');
@@ -528,17 +589,24 @@ describe('shadcn source resolver', () => {
         const asset = {
             path: 'public/example.png',
             source: `https://raw.githubusercontent.com/shadcn-ui/ui/${PINNED_COMMIT}/apps/v4/public/example.png`,
-            mediaType: 'image/png', sha256: digest, size: bytes.byteLength, external: false, referencedBy: ['example.tsx'],
+            mediaType: 'image/png',
+            sha256: digest,
+            size: bytes.byteLength,
+            external: false,
+            referencedBy: ['example.tsx'],
         };
+
         try {
             const materialized = await materializeImplementationAsset(asset, {
-                assetDirectory: directory, fetcher: async () => new Response(bytes, { status: 200 }),
+                assetDirectory: directory,
+                fetcher: async () => new Response(bytes, { status: 200 }),
             });
             assert.equal(fs.readFileSync(materialized).toString(), bytes.toString());
             fs.writeFileSync(materialized, 'corrupt');
             await assert.rejects(
                 materializeImplementationAsset(asset, {
-                    assetDirectory: directory, fetcher: async () => new Response(bytes, { status: 200 }),
+                    assetDirectory: directory,
+                    fetcher: async () => new Response(bytes, { status: 200 }),
                 }),
                 /Cached asset integrity mismatch/,
             );
