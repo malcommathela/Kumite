@@ -139,6 +139,18 @@ unsupported and return an explicit error without trying another provider.
 License information remains `unknown` unless verified source metadata is
 available; the service does not infer a license from provider identity.
 
+### Immutable artifact storage (Phase 3D foundation)
+
+`implementation-store.ts` persists validated artifact snapshots under a
+content-addressed SHA-256 identity. A separate reference index supports preview,
+project, and editor consumers; callers must register durable consumers before
+garbage collection. Garbage collection only removes the two store-owned files
+from an unreferenced artifact directory and never recursively removes unknown
+content. `implementationWorkspaceIdentity` derives a stable workspace key from
+provider, logical artifact id, and source/artifact hashes without machine paths.
+The store keeps the upstream snapshot separate from any future transformed
+working tree; structured user-edit tracking is not wired yet.
+
 Blocks install from their direct JSON URL at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
 `calendar-01` and `dashboard-01` JSON installed their reusable source files and

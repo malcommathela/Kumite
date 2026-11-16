@@ -66,6 +66,18 @@ export type {
     ImplementationResolutionPhase,
     ImplementationSourceAdapter,
 } from './implementation-service';
+export {
+    collectUnreferencedImplementationArtifacts,
+    implementationWorkspaceIdentity,
+    readStoredImplementationArtifact,
+    setImplementationArtifactReference,
+    storeImplementationArtifact,
+} from './implementation-store';
+export type {
+    ImplementationArtifactGarbageCollectionResult,
+    ImplementationArtifactReference,
+    StoredImplementationArtifact,
+} from './implementation-store';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
