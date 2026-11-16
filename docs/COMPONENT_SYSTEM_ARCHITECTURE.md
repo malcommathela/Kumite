@@ -178,6 +178,13 @@ avoid collisions. It never writes files or invokes a package manager. The
 write/approval UI and transactional project publication are not wired to this
 preparation API yet.
 
+Consequently, the current “Use” action still inserts the legacy `insertCode`
+template; it does not yet publish the prepared artifact source tree. Approved
+dependency installation, scoped lockfile updates, user-facing conflict choices,
+atomic publication/rollback, and artifact references from project/editor
+consumers remain deferred. The preparation API reports files, versions,
+conflicts, and AST alias transforms but is not completed insertion parity.
+
 Explicit shadcn CLI installation uses block direct JSON URLs at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
 `calendar-01` and `dashboard-01` JSON installed their reusable source files and
@@ -279,10 +286,9 @@ Installed components preview their actual project source in an isolated Vite
 server on the first free port from 3310. Kumite creates its temporary entry files
 exclusively, refuses to overwrite either fixed-name file if it already exists,
 and cleans up the child process and owned files after a failed start or close.
-Blocks with an official upstream preview use it before install; calendar and OTP
-examples render the installed source in the local isolated Vite preview. Remote
-previews show an offline message when the network is unavailable. Local previews
-require Vite in the active project.
+This is a compatibility API for already-installed source. The catalog UI does
+not use it, does not require the active project's Vite, and never falls back to
+an official remote preview after an artifact preview fails.
 
 The library resolves only visible catalog requests to pinned artifacts.
 `artifact-preview.ts` validates and stores each immutable snapshot, materializes
