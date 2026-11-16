@@ -45,12 +45,28 @@ resolves pinned shadcn components, examples, and blocks through
 The resolver reads the exact pinned registry JSON from
 `apps/v4/public/r/styles/new-york-v4`, follows every registry dependency, and
 recursively resolves local TypeScript/JavaScript, JSON, stylesheet, and asset
-references from the pinned repository. Registry metadata, imported package
-versions, source paths, file roles, providers, cycles, and SHA-256 provenance
-are retained in the artifact. Local binary assets are stored by content hash in
-Kumite's cache directory; the artifact records their cache path, source URL,
-size, hash, and original references. External URLs are preserved as external
-references rather than silently downloaded.
+references from the pinned repository. Entry-point selection is kind-aware:
+blocks prefer a page file, examples prefer an example file, and components
+prefer UI/component files, with deterministic path ordering. Registry metadata,
+source paths, file roles, providers, cycles, and SHA-256 provenance are retained
+in the artifact. Dependencies record whether they came from registry metadata
+or source imports; only explicit registry versions are recorded as versions.
+Conflicting explicit versions fail resolution.
+
+Local binary assets are stored by content hash in Kumite's cache directory, but
+machine-local cache paths are not serialized into new artifacts. The exported
+materializeImplementationAsset API derives the cache path from the content
+hash, verifies an existing cache entry, or downloads from the pinned upstream
+source and verifies both SHA-256 and byte size before storing. External URLs
+remain external references and are never silently downloaded.
+
+Demo metadata is conservative: available and preserved are derived from identified
+example/page/data files and their content hashes. editable remains false until a
+structured demo-data editor exists; ordinary JSX/source editing is not reported
+as structured demo-data editing. Sass @use and @forward references are followed
+recursively, including underscore partials. sass: built-ins are ignored as
+dependencies; ambiguous bare Sass load paths fail explicitly rather than being
+guessed as local files or npm packages.
 
 The source resolver intentionally reads raw registry JSON rather than treating
 the shadcn CLI's project writes as source retrieval. A pinned block item can
