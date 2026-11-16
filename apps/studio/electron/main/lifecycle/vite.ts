@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import fs from 'fs';
 import { processLifecycle, type ManagedProcessType } from './processes';
 import type { PortOwnerScope } from './ports';
 
@@ -26,6 +27,14 @@ export function findLocalUrl(value: string): { url: string; port: number } | nul
 
 function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function realPath(value: string): string {
+    try {
+        return fs.realpathSync.native(value);
+    } catch {
+        return value;
+    }
 }
 
 export interface StartViteOptions {
@@ -75,7 +84,10 @@ export async function startVitePreview(options: StartViteOptions): Promise<Start
             process.execPath,
             [options.viteBin, '--port', String(options.preferredPort), '--host', '127.0.0.1'],
             {
-                cwd: options.projectPath,
+                // Vite resolves modules to their real paths; a project reached
+                // through a junction/symlink would otherwise make its dep
+                // optimizer look for outputs under a different directory.
+                cwd: realPath(options.projectPath),
                 env: {
                     ...process.env,
                     ELECTRON_RUN_AS_NODE: '1',
@@ -146,10 +158,10 @@ export async function startVitePreview(options: StartViteOptions): Promise<Start
             return { server: null, error: 'Preview server timed out.', log: output };
         }
         try {
-            const response = await fetch(detected.url, {
-                signal: AbortSignal.timeout(3000),
-            });
-            ready = response.ok;
+            // Any response proves the server is listening. A workspace whose
+            // root has no index.html answers 404, which is still "up".
+            await fetch(detected.url, { signal: AbortSignal.timeout(3000) });
+            ready = true;
         } catch {
             // Not accepting connections yet.
         }

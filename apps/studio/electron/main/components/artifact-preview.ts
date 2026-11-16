@@ -9,7 +9,7 @@ import type {
 import { Project } from 'ts-morph';
 import { runPackageManagerInstall } from './cli';
 import { projectLifecycle } from '../lifecycle/state';
-import { CATALOG_PREVIEW_VITE_CONFIG } from './catalog';
+import { GENERATED_CONFIG_MARKER } from './catalog';
 import { implementationResolutionService } from './implementation-service';
 import {
     ImplementationMaterializationError,
@@ -115,17 +115,41 @@ function readMaterializationManifest(
     return manifest;
 }
 
-async function ensureMaterialization(
+const materializations = new Map<
+    string,
+    Promise<{ directory: string; manifest: ImplementationMaterializationManifest }>
+>();
+
+/**
+ * Two visible batches can ask for the same artifact at once; the materializer's
+ * stage→final rename fails if the winner already moved the directory into
+ * place, so concurrent callers share one materialization.
+ */
+function ensureMaterialization(
     artifact: ImplementationArtifact,
     workspaceRoot: string,
     signal?: AbortSignal,
 ): Promise<{ directory: string; manifest: ImplementationMaterializationManifest }> {
     const directory = materializationPath(workspaceRoot, artifact);
     if (fs.existsSync(directory)) {
-        return { directory, manifest: readMaterializationManifest(directory, artifact) };
+        return Promise.resolve({
+            directory,
+            manifest: readMaterializationManifest(directory, artifact),
+        });
     }
-    await materializeImplementationArtifact(artifact, directory, { signal });
-    return { directory, manifest: readMaterializationManifest(directory, artifact) };
+    const pending = materializations.get(directory);
+    if (pending) {
+        return pending;
+    }
+    const task = (async () => {
+        // The materializer refuses to create its own parent (so a bad path
+        // cannot escape), and the preview store owns this directory.
+        fs.mkdirSync(path.dirname(directory), { recursive: true });
+        await materializeImplementationArtifact(artifact, directory, { signal });
+        return { directory, manifest: readMaterializationManifest(directory, artifact) };
+    })().finally(() => materializations.delete(directory));
+    materializations.set(directory, task);
+    return task;
 }
 
 function copyVerified(source: string, destination: string, expectedHash: string): void {
@@ -170,7 +194,7 @@ function mergeMaterialization(
 }
 
 export function buildArtifactPreviewViteConfig(): string {
-    return `import react from '@vitejs/plugin-react';
+    return `${GENERATED_CONFIG_MARKER}import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
@@ -179,6 +203,11 @@ const source = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
     plugins: [react(), tailwindcss()],
+    // Previews mount in parallel and outlive dependency re-optimization, so a
+    // cached optimized chunk can pair with a fresh one and duplicate React.
+    server: {
+        headers: { 'Cache-Control': 'no-store' },
+    },
     resolve: {
         alias: [
             { find: /^@\\/registry\\/new-york-v4\\//, replacement: source('./src/registry/new-york-v4/') },
@@ -201,6 +230,18 @@ export default defineConfig({
 `;
 }
 
+/**
+ * Configs written by earlier builds start with the plugin import and carry no
+ * marker; accept both so an upgrade can migrate in place instead of stranding
+ * the workspace.
+ */
+function isGeneratedViteConfig(contents: string): boolean {
+    return (
+        contents.startsWith(GENERATED_CONFIG_MARKER) ||
+        contents.startsWith("import react from '@vitejs/plugin-react';")
+    );
+}
+
 function writeViteAliases(workspaceRoot: string): void {
     const config = buildArtifactPreviewViteConfig();
     const configPath = path.join(workspaceRoot, 'vite.config.ts');
@@ -212,7 +253,7 @@ function writeViteAliases(workspaceRoot: string): void {
     if (existing === config) {
         return;
     }
-    if (existing !== CATALOG_PREVIEW_VITE_CONFIG) {
+    if (!isGeneratedViteConfig(existing)) {
         throw new Error('Refusing to replace an unrecognized preview workspace Vite config.');
     }
     fs.writeFileSync(configPath, config, 'utf8');
@@ -299,20 +340,17 @@ async function prepareDependencies(
         } catch {
             installedVersion = undefined;
         }
-        if (
-            installedVersion &&
-            requirement.version &&
-            /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(requirement.version) &&
-            installedVersion !== requirement.version
-        ) {
-            throw new Error(
-                `Preview workspace has ${name}@${installedVersion}, but the artifact requires ${requirement.version}; no downgrade or replacement was attempted.`,
-            );
-        }
-        const version =
-            installedVersion ??
-            requirement.version ??
-            (await resolveLatestVersion(name, signal));
+        // An artifact's exact pin wins. The workspace may already hold another
+        // version resolved from npm's "latest" for a dependency the catalog
+        // never versioned, and refusing to replace it would strand the artifact.
+        const exact =
+            requirement.version && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(requirement.version)
+                ? requirement.version
+                : undefined;
+        const keeping = !exact || installedVersion === exact;
+        const version = keeping
+            ? (installedVersion ?? exact ?? (await resolveLatestVersion(name, signal)))
+            : exact!;
         selected[name] = {
             version,
             policy:
@@ -321,20 +359,9 @@ async function prepareDependencies(
                     : 'artifact registry version',
             artifacts: requirement.artifacts,
         };
-        if (!installedVersion) {
-            if (
-                requirement.version &&
-                packageJson.dependencies[name] &&
-                packageJson.dependencies[name] !== requirement.version
-            ) {
-                throw new Error(
-                    `Preview workspace manifest already pins ${name}@${packageJson.dependencies[name]}, which conflicts with ${requirement.version}.`,
-                );
-            }
-            if (packageJson.dependencies[name] !== version) {
-                packageJson.dependencies[name] = version;
-                changed = true;
-            }
+        if ((!installedVersion || !keeping) && packageJson.dependencies[name] !== version) {
+            packageJson.dependencies[name] = version;
+            changed = true;
         }
     }
     if (changed) {

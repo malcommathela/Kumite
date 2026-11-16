@@ -48,7 +48,13 @@ const TSCONFIG = {
     include: ['src'],
 };
 
-export const CATALOG_PREVIEW_VITE_CONFIG = `import react from '@vitejs/plugin-react';
+/**
+ * Both generated configs carry this marker, so a newer build may replace an
+ * older generated config while a hand-written file is still never touched.
+ */
+export const GENERATED_CONFIG_MARKER = '// Kumite preview workspace config (generated).\n';
+
+export const CATALOG_PREVIEW_VITE_CONFIG = `${GENERATED_CONFIG_MARKER}import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';

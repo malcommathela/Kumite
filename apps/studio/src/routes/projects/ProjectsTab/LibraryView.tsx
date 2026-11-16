@@ -242,7 +242,11 @@ export const LibraryView = observer(() => {
     );
 });
 
-function LibraryCard({
+/**
+ * Reads the manager's preview maps, so it needs its own observer: a child of an
+ * observer does not track observables read during the parent's render pass.
+ */
+const LibraryCard = observer(function LibraryCard({
     item,
     manager,
     onVisible,
@@ -336,9 +340,9 @@ function LibraryCard({
             </div>
         </button>
     );
-}
+});
 
-function LibraryDetail({
+const LibraryDetail = observer(function LibraryDetail({
     item,
     manager,
     onOpenChange,
@@ -472,7 +476,7 @@ function LibraryDetail({
             </DialogContent>
         </Dialog>
     );
-}
+});
 
 function Tag({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
     return (
