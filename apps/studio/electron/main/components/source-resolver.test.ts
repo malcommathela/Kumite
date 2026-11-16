@@ -82,6 +82,9 @@ describe('shadcn source resolver', () => {
         assert.equal(artifact.source.commit, PINNED_COMMIT);
         assert.equal(artifact.source.version, '3.7.0');
         assert.equal(artifact.source.provenance, 'official');
+        assert.equal(artifact.source.license?.identifier, 'MIT');
+        assert.equal(artifact.source.license?.status, 'verified');
+        assert.match(artifact.source.license?.sourceUrl ?? '', /LICENSE\.md$/);
         assert.equal(artifact.entryPoint, 'registry/new-york-v4/ui/button.tsx');
         assert.equal(artifact.demo.available, false);
         assert.equal(artifact.demo.preserved, false);
@@ -164,6 +167,11 @@ describe('shadcn source resolver', () => {
             artifact.files.some((file) => file.path.endsWith('/components/section-cards.tsx')),
         );
         assert.ok(artifact.demo.files.includes(dataFile.path));
+        const dataInventory = artifact.demo.inventory?.find((item) => item.path === dataFile.path);
+        assert.equal(dataInventory?.format, 'json');
+        assert.equal(dataInventory?.itemCount, 68);
+        assert.equal(dataInventory?.editable, false);
+        assert.ok((dataInventory?.referencedBy.length ?? 0) > 0);
         assert.ok(
             !artifact.demo.files.some((filePath) =>
                 filePath.endsWith('/components/chart-area-interactive.tsx'),

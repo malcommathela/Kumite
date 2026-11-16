@@ -136,8 +136,9 @@ and commits other than the audited `3.7.0` snapshot and commit. The current
 catalog discovery lists components and blocks; examples can still be resolved
 by exact name, but are not enumerated. `21st-dev` and `magic-ui` remain
 unsupported and return an explicit error without trying another provider.
-License information remains `unknown` unless verified source metadata is
-available; the service does not infer a license from provider identity.
+The pinned shadcn source records the repository's verified MIT license and
+attribution URL. Other adapters must provide independently verified license
+metadata; the service does not infer a license from provider identity.
 
 ### Immutable artifact storage (Phase 3D foundation)
 
@@ -150,6 +151,12 @@ content. `implementationWorkspaceIdentity` derives a stable workspace key from
 provider, logical artifact id, and source/artifact hashes without machine paths.
 The store keeps the upstream snapshot separate from any future transformed
 working tree; structured user-edit tracking is not wired yet.
+
+Resolved artifacts also carry a demo inventory (path, format, inbound source
+references, and a conservative top-level JSON shape when available). JSON row
+counts and all original file contents are retained; every inventory item remains
+`editable: false` until a structured editor is implemented. The dashboard
+fixture asserts its original 68-row data file remains in that inventory.
 
 Blocks install from their direct JSON URL at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned

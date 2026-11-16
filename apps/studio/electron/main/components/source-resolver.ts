@@ -159,10 +159,18 @@ export function hashImplementationSource(source: {
     registryItems: ImplementationArtifact['source']['registryItems'];
     files: ImplementationArtifact['files'];
     assets: ImplementationArtifact['assets'];
-}): string {
+} | Pick<ImplementationArtifact, 'source' | 'files' | 'assets'>): string {
+    const { registryItems, files, assets } =
+        'source' in source
+            ? {
+                  registryItems: source.source.registryItems,
+                  files: source.files,
+                  assets: source.assets,
+              }
+            : source;
     return sha256(
         stableStringify({
-            registryItems: [...source.registryItems]
+            registryItems: [...registryItems]
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((item) => ({
                     name: item.name,
@@ -175,13 +183,13 @@ export function hashImplementationSource(source: {
                     registryDependencies: [...item.registryDependencies],
                     files: [...item.files],
                 })),
-            files: [...source.files]
+            files: [...files]
                 .sort((a, b) => a.path.localeCompare(b.path))
                 .map(({ path: filePath, sha256: hash }) => ({
                     path: filePath,
                     sha256: hash,
                 })),
-            assets: [...source.assets]
+            assets: [...assets]
                 .sort((a, b) => a.path.localeCompare(b.path))
                 .map(({ path: assetPath, sha256: hash, source: sourceUrl }) => ({
                     path: assetPath,
@@ -556,6 +564,42 @@ function findCycles(edges: ImplementationArtifact['graph']['edges']): string[][]
         visit(node);
     }
     return cycles;
+}
+
+function demoDataShape(content: string): {
+    itemCount?: number;
+    shape?: Record<string, string>;
+} {
+    let value: unknown;
+    try {
+        value = JSON.parse(content);
+    } catch {
+        return {};
+    }
+    const rows = Array.isArray(value) ? value : [value];
+    const sample = rows.find(
+        (row): row is Record<string, unknown> =>
+            row !== null && typeof row === 'object' && !Array.isArray(row),
+    );
+    if (!sample) {
+        return Array.isArray(value) ? { itemCount: value.length } : {};
+    }
+    const shape = Object.fromEntries(
+        Object.entries(sample).map(([key, field]) => [
+            key,
+            field === null
+                ? 'null'
+                : Array.isArray(field)
+                  ? 'array'
+                  : typeof field === 'object'
+                    ? 'object'
+                    : typeof field,
+        ]),
+    );
+    return {
+        ...(Array.isArray(value) ? { itemCount: value.length } : {}),
+        shape,
+    };
 }
 
 export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions = {}) {
@@ -1056,6 +1100,12 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 sourceUrl: sourceUrlForRegistryPath(rootEntry.path),
                 retrievedAt: now().toISOString(),
                 provenance: 'official',
+                license: {
+                    identifier: 'MIT',
+                    status: 'verified',
+                    attribution: 'shadcn/ui, pinned upstream source commit.',
+                    sourceUrl: `${RAW_ROOT}/LICENSE.md`,
+                },
                 registryItems: artifactRegistryItems,
             },
             metadata: {
@@ -1089,6 +1139,20 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     files: demoFiles.map((file) => file.path),
                     // Structured demo-data editing is not implemented yet.
                     editable: false,
+                    inventory: demoFiles.map((file) => {
+                        const extension = path.posix.extname(file.path).slice(1).toLowerCase();
+                        const inferred = extension === 'json' ? demoDataShape(file.content) : {};
+                        return {
+                            path: file.path,
+                            format: extension || 'unknown',
+                            referencedBy: edges
+                                .filter((edge) => edge.to === file.path && edge.kind === 'import')
+                                .map((edge) => edge.from)
+                                .sort(),
+                            ...inferred,
+                            editable: false,
+                        };
+                    }),
                 };
             })(),
             integrity: { sourceHash, artifactHash: '' },

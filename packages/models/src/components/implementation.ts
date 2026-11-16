@@ -108,6 +108,18 @@ export const ImplementationArtifactSchema = z.object({
         preserved: z.boolean(),
         files: z.array(z.string()),
         editable: z.boolean(),
+        inventory: z
+            .array(
+                z.object({
+                    path: z.string(),
+                    format: z.string(),
+                    referencedBy: z.array(z.string()),
+                    itemCount: z.number().int().nonnegative().optional(),
+                    shape: z.record(z.string(), z.string()).optional(),
+                    editable: z.boolean(),
+                }),
+            )
+            .optional(),
     }),
     integrity: z.object({
         sourceHash: sha256,
