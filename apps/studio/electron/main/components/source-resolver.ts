@@ -708,7 +708,10 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             }
         }
 
-        const entryTypes = expectedRegistryType(request.kind);
+        const entryTypes =
+            request.kind === 'block'
+                ? ['registry:page', 'registry:block']
+                : expectedRegistryType(request.kind);
         const rootEntry = root.item.files
             .filter((file) => entryTypes.includes(file.type ?? ''))
             .sort(
@@ -918,8 +921,9 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     continue;
                 }
                 const cleanImportSource = importSource.split(/[?#]/)[0];
-                const base = resolveImportPath(normalized, cleanImportSource);
-                if (ASSET_EXTENSIONS.test(base)) {
+                const isPublicAsset = cleanImportSource.startsWith('/');
+                const base = isPublicAsset ? undefined : resolveImportPath(normalized, cleanImportSource);
+                if (ASSET_EXTENSIONS.test(cleanImportSource)) {
                     const assetPath = await resolveAsset(importSource, normalized, base);
                     edges.push({ from: normalized, to: assetPath, kind: 'asset' });
                     continue;
@@ -1069,7 +1073,12 @@ export async function materializeImplementationAsset(
             message: 'External assets are references and cannot be materialized locally.',
         });
     }
-    if (!asset.sha256 || asset.size === undefined || !/^https?:\/\//i.test(asset.source)) {
+    if (
+        !asset.sha256 ||
+        asset.size === undefined ||
+        !asset.source.startsWith(`${RAW_ROOT}/apps/v4/`) ||
+        !/^https?:\/\//i.test(asset.source)
+    ) {
         throw new SourceResolutionError({
             kind: 'asset',
             source: asset.source,
