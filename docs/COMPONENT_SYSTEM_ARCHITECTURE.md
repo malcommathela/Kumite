@@ -81,6 +81,46 @@ the pinned upstream commit. The dashboard fixture includes the full registry
 dependency closure, original source files, the separate data file, and its
 referenced avatar.
 
+### Artifact materialization (Phase 3A)
+
+`electron/main/components/implementation-materializer.ts` exports
+`materializeImplementationArtifact(artifact, destinationDirectory, options)`.
+It accepts a Phase 2 artifact without an active project or renderer and returns
+the absolute materialization directory and entry point, materialized file/asset
+paths, external asset references, a dependency/configuration plan, and a
+deterministic relative-path manifest.
+
+The artifact's source paths are retained under the materialization root so
+relative imports remain relative. The manifest records the shadcn source alias
+mappings for `@/registry/new-york-v4`, `@/components/ui`, `@/components`,
+`@/assets`, `@/hooks`, and `@/lib`; it does not rewrite upstream source. Public
+assets referenced from `/...` are written below `public/`, while imported
+registry assets keep their registry-relative paths. HTTP(S), `data:`, and
+`blob:` assets stay external references and are never downloaded.
+
+Before writing, the materializer validates the artifact schema, canonical
+source/artifact hashes, every source-file hash, entry-point membership, registry
+file membership, local asset metadata, and safe relative paths. Asset bytes are
+fetched via `materializeImplementationAsset`, checked against SHA-256 and byte
+size, and placed at their relationship-preserving paths. Serialized
+`cachePath` values are ignored. The generated
+`.kumite-implementation.json` manifest omits timestamps and machine-local paths;
+it retains file roles, registry targets, source provenance, integrity values,
+dependency versions/origins, provider/configuration requirements, and external
+asset references.
+
+Materialization refuses an existing destination, stages in a sibling temporary
+directory, and publishes only after successful validation and writes. Failures
+and cancellation clean up the staging directory. Dependency requirements are
+reported, including whether dependency provenance is complete; packages are
+not installed and project configuration is not modified. Public and relative
+asset paths, collisions, cancellation, integrity failures, and preservation of
+the dashboard demo data are covered by deterministic unit tests.
+
+Phase 3A does not wire this directory into preview or insertion. Preview
+integration is Phase 3B; project installation, conflict resolution, and
+project-specific import/configuration transformations are Phase 3C.
+
 Blocks install from their direct JSON URL at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
 `calendar-01` and `dashboard-01` JSON installed their reusable source files and
