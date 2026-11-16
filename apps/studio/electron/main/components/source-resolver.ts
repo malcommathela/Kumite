@@ -15,7 +15,7 @@ const UPSTREAM_COMMIT = '1e9e337923aaede7db55b6091cb56a72a661b959';
 const RAW_ROOT = `https://raw.githubusercontent.com/shadcn-ui/ui/${UPSTREAM_COMMIT}`;
 const REGISTRY_ROOT = `${RAW_ROOT}/apps/v4/public/r/styles/new-york-v4`;
 const REGISTRY_SOURCE_ROOT = 'registry/new-york-v4';
-const SOURCE_FILE_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js', '.json', '.css', '.scss'];
+const SOURCE_FILE_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js', '.json', '.css', '.scss', '.sass'];
 const ASSET_EXTENSIONS = /\.(?:avif|gif|jpe?g|png|svg|webp|ico|woff2?|ttf|otf|mp4|webm|pdf)$/i;
 
 interface RegistryFile {
@@ -52,6 +52,12 @@ export interface ShadcnSourceResolverOptions {
     fetcher?: SourceFetcher;
     signal?: AbortSignal;
     now?: () => Date;
+    assetDirectory?: string;
+}
+
+export interface ImplementationAssetMaterializationOptions {
+    fetcher?: SourceFetcher;
+    signal?: AbortSignal;
     assetDirectory?: string;
 }
 
@@ -271,12 +277,22 @@ function resolveImportPath(from: string, specifier: string): string {
 }
 
 function pathCandidates(sourcePath: string): string[] {
-    if (path.posix.extname(sourcePath)) {
-        return [sourcePath];
+    const extension = path.posix.extname(sourcePath);
+    if (extension) {
+        const partial = path.posix.join(path.posix.dirname(sourcePath), `_${path.posix.basename(sourcePath)}`);
+        return extension === '.scss' || extension === '.sass' ? [partial, sourcePath] : [sourcePath];
     }
     return [
-        ...SOURCE_FILE_EXTENSIONS.map((extension) => `${sourcePath}${extension}`),
-        ...SOURCE_FILE_EXTENSIONS.map((extension) => `${sourcePath}/index${extension}`),
+        ...SOURCE_FILE_EXTENSIONS.flatMap((candidateExtension) => {
+            const partial = path.posix.join(
+                path.posix.dirname(sourcePath),
+                `_${path.posix.basename(sourcePath)}${candidateExtension}`,
+            );
+            return candidateExtension === '.scss' || candidateExtension === '.sass'
+                ? [`${sourcePath}${candidateExtension}`, partial]
+                : [`${sourcePath}${candidateExtension}`];
+        }),
+        ...SOURCE_FILE_EXTENSIONS.map((candidateExtension) => `${sourcePath}/index${candidateExtension}`),
     ];
 }
 
@@ -312,10 +328,14 @@ function classifyFile(
 }
 
 function importedSpecifiers(sourcePath: string, content: string): string[] {
-    if (/\.(?:css|scss)$/.test(sourcePath)) {
-        return [...content.matchAll(/@import\s+(?:url\()?['"]?([^'")\s;]+)['"]?\)?/g)].map(
+    if (/\.(?:css|scss|sass)$/.test(sourcePath)) {
+        const cssImports = [...content.matchAll(/@import\s+(?:url\()?['"]?([^'")\s;]+)['"]?\)?/g)].map(
             (match) => match[1],
         );
+        const sassModules = [...content.matchAll(/@(use|forward)\s+['"]([^'"]+)['"]/g)].map(
+            (match) => match[2],
+        );
+        return [...new Set([...cssImports, ...sassModules])];
     }
 
     const project = new Project({
@@ -384,7 +404,7 @@ function importedSpecifiers(sourcePath: string, content: string): string[] {
 
 function referencedAssetPaths(sourcePath: string, content: string): string[] {
     const refs = new Set<string>();
-    if (!/\.(?:css|scss)$/.test(sourcePath)) {
+    if (!/\.(?:css|scss|sass)$/.test(sourcePath)) {
         const project = new Project({
             useInMemoryFileSystem: true,
             compilerOptions: { allowJs: true, jsx: ts.JsxEmit.Preserve },
@@ -574,7 +594,43 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
         const files = new Map<string, ImplementationArtifact['files'][number]>();
         const assets = new Map<string, ImplementationArtifact['assets'][number]>();
         const edges: ImplementationArtifact['graph']['edges'] = [];
-        const dependencies = new Map<string, string | undefined>();
+        const dependencies = new Map<
+            string,
+            {
+                version?: string;
+                origins: Set<'registry' | 'source-import'>;
+                versionSource: 'registry' | 'unspecified';
+            }
+        >();
+        const addDependency = (
+            name: string,
+            version: string | undefined,
+            origin: 'registry' | 'source-import',
+            from: string,
+        ) => {
+            const current = dependencies.get(name);
+            if (current?.version && version && current.version !== version) {
+                throw new SourceResolutionError({
+                    kind: 'metadata',
+                    source: name,
+                    from,
+                    message: `Conflicting upstream versions for package "${name}": ${current.version} and ${version}.`,
+                });
+            }
+            if (!current) {
+                dependencies.set(name, {
+                    ...(version ? { version } : {}),
+                    origins: new Set([origin]),
+                    versionSource: version ? 'registry' : 'unspecified',
+                });
+                return;
+            }
+            current.origins.add(origin);
+            if (!current.version && version) {
+                current.version = version;
+                current.versionSource = 'registry';
+            }
+        };
         const providers = new Set<string>();
         const configuration = new Set<string>();
         const pendingItems = [root];
@@ -623,16 +679,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             const fromNode = `registry:${current.item.name}`;
             for (const dependency of current.item.dependencies ?? []) {
                 const parsed = dependencyName(dependency);
-                const previous = dependencies.get(parsed.name);
-                if (previous && parsed.version && previous !== parsed.version) {
-                    throw new SourceResolutionError({
-                        kind: 'metadata',
-                        source: parsed.name,
-                        from: current.item.name,
-                        message: `Conflicting upstream versions for package "${parsed.name}": ${previous} and ${parsed.version}.`,
-                    });
-                }
-                dependencies.set(parsed.name, parsed.version ?? previous);
+                addDependency(parsed.name, parsed.version, 'registry', current.item.name);
             }
             for (const registryDependency of current.item.registryDependencies ?? []) {
                 const url = /^https?:\/\//i.test(registryDependency)
@@ -661,13 +708,14 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             }
         }
 
-        const rootEntry = root.item.files.find(
-            (file) =>
-                file.type === 'registry:page' ||
-                file.type === 'registry:example' ||
-                file.type === 'registry:component' ||
-                file.type === 'registry:ui',
-        );
+        const entryTypes = expectedRegistryType(request.kind);
+        const rootEntry = root.item.files
+            .filter((file) => entryTypes.includes(file.type ?? ''))
+            .sort(
+                (left, right) =>
+                    entryTypes.indexOf(left.type ?? '') - entryTypes.indexOf(right.type ?? '') ||
+                    left.path.localeCompare(right.path),
+            )[0];
         if (!rootEntry) {
             throw new SourceResolutionError({
                 kind: 'metadata',
@@ -697,9 +745,17 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
         const resolveFile = async (sourcePath: string, from?: string): Promise<string> => {
             const normalized = normalizeSourcePath(sourcePath, from);
             const candidates = pathCandidates(normalized);
-            const existing = candidates.find((candidate) => files.has(candidate));
-            if (existing) {
-                return existing;
+            const existing = candidates.filter((candidate) => files.has(candidate));
+            if (existing.length > 1) {
+                throw new SourceResolutionError({
+                    kind: 'file',
+                    source: normalized,
+                    from,
+                    message: `Ambiguous local module "${normalized}" resolves to multiple files: ${existing.join(', ')}.`,
+                });
+            }
+            if (existing.length === 1) {
+                return existing[0];
             }
             let lastError: unknown;
             for (const candidate of candidates) {
@@ -746,7 +802,11 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             });
         };
 
-        const resolveAsset = async (reference: string, from: string): Promise<string> => {
+        const resolveAsset = async (
+            reference: string,
+            from: string,
+            resolvedSourcePath?: string,
+        ): Promise<string> => {
             if (/^(?:data:|blob:)/i.test(reference)) {
                 const key = `${from}#${reference}`;
                 assets.set(key, {
@@ -777,9 +837,13 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             }
 
             const cleanReference = reference.split(/[?#]/)[0];
-            const resolved = cleanReference.startsWith('/')
-                ? `public${cleanReference}`
-                : path.posix.join(path.posix.dirname(from), cleanReference);
+            const resolved = resolvedSourcePath
+                ? resolvedSourcePath
+                : cleanReference.startsWith('/')
+                  ? `public${cleanReference}`
+                  : cleanReference.startsWith('@/') || cleanReference.startsWith('~/')
+                    ? resolveImportPath(from, cleanReference)
+                    : path.posix.join(path.posix.dirname(from), cleanReference);
             const assetPath = normalizeSourcePath(resolved, from);
             const existing = assets.get(assetPath);
             if (existing) {
@@ -838,7 +902,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 configuration.add('stylesheet');
             }
             for (const importSource of importedSpecifiers(normalized, file.content)) {
-                if (/^node:/i.test(importSource)) {
+                if (/^node:/i.test(importSource) || /^sass:/i.test(importSource)) {
                     continue;
                 }
                 if (/^https?:\/\//i.test(importSource)) {
@@ -849,14 +913,14 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 if (!isLocalSpecifier(importSource)) {
                     const name = packageName(importSource);
                     if (name) {
-                        dependencies.set(name, dependencies.get(name));
+                        addDependency(name, undefined, 'source-import', normalized);
                     }
                     continue;
                 }
                 const cleanImportSource = importSource.split(/[?#]/)[0];
                 const base = resolveImportPath(normalized, cleanImportSource);
                 if (ASSET_EXTENSIONS.test(base)) {
-                    const assetPath = await resolveAsset(importSource, normalized);
+                    const assetPath = await resolveAsset(importSource, normalized, base);
                     edges.push({ from: normalized, to: assetPath, kind: 'asset' });
                     continue;
                 }
@@ -893,7 +957,12 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             }))
             .sort((a, b) => a.path.localeCompare(b.path));
         const artifactDependencies = [...dependencies.entries()]
-            .map(([name, version]) => ({ name, ...(version ? { version } : {}) }))
+            .map(([name, dependency]) => ({
+                name,
+                ...(dependency.version ? { version: dependency.version } : {}),
+                origins: [...dependency.origins].sort(),
+                versionSource: dependency.versionSource,
+            }))
             .sort((a, b) => a.name.localeCompare(b.name));
         const rootFilePaths = new Set(root.item.files.map((file) => file.path));
         const sourceHash = sha256(
@@ -959,20 +1028,23 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 providers: [...providers].sort(),
                 configuration: [...configuration].sort(),
             },
-            demo: {
-                available:
-                    request.kind !== 'component' ||
-                    artifactFiles.some((file) => file.role === 'demo-data'),
-                preserved: true,
-                files: artifactFiles
-                    .filter(
-                        (file) =>
-                            file.role === 'demo-data' ||
-                            (request.kind !== 'component' && rootFilePaths.has(file.path)),
-                    )
-                    .map((file) => file.path),
-                editable: true,
-            },
+            demo: (() => {
+                const demoFiles = artifactFiles.filter(
+                    (file) =>
+                        file.role === 'demo-data' ||
+                        file.registryType === 'registry:example' ||
+                        (request.kind !== 'component' && rootFilePaths.has(file.path)),
+                );
+                const available = demoFiles.length > 0;
+                return {
+                    available,
+                    preserved:
+                        available && demoFiles.every((file) => sha256(file.content) === file.sha256),
+                    files: demoFiles.map((file) => file.path),
+                    // Structured demo-data editing is not implemented yet.
+                    editable: false,
+                };
+            })(),
             integrity: { sourceHash, artifactHash: '' },
         };
         candidate.integrity.artifactHash = hashImplementationArtifact(candidate);
@@ -980,6 +1052,61 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
     }
 
     return { resolve };
+}
+
+/**
+ * Materialize an artifact asset into the current machine's content-addressed store.
+ * The serialized cachePath is legacy metadata only; it is never trusted here.
+ */
+export async function materializeImplementationAsset(
+    asset: ImplementationArtifact['assets'][number],
+    options: ImplementationAssetMaterializationOptions = {},
+): Promise<string> {
+    if (asset.external) {
+        throw new SourceResolutionError({
+            kind: 'asset',
+            source: asset.source,
+            message: 'External assets are references and cannot be materialized locally.',
+        });
+    }
+    if (!asset.sha256 || asset.size === undefined || !/^https?:\/\//i.test(asset.source)) {
+        throw new SourceResolutionError({
+            kind: 'asset',
+            source: asset.source,
+            message: 'Asset is missing a verifiable hash, size, or HTTP source URL.',
+        });
+    }
+    const directory = options.assetDirectory ?? defaultAssetDirectory();
+    const extension = path.posix.extname(asset.path);
+    const target = path.join(directory, `${asset.sha256}${extension}`);
+    if (fs.existsSync(target)) {
+        const existing = fs.readFileSync(target);
+        if (sha256(existing) !== asset.sha256 || existing.byteLength !== asset.size) {
+            throw new SourceResolutionError({
+                kind: 'asset',
+                source: asset.source,
+                message: `Cached asset integrity mismatch at ${target}.`,
+            });
+        }
+        return target;
+    }
+    try {
+        const fetcher = options.fetcher ?? ((url, signal) => fetch(url, { signal }));
+        const response = await fetcher(asset.source, options.signal);
+        if (!response.ok) throw new Error(`Upstream returned HTTP ${response.status}.`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (sha256(bytes) !== asset.sha256 || bytes.byteLength !== asset.size) {
+            throw new Error('Downloaded asset does not match the artifact hash and size.');
+        }
+        return storeAsset(bytes, asset.sha256, asset.path, directory);
+    } catch (error) {
+        if (error instanceof SourceResolutionError) throw error;
+        throw new SourceResolutionError({
+            kind: 'asset',
+            source: asset.source,
+            message: `Could not materialize asset: ${error instanceof Error ? error.message : String(error)}`,
+        });
+    }
 }
 
 const defaultResolver = createShadcnSourceResolver();
