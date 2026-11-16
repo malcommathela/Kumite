@@ -9,7 +9,7 @@ import type {
     ShadcnProjectStatus,
     ImplementationRequest,
 } from '@kumite/models';
-import { getShadcnLibraryItem, isShadcnBlock } from '@kumite/models';
+import { getShadcnExampleName, getShadcnLibraryItem, isShadcnBlock } from '@kumite/models';
 import fs from 'fs';
 import path from 'path';
 import { ensureCatalogBase } from './catalog';
@@ -29,6 +29,7 @@ import { guardEmptyChartContainer } from './patches';
 import { componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
+import { recoverArtifactInsertions } from './artifact-insertion';
 export {
     createShadcnSourceResolver,
     hashImplementationArtifact,
@@ -71,8 +72,10 @@ export type {
 export {
     collectUnreferencedImplementationArtifacts,
     implementationWorkspaceIdentity,
+    reconcileStalePreviewArtifactReferences,
     readStoredImplementationArtifact,
     setImplementationArtifactReference,
+    storeAndReferenceImplementationArtifact,
     storeImplementationArtifact,
 } from './implementation-store';
 export type {
@@ -89,6 +92,14 @@ export type {
 } from './insertion-preparation';
 export { ArtifactCatalogPreviewServer, artifactCatalogPreviewServer } from './artifact-preview';
 export type { ArtifactCatalogPreviewResult } from './artifact-preview';
+export {
+    applyArtifactInsertion,
+    finishArtifactInsertion,
+    getArtifactInsertionApprovalDetails,
+    prepareArtifactInsertion,
+    prepareArtifactValueInsertion,
+    recoverArtifactInsertions,
+} from './artifact-insertion';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
@@ -129,6 +140,10 @@ export function getComponentStatus(projectPath: unknown): ShadcnProjectStatus {
             error?.message ?? 'Could not inspect the active project.',
         );
     }
+}
+
+export async function reconcileArtifactInsertions(projectPath: unknown): Promise<string[]> {
+    return recoverArtifactInsertions(resolveProjectPath(projectPath));
 }
 
 function baseLayerNote(root: string): string {
@@ -690,12 +705,29 @@ export async function startCatalogPreview(
         const base = await ensureCatalogBase();
         const errors: Record<string, string> = {};
         const requests: ImplementationRequest[] = [];
+        const preferredExports: Record<string, string> = {};
+        const previewNames: Record<string, string> = {};
         for (const name of requested) {
             const definition = getShadcnLibraryItem(name);
             if (!definition || definition.previewable === false) {
                 errors[name] =
                     definition?.limitation ?? `No artifact preview is available for "${name}".`;
                 continue;
+            }
+            // Registry metadata verified against the pinned snapshot; the
+            // resolver only uses it when the entry really holds a runtime value.
+            const exampleName = getShadcnExampleName(definition);
+            if (exampleName) {
+                previewNames[exampleName] = name;
+                requests.push({
+                    provider: 'shadcn',
+                    kind: 'example',
+                    name: exampleName,
+                });
+                continue;
+            }
+            if (!isShadcnBlock(definition) && definition.parts.length > 0) {
+                preferredExports[name] = definition.parts[0];
             }
             requests.push({
                 provider: 'shadcn',
@@ -711,6 +743,8 @@ export async function startCatalogPreview(
             {
                 storeRoot: path.join(base.root, '.kumite-artifact-store'),
                 onProgress,
+                preferredExports,
+                previewNames,
             },
         );
         Object.assign(errors, result.errors);
@@ -749,9 +783,7 @@ export async function startCatalogPreview(
 /** Releases a project's catalog sessions without stopping other consumers. */
 export async function releaseCatalogPreview(projectId: unknown): Promise<boolean> {
     const ownerId =
-        typeof projectId === 'string' && projectId.trim().length > 0
-            ? projectId
-            : 'catalog-ui';
+        typeof projectId === 'string' && projectId.trim().length > 0 ? projectId : 'catalog-ui';
     await artifactCatalogPreviewServer.releaseOwner(ownerId);
     return true;
 }

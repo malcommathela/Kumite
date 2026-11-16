@@ -494,11 +494,13 @@ describe('shadcn source resolver', () => {
         assert.ok(artifact.files.some((file) => file.path.endsWith('/_mixins.scss')));
         assert.ok(
             artifact.graph.edges.some(
-                (edge) =>
-                    edge.from.endsWith('/page.scss') && edge.to.endsWith('/_tokens.scss'),
+                (edge) => edge.from.endsWith('/page.scss') && edge.to.endsWith('/_tokens.scss'),
             ),
         );
-        assert.equal(artifact.dependencies.some((dependency) => dependency.name === 'sass'), false);
+        assert.equal(
+            artifact.dependencies.some((dependency) => dependency.name === 'sass'),
+            false,
+        );
     });
 
     it('fails explicitly for ambiguous bare Sass load paths', async () => {
@@ -632,5 +634,4 @@ describe('shadcn source resolver', () => {
             fs.rmSync(directory, { recursive: true, force: true });
         }
     });
-
 });

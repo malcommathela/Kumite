@@ -4,6 +4,7 @@ import type { EditTarget } from '../actions/target';
 export interface CodeImport {
     source: string;
     defaultImport?: string | null;
+    namespaceImport?: string | null;
     namedImports?: string[] | null;
 }
 

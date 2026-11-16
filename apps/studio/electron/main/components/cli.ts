@@ -100,9 +100,17 @@ export async function runPackageManagerInstall(
     packageManager: PackageManager,
     onProgress?: ProgressListener,
     signal?: AbortSignal,
+    ignoreScripts = false,
 ): Promise<ShadcnCommandResult> {
     const command = packageManager === 'bun' ? getBunExecutablePath() : packageManager;
-    return runProjectCommand(command, ['install'], projectPath, packageManager, onProgress, signal);
+    return runProjectCommand(
+        command,
+        ['install', ...(ignoreScripts ? ['--ignore-scripts'] : [])],
+        projectPath,
+        packageManager,
+        onProgress,
+        signal,
+    );
 }
 
 function commandEnvironment(packageManager: PackageManager): NodeJS.ProcessEnv {

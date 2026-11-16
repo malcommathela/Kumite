@@ -9,6 +9,7 @@ import type {
 } from '@kumite/models';
 import {
     getShadcnLibraryItem,
+    getShadcnExampleName,
     isBlockInsertContainer,
     isShadcnBlock,
     SHADCN_BLOCKS,
@@ -26,6 +27,50 @@ import { createDomId, createOid, invokeMainChannel } from '../utils';
 export interface ComponentInsertResult {
     success: boolean;
     message: string;
+}
+
+export interface ArtifactInsertionReview {
+    planId: string;
+    planHash: string;
+    artifact: {
+        id: string;
+        provider: string;
+        sourceHash: string;
+        artifactHash: string;
+        entryPoint: string;
+        demo: { available: boolean; preserved: boolean; files: string[] };
+    };
+    project: {
+        framework: string;
+        packageManager: string | null;
+        componentsAlias: string | null;
+        uiAlias: string | null;
+    };
+    editorTarget: { oid: string; domId: string; webviewId: string };
+    filesToCreate: Array<{
+        path: string;
+        sourceHash: string;
+        publishedHash: string;
+        transformations: Array<{ kind: 'alias-import'; from: string; to: string }>;
+    }>;
+    reusedFiles: string[];
+    conflicts: string[];
+    dependencies: Array<{ name: string; version: string; action: string; provenance: string }>;
+    assets: Array<{
+        sourcePath: string;
+        destinationPath: string | null;
+        external: boolean;
+        action: 'add' | 'reuse' | 'conflict' | 'external';
+        sha256?: string;
+    }>;
+    providers: string[];
+    configurationChanges: string[];
+    warnings: string[];
+    unsupportedRequirements: string[];
+    entryImport: {
+        source: string;
+        export: { kind: 'default' } | { kind: 'named'; name: string } | null;
+    };
 }
 
 export class ComponentsManager {
@@ -99,6 +144,9 @@ export class ComponentsManager {
             )) as ShadcnProjectStatus;
             runInAction(() => {
                 this.status = status;
+                if (status.artifactInsertionRecovery?.length) {
+                    this.lastLog = status.artifactInsertionRecovery.join('\n');
+                }
             });
         } catch (error: any) {
             runInAction(() => {
@@ -432,7 +480,56 @@ export class ComponentsManager {
         }
     }
 
-    async insert(componentName: string): Promise<ComponentInsertResult> {
+    async prepareInsertion(componentName: string): Promise<ArtifactInsertionReview> {
+        const projectPath = this.projectPath;
+        if (!projectPath) {
+            throw new Error('Open a project before inserting an artifact.');
+        }
+        const definition = getShadcnLibraryItem(componentName);
+        if (!definition) {
+            throw new Error('Unknown component.');
+        }
+        const selected = this.editorEngine.elements.selected[0];
+        if (!selected) {
+            throw new Error('Select an element in a frame first.');
+        }
+        const target = isShadcnBlock(definition)
+            ? await this.resolveBlockInsertTarget(selected)
+            : selected;
+        if (!target?.oid) {
+            throw new Error(
+                isShadcnBlock(definition)
+                    ? 'Select a layout element (a section, div, or the page body) to add this block.'
+                    : 'Select an element in a frame first.',
+            );
+        }
+        const editorTarget = {
+            oid: target.oid,
+            domId: target.domId,
+            webviewId: selected.webviewId,
+        };
+        return (await invokeMainChannel(MainChannels.COMPONENTS_ARTIFACT_PREPARE, {
+            projectPath,
+            editorTarget,
+            request: {
+                provider: 'shadcn',
+                kind: isShadcnBlock(definition)
+                    ? 'block'
+                    : getShadcnExampleName(definition)
+                      ? 'example'
+                      : 'component',
+                name: isShadcnBlock(definition)
+                    ? definition.name
+                    : (getShadcnExampleName(definition) ?? definition.name),
+                ...(isShadcnBlock(definition) ? { registryUrl: definition.registryUrl } : {}),
+            },
+        })) as ArtifactInsertionReview;
+    }
+
+    async insert(
+        componentName: string,
+        approval: Pick<ArtifactInsertionReview, 'planId' | 'planHash' | 'editorTarget'>,
+    ): Promise<ComponentInsertResult> {
         const definition = getShadcnLibraryItem(componentName);
         if (!definition) {
             return { success: false, message: 'Unknown component.' };
@@ -460,71 +557,113 @@ export class ComponentsManager {
                   }
                 : { success: false, message: 'Select an element in a frame first.' };
         }
+        if (
+            target.oid !== approval.editorTarget.oid ||
+            target.domId !== approval.editorTarget.domId ||
+            selected.webviewId !== approval.editorTarget.webviewId
+        ) {
+            return {
+                success: false,
+                message:
+                    'The selected editor target changed after approval. Prepare and approve insertion again.',
+            };
+        }
 
         this.insertError = null;
         this.using = componentName;
-        const domId = createDomId();
-        const oid = createOid();
-        const actionElement: ActionElement = {
-            domId,
-            oid,
-            tagName: 'div',
-            attributes: {},
-            children: [],
-            textContent: null,
-            styles: {},
-        };
-        const location = {
-            type: 'append' as const,
-            targetDomId: target.domId,
-            targetOid: target.oid,
-        };
-
+        const projectPath = this.projectPath;
+        let operationId: string | null = null;
+        let editorWritten = false;
         try {
+            if (!projectPath) {
+                throw new Error('The active project closed before insertion.');
+            }
+            const applied = (await invokeMainChannel(MainChannels.COMPONENTS_ARTIFACT_APPLY, {
+                planId: approval.planId,
+                planHash: approval.planHash,
+            })) as {
+                operationId: string;
+                artifact: { artifactHash: string };
+                entryImport: ArtifactInsertionReview['entryImport'];
+            };
+            operationId = applied.operationId;
+            const componentNameForImport =
+                applied.entryImport.export?.kind === 'default'
+                    ? `KumiteArtifact${applied.artifact.artifactHash}`
+                    : `KumiteArtifact${applied.artifact.artifactHash}.${applied.entryImport.export?.name}`;
+            if (!componentNameForImport || !applied.entryImport.export) {
+                throw new Error('The artifact has no renderable runtime export.');
+            }
+            const moduleImport =
+                applied.entryImport.export.kind === 'default'
+                    ? {
+                          source: applied.entryImport.source,
+                          defaultImport: componentNameForImport,
+                      }
+                    : {
+                          source: applied.entryImport.source,
+                          namespaceImport: `KumiteArtifact${applied.artifact.artifactHash}`,
+                      };
+            const domId = createDomId();
+            const oid = createOid();
+            const actionElement: ActionElement = {
+                domId,
+                oid,
+                tagName: 'div',
+                attributes: {},
+                children: [],
+                textContent: null,
+                styles: {},
+            };
+            const location = {
+                type: 'append' as const,
+                targetDomId: target.domId,
+                targetOid: target.oid,
+            };
             const codeInsert = getInsertedElement(
                 actionElement,
                 location,
                 null,
-                definition.insertCode,
+                `<${componentNameForImport} />`,
             );
             const requests = new Map();
             const request = await getOrCreateCodeDiffRequest(target.oid, requests);
             request.structureChanges.push(codeInsert);
-            request.imports = definition.imports.map((moduleImport) => {
-                if (isShadcnBlock(definition)) {
-                    return {
-                        ...moduleImport,
-                        source: `${this.status?.componentsAlias ?? '@/components'}/${definition.componentFile}`,
-                    };
-                }
-                if (moduleImport.source.startsWith('@/components/ui/')) {
-                    return {
-                        ...moduleImport,
-                        source: moduleImport.source.replace(
-                            '@/components/ui',
-                            this.status?.uiAlias ?? '@/components/ui',
-                        ),
-                    };
-                }
-                return moduleImport;
-            });
+            request.imports = [moduleImport];
 
             const written = await this.editorEngine.code.getAndWriteCodeDiff([request]);
             if (!written) {
                 const message = `Could not write ${definition.title} into the selected element.`;
-                runInAction(() => {
-                    this.insertError = message;
-                });
-                return { success: false, message };
+                throw new Error(message);
             }
+            editorWritten = true;
             const webview = this.editorEngine.webviews.getWebview(selected.webviewId);
             webview?.reload();
+            try {
+                await invokeMainChannel(MainChannels.COMPONENTS_ARTIFACT_COMMIT, {
+                    projectPath,
+                    operationId,
+                });
+            } catch (error) {
+                console.error('Could not finalize artifact insertion journal', error);
+            }
+            operationId = null;
             return {
                 success: true,
-                message: `Inserted ${definition.title}. Reloading the preview to render it.`,
+                message: `Published the verified artifact and inserted ${definition.title}. Reloading the preview.`,
             };
         } catch (error: any) {
             const message = error?.message ?? `Failed to insert ${definition.title}.`;
+            if (operationId && projectPath && !editorWritten) {
+                try {
+                    await invokeMainChannel(MainChannels.COMPONENTS_ARTIFACT_ROLLBACK, {
+                        projectPath,
+                        operationId,
+                    });
+                } catch (rollbackError: any) {
+                    console.error('Artifact insertion rollback failed', rollbackError);
+                }
+            }
             runInAction(() => {
                 this.insertError = message;
             });

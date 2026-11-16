@@ -155,11 +155,15 @@ export function hashImplementationArtifact(artifact: ImplementationArtifact): st
     return sha256(stableStringify(artifact));
 }
 
-export function hashImplementationSource(source: {
-    registryItems: ImplementationArtifact['source']['registryItems'];
-    files: ImplementationArtifact['files'];
-    assets: ImplementationArtifact['assets'];
-} | Pick<ImplementationArtifact, 'source' | 'files' | 'assets'>): string {
+export function hashImplementationSource(
+    source:
+        | {
+              registryItems: ImplementationArtifact['source']['registryItems'];
+              files: ImplementationArtifact['files'];
+              assets: ImplementationArtifact['assets'];
+          }
+        | Pick<ImplementationArtifact, 'source' | 'files' | 'assets'>,
+): string {
     const { registryItems, files, assets } =
         'source' in source
             ? {

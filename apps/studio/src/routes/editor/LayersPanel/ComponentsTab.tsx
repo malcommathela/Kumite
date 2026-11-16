@@ -239,30 +239,6 @@ const ComponentsTab = observer(() => {
         void manager.openPreview(name);
     };
 
-    const install = async (definition: ShadcnLibraryItem) => {
-        const wasInstalled = Boolean(manager.status?.installed[definition.name]);
-        try {
-            const result = await manager.install(definition.name);
-            if (!wasInstalled || !result.success || result.addedDependencies?.length) {
-                toast({
-                    title: result.success
-                        ? `${definition.title} ready`
-                        : `Could not install ${definition.title}`,
-                    description: result.message,
-                    variant: result.success ? 'default' : 'destructive',
-                });
-            }
-            return result.success;
-        } catch (error: any) {
-            toast({
-                title: `Could not install ${definition.title}`,
-                description: error?.message ?? 'The component installer failed unexpectedly.',
-                variant: 'destructive',
-            });
-            return false;
-        }
-    };
-
     const preview = async (definition: ShadcnLibraryItem) => {
         if (manager.catalogItemErrors[definition.name]) {
             await manager.retryCatalogPreview(definition.name);
@@ -271,10 +247,92 @@ const ComponentsTab = observer(() => {
     };
 
     const useComponent = async (definition: ShadcnLibraryItem) => {
-        if (!(await install(definition))) {
+        if (definition.insertable === false) {
+            toast({
+                title: 'This component needs an upstream composition',
+                description: definition.limitation ?? 'No safe artifact insertion is available.',
+                variant: 'destructive',
+            });
             return;
         }
-        const result = await manager.insert(definition.name);
+        let review;
+        try {
+            review = await manager.prepareInsertion(definition.name);
+        } catch (error: any) {
+            toast({
+                title: 'Could not prepare artifact insertion',
+                description: error?.message ?? 'The upstream implementation could not be resolved.',
+                variant: 'destructive',
+            });
+            return;
+        }
+        if (review.conflicts.length || review.unsupportedRequirements.length) {
+            toast({
+                title: 'Insertion needs changes first',
+                description: [
+                    ...review.conflicts.map((file) => `Existing file conflict: ${file}`),
+                    ...review.unsupportedRequirements,
+                ].join('\n'),
+                variant: 'destructive',
+            });
+            return;
+        }
+        const files =
+            review.filesToCreate
+                .map(
+                    (file) =>
+                        `  • ${file.path}\n    ${file.sourceHash} → ${file.publishedHash}${file.transformations.length ? `\n    AST: ${file.transformations.map((item) => `${item.from} → ${item.to}`).join(', ')}` : ''}`,
+                )
+                .join('\n') || '  • No new source files';
+        const dependencies =
+            review.dependencies
+                .map(
+                    (dependency) =>
+                        `  • ${dependency.action === 'install' ? 'Install' : 'Reuse'} ${dependency.name}@${dependency.version}`,
+                )
+                .join('\n') || '  • None';
+        const assets =
+            review.assets
+                .filter((asset) => !asset.external)
+                .map(
+                    (asset) =>
+                        `  • ${asset.action} ${asset.sourcePath} → ${asset.destinationPath} [${asset.sha256 ?? 'hash unavailable'}]`,
+                )
+                .join('\n') || '  • None';
+        const approval = [
+            `Artifact: ${review.artifact.id}`,
+            `SHA-256: ${review.artifact.artifactHash}`,
+            `Project runtime: ${review.project.framework}; package manager: ${review.project.packageManager ?? 'unknown'}`,
+            `Aliases: components=${review.project.componentsAlias ?? 'default'}, ui=${review.project.uiAlias ?? 'default'}`,
+            `Editor target: ${review.editorTarget.oid} (${review.editorTarget.domId})`,
+            '',
+            'Files to create:',
+            files,
+            '',
+            'Dependencies (exact versions; lifecycle scripts disabled):',
+            dependencies,
+            '',
+            'Local assets:',
+            assets,
+            '',
+            `Providers: ${review.providers.join(', ') || 'none'}`,
+            `Configuration changes: ${review.configurationChanges.join(', ') || 'none'}`,
+            `Warnings: ${review.warnings.join('; ') || 'none'}`,
+            '',
+            'Approve publishing these files and installing only the listed dependencies?',
+        ].join('\n');
+        if (!window.confirm(approval)) {
+            toast({
+                title: 'Insertion cancelled',
+                description: 'No project files or dependencies were changed.',
+            });
+            return;
+        }
+        const result = await manager.insert(definition.name, {
+            planId: review.planId,
+            planHash: review.planHash,
+            editorTarget: review.editorTarget,
+        });
         toast({
             title: result.success
                 ? `Added ${definition.title} to your design`
@@ -291,12 +349,7 @@ const ComponentsTab = observer(() => {
         if (manager.using === definition.name) {
             return 'Adding…';
         }
-        if (manager.installing === definition.name) {
-            return manager.installProgress?.phase === 'queued' ? 'Queued…' : 'Installing…';
-        }
-        return manager.status?.installed[definition.name]
-            ? 'Use in Kumite'
-            : 'Install & use in Kumite';
+        return 'Use artifact in Kumite';
     };
 
     const copyForAgent = async (definition: ShadcnLibraryItem) => {

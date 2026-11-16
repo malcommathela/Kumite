@@ -4,18 +4,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
 import { gunzipSync } from 'node:zlib';
-import { buildArtifactPreviewModule } from './artifact-preview';
-import {
-    createShadcnSourceResolver,
-    type SourceFetcher,
-} from './source-resolver';
+import { buildArtifactPreviewModule } from './artifact-preview-module';
+import { createShadcnSourceResolver, type SourceFetcher } from './source-resolver';
 import { materializeImplementationArtifact } from './implementation-materializer';
 import { prepareImplementationInsertion } from './insertion-preparation';
 
 const fixturePath = path.join(import.meta.dirname, 'fixtures', 'dashboard-01-responses.json.gz');
-const responses = JSON.parse(
-    gunzipSync(fs.readFileSync(fixturePath)).toString('utf8'),
-) as Record<string, { status: number; contentType: string; body: string }>;
+const responses = JSON.parse(gunzipSync(fs.readFileSync(fixturePath)).toString('utf8')) as Record<
+    string,
+    { status: number; contentType: string; body: string }
+>;
 const roots: string[] = [];
 
 after(() => {

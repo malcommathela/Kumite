@@ -196,6 +196,10 @@ export enum MainChannels {
     COMPONENTS_PREVIEW_RELEASE = 'components-preview-release',
     COMPONENTS_INSTALL_PROGRESS = 'components-install-progress',
     COMPONENTS_INSTALL_CANCEL = 'components-install-cancel',
+    COMPONENTS_ARTIFACT_PREPARE = 'components-artifact-prepare',
+    COMPONENTS_ARTIFACT_APPLY = 'components-artifact-apply',
+    COMPONENTS_ARTIFACT_COMMIT = 'components-artifact-commit',
+    COMPONENTS_ARTIFACT_ROLLBACK = 'components-artifact-rollback',
 }
 
 export enum GitChannels {

@@ -5,6 +5,12 @@ import type { ImplementationArtifact, PackageManager } from '@kumite/models';
 import { ImplementationArtifactSchema } from '@kumite/models';
 import { Project, SyntaxKind } from 'ts-morph';
 import { hashImplementationArtifact, hashImplementationSource } from './source-resolver';
+import {
+    describeMissingEntryExport,
+    findMissingArtifactProviders,
+    readEntrySourceFile,
+    resolveRuntimeEntryExport,
+} from './entry-export';
 
 export type InsertionFileAction = 'add' | 'reuse' | 'conflict';
 
@@ -61,6 +67,7 @@ export interface ImplementationInsertionPreparation {
         destinationPath: string | null;
         external: boolean;
         sha256?: string;
+        action: 'add' | 'reuse' | 'conflict' | 'external';
     }>;
     entryImport: {
         source: string;
@@ -90,20 +97,26 @@ function sha256(content: string | Buffer): string {
     return createHash('sha256').update(content).digest('hex');
 }
 
-function packageManager(root: string): PackageManager | null {
+function packageManagers(root: string): PackageManager[] {
+    const managers: PackageManager[] = [];
     if (fs.existsSync(path.join(root, 'bun.lock')) || fs.existsSync(path.join(root, 'bun.lockb'))) {
-        return 'bun';
+        managers.push('bun');
     }
     if (fs.existsSync(path.join(root, 'pnpm-lock.yaml'))) {
-        return 'pnpm';
+        managers.push('pnpm');
     }
     if (fs.existsSync(path.join(root, 'yarn.lock'))) {
-        return 'yarn';
+        managers.push('yarn');
     }
     if (fs.existsSync(path.join(root, 'package-lock.json'))) {
-        return 'npm';
+        managers.push('npm');
     }
-    return null;
+    return managers;
+}
+
+function packageManager(root: string): PackageManager | null {
+    const managers = packageManagers(root);
+    return managers.length === 1 ? managers[0] : null;
 }
 
 function findConfig(root: string, names: string[]): string | null {
@@ -180,7 +193,9 @@ function destinationFor(root: string, aliasRoot: string, sourcePath: string): st
         path.posix.isAbsolute(sourcePath) ||
         path.win32.isAbsolute(sourcePath) ||
         /^[a-zA-Z]:/.test(sourcePath) ||
-        sourcePath.split('/').some((segment) => segment === '' || segment === '.' || segment === '..')
+        sourcePath
+            .split('/')
+            .some((segment) => segment === '' || segment === '.' || segment === '..')
     ) {
         throw new Error(`Artifact source path is unsafe: ${sourcePath}`);
     }
@@ -257,8 +272,7 @@ function transformSourceFile(
         const expression = call.getExpression();
         const isImport = expression.getKind() === SyntaxKind.ImportKeyword;
         const isRequire =
-            expression.getKind() === SyntaxKind.Identifier &&
-            expression.getText() === 'require';
+            expression.getKind() === SyntaxKind.Identifier && expression.getText() === 'require';
         const argument = call.getArguments()[0];
         if ((!isImport && !isRequire) || !argument?.isKind(SyntaxKind.StringLiteral)) {
             continue;
@@ -279,6 +293,10 @@ function transformSourceFile(
 export function prepareImplementationInsertion(
     artifactValue: ImplementationArtifact,
     projectRoot: string,
+    options?: {
+        /** Verified primary export name (for example the catalog's first `part`). */
+        preferredExport?: string;
+    },
 ): ImplementationInsertionPreparation {
     const artifact = ImplementationArtifactSchema.parse(artifactValue);
     if (
@@ -314,12 +332,7 @@ export function prepareImplementationInsertion(
         typeof componentsJson?.aliases?.components === 'string'
             ? componentsJson.aliases.components
             : '@/components';
-    const componentsRoot = resolveConfiguredAlias(
-        root,
-        tsconfigPath,
-        componentsAlias,
-        aliasRoot,
-    );
+    const componentsRoot = resolveConfiguredAlias(root, tsconfigPath, componentsAlias, aliasRoot);
     const namespace = `kumite/${artifact.integrity.artifactHash}`;
     const namespaceRoot = path.join(componentsRoot, namespace);
     const namespaceAliasBase =
@@ -328,7 +341,8 @@ export function prepareImplementationInsertion(
             : '@/components';
     const namespaceAlias = `${namespaceAliasBase}/${namespace}`;
     const tsconfig = tsconfigPath ? readJson(tsconfigPath) : null;
-    const configuredPaths = tsconfig?.compilerOptions?.paths as Record<string, string[]> | undefined;
+    const configuredPaths = tsconfig?.compilerOptions?.paths as
+        Record<string, string[]> | undefined;
     const hasNamespaceAlias =
         componentsAlias.startsWith('@/') && Boolean(configuredPaths?.['@/*']?.length)
             ? true
@@ -340,7 +354,7 @@ export function prepareImplementationInsertion(
         let action: InsertionFileAction = 'add';
         if (fs.existsSync(destinationPath)) {
             action =
-                fs.statSync(destinationPath).isFile() &&
+                fs.lstatSync(destinationPath).isFile() &&
                 sha256(fs.readFileSync(destinationPath)) === transformedSha256
                     ? 'reuse'
                     : 'conflict';
@@ -358,9 +372,9 @@ export function prepareImplementationInsertion(
     const dependencies = artifact.dependencies.map((dependency) => {
         const installedVersion = installedPackage(root, dependency.name);
         const declaredVersion =
-            manifest.dependencies?.[dependency.name] ??
-            manifest.devDependencies?.[dependency.name];
-        const versionSource = dependency.versionSource ?? (dependency.version ? 'registry' : 'unspecified');
+            manifest.dependencies?.[dependency.name] ?? manifest.devDependencies?.[dependency.name];
+        const versionSource =
+            dependency.versionSource ?? (dependency.version ? 'registry' : 'unspecified');
         const compatible: boolean | 'unknown' =
             !installedVersion || !dependency.version
                 ? 'unknown'
@@ -374,7 +388,8 @@ export function prepareImplementationInsertion(
             ...(dependency.version ? { requestedVersion: dependency.version } : {}),
             versionSource,
             ...(installedVersion ? { installedVersion } : {}),
-            action: installedVersion ? ('present' as const) : ('install' as const),
+            action:
+                installedVersion && declaredVersion ? ('present' as const) : ('install' as const),
             compatible,
         };
     });
@@ -387,17 +402,39 @@ export function prepareImplementationInsertion(
             : asset.path.startsWith('public/')
               ? destinationFor(root, root, asset.path)
               : destinationFor(root, namespaceRoot, asset.path);
+        const action: 'add' | 'reuse' | 'conflict' | 'external' =
+            asset.external || !destinationPath
+                ? 'external'
+                : !fs.existsSync(destinationPath)
+                  ? 'add'
+                  : asset.sha256 &&
+                      fs.lstatSync(destinationPath).isFile() &&
+                      sha256(fs.readFileSync(destinationPath)) === asset.sha256
+                    ? 'reuse'
+                    : 'conflict';
         return {
             sourcePath: asset.path,
             destinationPath,
             external: asset.external,
             ...(asset.sha256 ? { sha256: asset.sha256 } : {}),
+            action,
         };
     });
-    const conflicts = files.filter((file) => file.action === 'conflict').map((file) => file.destinationPath);
-    const filesToAdd = files.filter((file) => file.action === 'add').map((file) => file.destinationPath);
-    const existingFiles = files.filter((file) => file.action === 'reuse').map((file) => file.destinationPath);
-    const configurationChanges: string[] = [];
+    const conflicts = [
+        ...files.filter((file) => file.action === 'conflict').map((file) => file.destinationPath),
+        ...localAssets
+            .filter((asset) => asset.action === 'conflict' && asset.destinationPath)
+            .map((asset) => asset.destinationPath!),
+    ];
+    const filesToAdd = files
+        .filter((file) => file.action === 'add')
+        .map((file) => file.destinationPath);
+    const existingFiles = files
+        .filter((file) => file.action === 'reuse')
+        .map((file) => file.destinationPath);
+    const configurationChanges = artifact.requirements.configuration.filter(
+        (requirement) => requirement !== 'upstream-example',
+    );
     const unsupportedRequirements: string[] = [];
     const warnings: string[] = [];
     if (!hasReact) {
@@ -409,32 +446,46 @@ export function prepareImplementationInsertion(
         );
     }
     if (!tsconfigPath) {
-        unsupportedRequirements.push('No tsconfig.json or jsconfig.json was found for source aliases.');
+        unsupportedRequirements.push(
+            'No tsconfig.json or jsconfig.json was found for source aliases.',
+        );
     } else if (!hasNamespaceAlias) {
         unsupportedRequirements.push(
             'The project has no matching TypeScript path alias for its configured components alias.',
         );
     }
-    if (artifact.requirements.configuration.length > 0) {
-        configurationChanges.push(...artifact.requirements.configuration);
+    const packageManagersFound = packageManagers(root);
+    if (packageManagersFound.length !== 1) {
+        unsupportedRequirements.push(
+            packageManagersFound.length === 0
+                ? 'No package-manager lockfile was found; insertion requires one to manage approved dependencies safely.'
+                : `Conflicting package-manager lockfiles were found (${packageManagersFound.join(', ')}). Keep exactly one before insertion.`,
+        );
     }
-    const entrySource = artifact.files.find((file) => file.path === artifact.entryPoint)?.content ?? '';
-    const entryProviders = new Set(
-        [...entrySource.matchAll(/<([A-Z][A-Za-z0-9]*Provider)\b/g)].map((match) => match[1]),
-    );
-    const missingProviders = artifact.requirements.providers.filter(
-        (provider) => !entryProviders.has(provider),
-    );
+    if (configurationChanges.length > 0) {
+        unsupportedRequirements.push(
+            ...configurationChanges.map(
+                (requirement) =>
+                    `Required project configuration "${requirement}" has no safe automatic writer yet.`,
+            ),
+        );
+    }
+    const missingProviders = findMissingArtifactProviders(artifact);
     if (missingProviders.length > 0) {
         unsupportedRequirements.push(
-            ...missingProviders.map((provider) => `Required provider "${provider}" is not present in the artifact entry composition.`),
+            ...missingProviders.map(
+                (provider) =>
+                    `Required provider "${provider}" is not present in the artifact entry composition.`,
+            ),
         );
     }
     if (artifact.assets.some((asset) => asset.external)) {
         warnings.push('The artifact references external assets that will not be downloaded.');
     }
     if (dependencies.some((dependency) => dependency.versionSource === 'unspecified')) {
-        warnings.push('Some package versions are unspecified upstream; no version has been selected or installed.');
+        warnings.push(
+            'Some package versions are unspecified upstream; no version has been selected or installed.',
+        );
     }
     const incompatibleDependencies = dependencies.filter(
         (dependency) => dependency.compatible === false,
@@ -446,9 +497,6 @@ export function prepareImplementationInsertion(
                     `Installed ${dependency.name}@${dependency.installedVersion} conflicts with required ${dependency.requestedVersion}.`,
             ),
         );
-    }
-    if (dependenciesToInstall.length > 0 && !packageManager(root)) {
-        unsupportedRequirements.push('No package manager lockfile was found to install missing dependencies safely.');
     }
     if (conflicts.length > 0) {
         warnings.push('Conflicting project files must be resolved explicitly before insertion.');
@@ -466,23 +514,12 @@ export function prepareImplementationInsertion(
     const entryFile = artifact.files.find((file) => file.path === artifact.entryPoint);
     let entryExport: { kind: 'default' } | { kind: 'named'; name: string } | null = null;
     if (entryFile) {
-        const sourceFile = new Project({
-            skipAddingFilesFromTsConfig: true,
-            useInMemoryFileSystem: true,
-        }).createSourceFile('implementation-entry.tsx', entryFile.content);
-        const exports = sourceFile.getExportedDeclarations();
-        if (exports.has('default')) {
-            entryExport = { kind: 'default' };
-        } else if (artifact.metadata.type === 'component') {
-            const named = [...exports.keys()].filter((name) => /^[A-Z]/.test(name)).sort()[0];
-            if (named) {
-                entryExport = { kind: 'named', name: named };
-            }
-        }
+        const sourceFile = readEntrySourceFile(entryFile.content);
+        entryExport = resolveRuntimeEntryExport(sourceFile, artifact, options?.preferredExport);
     }
     if (!entryExport) {
         unsupportedRequirements.push(
-            `Artifact entry point "${artifact.entryPoint}" does not expose a supported ${artifact.metadata.type} export.`,
+            describeMissingEntryExport(artifact.entryPoint, artifact.metadata.type),
         );
     }
 

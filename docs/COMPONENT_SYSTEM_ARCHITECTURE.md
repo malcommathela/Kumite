@@ -2,13 +2,15 @@
 
 ## Pipeline
 
-Canonical target: `ImplementationRequest -> provider adapter -> validated
-ImplementationArtifact -> isolated preview or project-specific preparation ->
-approved materialization`.
+Canonical flow: `ImplementationRequest -> provider adapter -> validated,
+content-addressed ImplementationArtifact -> upstream-example preview or
+project-specific preparation -> exact-plan approval -> transactional publication
+and editor insertion`.
 
-The provider-neutral resolver, immutable artifact store, demo inventory and
-read-only insertion preparation are implemented foundations. Catalog preview now
-consumes artifacts; project insertion still uses the legacy template flow.
+The pinned shadcn resolver, immutable artifact store, demo inventory,
+artifact-backed catalog previews, plan review, transactional publication, and
+the editor's Use action all consume canonical artifacts. Other providers remain
+explicitly unsupported.
 
 ## Component record
 
@@ -148,14 +150,13 @@ metadata; the service does not infer a license from provider identity.
 ### Immutable artifact storage (Phase 3D foundation)
 
 `implementation-store.ts` persists validated artifact snapshots under a
-content-addressed SHA-256 identity. A separate reference index supports preview,
-project, and editor consumers; callers must register durable consumers before
-garbage collection. Garbage collection only removes the two store-owned files
-from an unreferenced artifact directory and never recursively removes unknown
-content. `implementationWorkspaceIdentity` derives a stable workspace key from
-provider, logical artifact id, and source/artifact hashes without machine paths.
-The store keeps the upstream snapshot separate from any future transformed
-working tree; structured user-edit tracking is not wired yet.
+content-addressed SHA-256 identity. Creation, reference acquisition/removal, and
+GC use the same artifact-level lock; preview acquisition stores and adds its
+lease atomically. GC verifies there are no consumers and atomically renames the
+whole known artifact directory to a tombstone before deletion. A later pass
+finishes interrupted tombstones. Startup reconciliation removes stale `preview:`
+leases while preserving durable consumer identities. The upstream snapshot
+remains separate from project materializations.
 
 Resolved artifacts also carry a demo inventory (path, format, inbound source
 references, and a conservative top-level JSON shape when available). JSON row
@@ -174,16 +175,35 @@ dependencies with version provenance, entry-point export semantics, required
 configuration, warnings, unsupported requirements, and deterministic AST-based
 import-alias transformations. It records original and transformed hashes
 separately and places source under an artifact-specific project namespace to
-avoid collisions. It never writes files or invokes a package manager. The
-write/approval UI and transactional project publication are not wired to this
-preparation API yet.
+avoid collisions. It never writes files or invokes a package manager.
 
-Consequently, the current “Use” action still inserts the legacy `insertCode`
-template; it does not yet publish the prepared artifact source tree. Approved
-dependency installation, scoped lockfile updates, user-facing conflict choices,
-atomic publication/rollback, and artifact references from project/editor
-consumers remain deferred. The preparation API reports files, versions,
-conflicts, and AST alias transforms but is not completed insertion parity.
+The editor's **Use** action resolves the same canonical artifact (or its
+verified upstream example), displays source/assets, conflicts, providers,
+configuration, risks and exact dependency versions, then requires approval in
+the renderer and a main-process native dialog. Approval is bound to a short-lived
+plan id and SHA-256 plan hash. Apply re-reads project configuration and refuses
+to continue if the plan changed or any destination became occupied.
+
+After approval, `artifact-insertion.ts` stages and validates source and local
+assets, installs only missing pinned versions with lifecycle scripts disabled,
+and publishes files using exclusive same-volume hard links (never overwriting a
+destination). The operation journal records artifact/provenance identity,
+approved plan hash, original/transformed hashes, dependencies, package-manager
+backups, created files, progress, and rollback state. The renderer inserts the
+artifact export through the existing `CodeDiffRequest` pipeline, preserving
+`data-oid`, source mapping, undo/history and visual editing. The journal commits
+only after the editor write succeeds; editor failure triggers rollback.
+
+On restart, recoverable interrupted writes are rolled back only when file
+ownership is verified by hashes. If a crash occurs between atomic publication
+and recording completion, or while a package manager mutates lockfiles, the
+journal preserves uncertain content and reports manual recovery instead of
+deleting or restoring a file that may contain user work. Operations that reached
+`awaiting-editor` are preserved because the editor write may already have
+succeeded; the user is warned to inspect before retrying. Direct artifact
+dependencies and exact selected versions appear in the approval plan;
+transitive resolution is captured by the project's lockfile. Package lifecycle
+scripts are not run.
 
 Explicit shadcn CLI installation uses block direct JSON URLs at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
@@ -290,6 +310,16 @@ This is a compatibility API for already-installed source. The catalog UI does
 not use it, does not require the active project's Vite, and never falls back to
 an official remote preview after an artifact preview fails.
 
+Catalog components render upstream `registry:example` compositions rather than
+bare component elements. The audited v4 examples follow the
+`<component-name>-demo` naming pattern; Chart uses the verified
+`chart-bar-demo`. Their original JSX, demo data, dependencies, and local assets
+remain in the artifact. Blocks render their complete upstream page entry.
+Components without a resolvable example or safe provider composition show an
+explicit error; preview code never falls back to `previewCode` or generated
+approximations. Runtime export discovery skips type-only declarations and uses
+verified catalog export metadata where available.
+
 The library resolves only visible catalog requests to pinned artifacts.
 `artifact-preview.ts` validates and stores each immutable snapshot, materializes
 its source/assets under a deterministic workspace identity, and merges verified
@@ -299,9 +329,10 @@ files live separately under `__kumite_preview/`. A shared
 `PreviewRuntimeManager` serves all sessions from one process on the lifecycle
 port manager, with per-consumer session ids and reference-counted runtime
 cleanup. Active preview owners hold persistent artifact references; releasing an
-owner aborts pending resolution/materialization and releases its sessions.
-Materialized artifacts and the shared Vite workspace remain cached after the
-last session closes; age-based workspace garbage collection is not implemented.
+owner aborts pending resolution/materialization and releases its sessions. The
+shared Vite process and port stop when the final runtime session closes.
+Materialized source remains cached in the shared workspace; age-bounded cleanup
+of merged source files is not implemented.
 `catalog.ts` prepares only the React/Vite/Tailwind workspace; it no longer runs
 `shadcn add` for catalog cards. The active project is not used or modified.
 
@@ -316,21 +347,16 @@ to the official remote preview. Official preview URLs remain external references
 
 ### Insertion
 
-The following describes the currently wired legacy behavior, not the canonical
-artifact path. Artifact-backed preparation is available through
-`prepareImplementationInsertion`, but approval, publication, and the renderer
-flow remain to be integrated.
+The following describes the wired artifact path. Legacy `insertCode` and
+`previewCode` fields remain only for compatibility/copy-for-agent surfaces; the
+Use and catalog-preview paths do not use them.
 
-`apps/studio/src/lib/components/index.ts` builds an element tree and a
-`CodeDiffRequest` that carries required `imports`. Component imports are remapped
-to the active project's `components.json` UI alias. Block imports use the
-configured components alias and the block's verified named/default export; a
-block is appended to the selected element rather than replacing a route. Blocks
-are page-level compositions, so their insert code wraps the export in a
-full-width `div`; without it they collapse inside a centred flex parent.
-Card-shaped blocks (authentication, login, signup, otp) instead wrap in
-`mx-auto w-full max-w-sm` so an inserted login form renders as the centred card
-its upstream page shows rather than stretching across the frame.
+`apps/studio/src/lib/components/index.ts` builds a `CodeDiffRequest` from the
+approved artifact entry import. Source is imported from its artifact-specific
+project namespace, not from the legacy `ui/` or block template path. When a
+component has a verified upstream example, Use inserts that complete example
+composition (including its demo data and context) rather than hand-authored JSX.
+Blocks likewise use their full upstream page entry.
 
 A block is never appended to a text element. `resolveBlockInsertTarget` walks up
 from the selection until `isBlockInsertContainer` accepts the tag (layout
@@ -341,10 +367,8 @@ found, insertion refuses with "Select a layout element…" rather than guessing.
 The resolved container also owns the `CodeDiffRequest`, so the write and the
 insertion location address the same node.
 
-Use and install actions run through MobX state: `installing` covers the CLI
-install and `using` covers the code write, and the library's Use button renders an
-`Icons.Shadow` spinner with `Installing…` / `Adding…` and stays disabled for the
-whole flow.
+Use actions run through MobX state and stay disabled while preparing, reviewing,
+publishing, and inserting. The artifact path does not invoke `shadcn add`.
 `apps/studio/electron/main/code/diff/transform.ts` merges those
 imports into the file's existing `import { ... } from "..."` declaration instead of
 appending a second one, then the write goes through the same code-diff pipeline
@@ -371,14 +395,25 @@ break the project's build. It also collapses duplicated `@apply` declarations.
 
 ### Explicit limits
 
-- `form` installs but is not statically inserted or previewed: it needs a
-  react-hook-form controller that a template cannot invent.
-- `sonner` installs and inserts, but preview is unavailable because a toaster
-  renders nothing without a toast trigger.
+- `form` is unsupported for Use/preview because it needs a react-hook-form
+  controller not supplied by an upstream example.
+- `sonner` is unsupported for standalone preview because the toaster depends on
+  the consuming application's trigger/provider.
+- `sidebar` is unsupported as a standalone component; use an upstream sidebar
+  block that includes its `SidebarProvider` composition.
 - `toast` has no installable item in the pinned v4 registry snapshot.
-- The matrix proves template shape and export/import consistency, not that 54
-  components were installed or rendered in Electron. See
-  `PHASE_3D_STAGE_6_COMPLETION_REPORT.md`.
+- `21st-dev` and `magic-ui` remain unsupported; no catalog, source resolver,
+  provenance, or artifact workflow is implemented for them.
+- Automated insertion integration uses a disposable Vite project and verifies
+  actual published-source rendering, AST import generation, and `data-oid`.
+  It does not yet automate the Electron native approval dialog, a real package
+  installation failure, or browser interaction in the Kumite canvas. The
+  pinned `chart-bar-demo` was resolved from upstream during implementation, but
+  it is not yet a repeatable network-backed preview-runtime test.
+- Package-manager rollback and ambiguous crash states are journaled; ambiguous
+  package/lockfile mutations are deliberately preserved for manual recovery.
+  Operation cancellation and age-based cleanup of merged preview source are not
+  implemented.
 
 ### Known limitation: library-internal nodes
 

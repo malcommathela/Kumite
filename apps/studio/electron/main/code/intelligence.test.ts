@@ -631,7 +631,7 @@ describe('the pinned catalog', () => {
         );
         assert.deepEqual(
             blocked.map((component) => component.name),
-            ['form', 'sonner', 'toast'],
+            ['form', 'sidebar', 'sonner', 'toast'],
         );
         for (const component of blocked) {
             assert.ok(component.limitation, `${component.name} is blocked without a reason`);
@@ -695,6 +695,7 @@ describe('the pinned catalog', () => {
             'select',
             'separator',
             'skeleton',
+            'switch',
             'tabs',
             'textarea',
             'toggle',

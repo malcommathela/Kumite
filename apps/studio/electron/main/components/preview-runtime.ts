@@ -202,7 +202,9 @@ export function writeSessionEntry(
             throw new Error('Preview files already exist in this project.');
         }
         if (existing !== spec.html) {
-            throw new Error('Preview HTML changed since this session was created; refusing to overwrite it.');
+            throw new Error(
+                'Preview HTML changed since this session was created; refusing to overwrite it.',
+            );
         }
     }
     if (fs.existsSync(sourcePath)) {
@@ -369,10 +371,15 @@ export class PreviewRuntimeManager {
             return cancelled();
         }
 
-        let written: PreviewSessionFiles[];
+        const written: PreviewSessionFiles[] = [];
         try {
-            written = options.entries.map((entry) => writeSessionEntry(options.projectPath, entry));
+            for (const entry of options.entries) {
+                written.push(writeSessionEntry(options.projectPath, entry));
+            }
         } catch (error: any) {
+            for (const files of written) {
+                removeSessionEntry(files);
+            }
             this.dropRequest(pending, requestId);
             return {
                 urls: {},
@@ -584,11 +591,12 @@ export class PreviewRuntimeManager {
             for (const [sessionId, session] of [...runtime.sessions.entries()]) {
                 if (session.ownerId === ownerId) {
                     runtime.sessions.delete(sessionId);
+                    removeSessionEntry(session.files);
                 }
             }
             if (runtime.sessions.size === 0) {
-                // Keep the shared runtime for the idle window; another consumer
-                // may reopen the library before it expires.
+                await this.forget(key, runtime, true);
+            } else {
                 this.touch(key, runtime);
             }
         }

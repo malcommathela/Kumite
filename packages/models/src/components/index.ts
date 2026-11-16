@@ -64,6 +64,8 @@ export interface ShadcnComponentDefinition {
     insertCode: string;
     /** @deprecated Compatibility fallback for installed-source previews only. */
     previewCode: string;
+    /** Exact upstream example item used as the canonical preview/insertion composition. */
+    previewExample?: string;
     /** False when the pinned snapshot has no installable item. Defaults to true. */
     installable?: boolean;
     /** False when a static template cannot be written safely. Defaults to true. */
@@ -89,6 +91,7 @@ export interface ShadcnProjectStatus {
     componentsAlias: string | null;
     componentsJsonPath: string | null;
     installed: Record<string, boolean>;
+    artifactInsertionRecovery?: string[];
 }
 
 export interface ShadcnInstallResult {
@@ -562,6 +565,7 @@ export const SHADCN_COMPONENTS: ShadcnComponentDefinition[] = [
         name: 'chart',
         title: 'Chart',
         description: 'Beautiful charts. Built using Recharts. Copy and paste into your apps.',
+        previewExample: 'chart-bar-demo',
         dependencies: ['lucide-react', 'recharts'],
         registryDependencies: ['card'],
         parts: [
@@ -1780,60 +1784,13 @@ export const SHADCN_COMPONENTS: ShadcnComponentDefinition[] = [
             'SidebarTrigger',
             'useSidebar',
         ],
-        imports: [
-            {
-                source: '@/components/ui/sidebar',
-                namedImports: [
-                    'Sidebar',
-                    'SidebarContent',
-                    'SidebarGroup',
-                    'SidebarGroupContent',
-                    'SidebarGroupLabel',
-                    'SidebarMenu',
-                    'SidebarMenuButton',
-                    'SidebarMenuItem',
-                    'SidebarProvider',
-                ],
-            },
-        ],
-        insertCode: `<SidebarProvider>
-    <Sidebar>
-        <SidebarContent>
-            <SidebarGroup>
-                <SidebarGroupLabel>Application</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton>Dashboard</SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton>Projects</SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-        </SidebarContent>
-    </Sidebar>
-</SidebarProvider>`,
-        previewCode: `<SidebarProvider>
-    <Sidebar>
-        <SidebarContent>
-            <SidebarGroup>
-                <SidebarGroupLabel>Application</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton>Dashboard</SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton>Projects</SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-        </SidebarContent>
-    </Sidebar>
-</SidebarProvider>`,
+        previewable: false,
+        insertable: false,
+        limitation:
+            'Sidebar requires the SidebarProvider composition. Use an upstream sidebar block instead; the standalone component has no matching example.',
+        imports: [],
+        insertCode: '',
+        previewCode: '',
     },
     {
         name: 'skeleton',
@@ -2143,6 +2100,14 @@ export const isShadcnBlock = (
     item: ShadcnLibraryItem,
 ): item is import('./blocks').ShadcnBlockDefinition =>
     SHADCN_BLOCKS.some((block) => block.name === item.name);
+
+/** The audited v4 examples use `<component-name>-demo`, except explicitly
+ * curated variants such as chart-bar-demo. Resolution still validates the
+ * exact upstream registry item; there is no component-template fallback. */
+export function getShadcnExampleName(item: ShadcnLibraryItem): string | undefined {
+    if (isShadcnBlock(item) || item.previewable === false) return undefined;
+    return item.previewExample ?? `${item.name}-demo`;
+}
 
 /**
  * npm packages an item needs, including those declared by the registry items it
