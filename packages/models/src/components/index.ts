@@ -1,4 +1,17 @@
 import type { CodeImport } from '../code';
+export {
+    ImplementationArtifactSchema,
+    IMPLEMENTATION_KINDS,
+    IMPLEMENTATION_PROVIDERS,
+    deserializeImplementationArtifact,
+    serializeImplementationArtifact,
+} from './implementation';
+export type {
+    ImplementationArtifact,
+    ImplementationKind,
+    ImplementationProvider,
+    ImplementationRequest,
+} from './implementation';
 import {
     getBlockInsertWrapperClass,
     getShadcnBlock,
