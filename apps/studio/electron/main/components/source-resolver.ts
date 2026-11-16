@@ -155,6 +155,43 @@ export function hashImplementationArtifact(artifact: ImplementationArtifact): st
     return sha256(stableStringify(artifact));
 }
 
+export function hashImplementationSource(source: {
+    registryItems: ImplementationArtifact['source']['registryItems'];
+    files: ImplementationArtifact['files'];
+    assets: ImplementationArtifact['assets'];
+}): string {
+    return sha256(
+        stableStringify({
+            registryItems: [...source.registryItems]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((item) => ({
+                    name: item.name,
+                    type: item.type,
+                    url: item.url,
+                    sha256: item.sha256,
+                    ...(item.description ? { description: item.description } : {}),
+                    categories: [...item.categories],
+                    dependencies: [...item.dependencies],
+                    registryDependencies: [...item.registryDependencies],
+                    files: [...item.files],
+                })),
+            files: [...source.files]
+                .sort((a, b) => a.path.localeCompare(b.path))
+                .map(({ path: filePath, sha256: hash }) => ({
+                    path: filePath,
+                    sha256: hash,
+                })),
+            assets: [...source.assets]
+                .sort((a, b) => a.path.localeCompare(b.path))
+                .map(({ path: assetPath, sha256: hash, source: sourceUrl }) => ({
+                    path: assetPath,
+                    sha256: hash,
+                    source: sourceUrl,
+                })),
+        }),
+    );
+}
+
 function registryUrlFor(name: string): string {
     return `${REGISTRY_ROOT}/${encodeURIComponent(name)}.json`;
 }
@@ -279,8 +316,13 @@ function resolveImportPath(from: string, specifier: string): string {
 function pathCandidates(sourcePath: string): string[] {
     const extension = path.posix.extname(sourcePath);
     if (extension) {
-        const partial = path.posix.join(path.posix.dirname(sourcePath), `_${path.posix.basename(sourcePath)}`);
-        return extension === '.scss' || extension === '.sass' ? [partial, sourcePath] : [sourcePath];
+        const partial = path.posix.join(
+            path.posix.dirname(sourcePath),
+            `_${path.posix.basename(sourcePath)}`,
+        );
+        return extension === '.scss' || extension === '.sass'
+            ? [partial, sourcePath]
+            : [sourcePath];
     }
     return [
         ...SOURCE_FILE_EXTENSIONS.flatMap((candidateExtension) => {
@@ -292,7 +334,9 @@ function pathCandidates(sourcePath: string): string[] {
                 ? [`${sourcePath}${candidateExtension}`, partial]
                 : [`${sourcePath}${candidateExtension}`];
         }),
-        ...SOURCE_FILE_EXTENSIONS.map((candidateExtension) => `${sourcePath}/index${candidateExtension}`),
+        ...SOURCE_FILE_EXTENSIONS.map(
+            (candidateExtension) => `${sourcePath}/index${candidateExtension}`,
+        ),
     ];
 }
 
@@ -329,9 +373,9 @@ function classifyFile(
 
 function importedSpecifiers(sourcePath: string, content: string): string[] {
     if (/\.(?:css|scss|sass)$/.test(sourcePath)) {
-        const cssImports = [...content.matchAll(/@import\s+(?:url\()?['"]?([^'")\s;]+)['"]?\)?/g)].map(
-            (match) => match[1],
-        );
+        const cssImports = [
+            ...content.matchAll(/@import\s+(?:url\()?['"]?([^'")\s;]+)['"]?\)?/g),
+        ].map((match) => match[1]);
         const sassModules = [...content.matchAll(/@(use|forward)\s+['"]([^'"]+)['"]/g)].map(
             (match) => match[2],
         );
@@ -438,8 +482,12 @@ function referencedAssetPaths(sourcePath: string, content: string): string[] {
             const initializer = attribute.getInitializer();
             if (initializer && Node.isStringLiteral(initializer)) {
                 const value = initializer.getLiteralValue();
-                for (const candidate of value.split(/\s*,\s*/)) {
-                    if (ASSET_EXTENSIONS.test(candidate)) {
+                const candidates = attributeName === 'srcset' ? value.split(/\s*,\s*/) : [value];
+                for (const candidate of candidates) {
+                    if (
+                        ASSET_EXTENSIONS.test(candidate) ||
+                        /^(?:https?:|data:|blob:)/i.test(candidate)
+                    ) {
                         refs.add(candidate);
                     }
                 }
@@ -980,30 +1028,22 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 versionSource: dependency.versionSource,
             }))
             .sort((a, b) => a.name.localeCompare(b.name));
-        const sourceHash = sha256(
-            stableStringify({
-                registryItems: registryRecords.map(({ item, url, sha256: hash }) => ({
-                    name: item.name,
-                    type: item.type,
-                    url,
-                    sha256: hash,
-                    ...(item.description ? { description: item.description } : {}),
-                    categories: [...(item.categories ?? [])],
-                    dependencies: [...(item.dependencies ?? [])],
-                    registryDependencies: [...(item.registryDependencies ?? [])],
-                    files: item.files.map((file) => file.path),
-                })),
-                files: artifactFiles.map(({ path: filePath, sha256: hash }) => ({
-                    path: filePath,
-                    sha256: hash,
-                })),
-                assets: artifactAssets.map(({ path: assetPath, sha256: hash, source }) => ({
-                    path: assetPath,
-                    sha256: hash,
-                    source,
-                })),
-            }),
-        );
+        const artifactRegistryItems = registryRecords.map(({ item, url, sha256: hash }) => ({
+            name: item.name,
+            type: item.type,
+            url,
+            sha256: hash,
+            ...(item.description ? { description: item.description } : {}),
+            categories: [...(item.categories ?? [])],
+            dependencies: [...(item.dependencies ?? [])],
+            registryDependencies: [...(item.registryDependencies ?? [])],
+            files: item.files.map((file) => file.path),
+        }));
+        const sourceHash = hashImplementationSource({
+            registryItems: artifactRegistryItems,
+            files: artifactFiles,
+            assets: artifactAssets,
+        });
         const candidate: ImplementationArtifact = {
             schemaVersion: 1,
             id: `shadcn:new-york-v4:${request.kind}:${request.name}@${UPSTREAM_COMMIT}`,
@@ -1016,17 +1056,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 sourceUrl: sourceUrlForRegistryPath(rootEntry.path),
                 retrievedAt: now().toISOString(),
                 provenance: 'official',
-                registryItems: registryRecords.map(({ item, url, sha256: hash }) => ({
-                    name: item.name,
-                    type: item.type,
-                    url,
-                    sha256: hash,
-                    ...(item.description ? { description: item.description } : {}),
-                    categories: [...(item.categories ?? [])],
-                    dependencies: [...(item.dependencies ?? [])],
-                    registryDependencies: [...(item.registryDependencies ?? [])],
-                    files: item.files.map((file) => file.path),
-                })),
+                registryItems: artifactRegistryItems,
             },
             metadata: {
                 name: root.item.name,
@@ -1054,7 +1084,8 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 return {
                     available,
                     preserved:
-                        available && demoFiles.every((file) => sha256(file.content) === file.sha256),
+                        available &&
+                        demoFiles.every((file) => sha256(file.content) === file.sha256),
                     files: demoFiles.map((file) => file.path),
                     // Structured demo-data editing is not implemented yet.
                     editable: false,
@@ -1113,14 +1144,18 @@ export async function materializeImplementationAsset(
     try {
         const fetcher = options.fetcher ?? ((url, signal) => fetch(url, { signal }));
         const response = await fetcher(asset.source, options.signal);
-        if (!response.ok) throw new Error(`Upstream returned HTTP ${response.status}.`);
+        if (!response.ok) {
+            throw new Error(`Upstream returned HTTP ${response.status}.`);
+        }
         const bytes = new Uint8Array(await response.arrayBuffer());
         if (sha256(bytes) !== asset.sha256 || bytes.byteLength !== asset.size) {
             throw new Error('Downloaded asset does not match the artifact hash and size.');
         }
         return storeAsset(bytes, asset.sha256, asset.path, directory);
     } catch (error) {
-        if (error instanceof SourceResolutionError) throw error;
+        if (error instanceof SourceResolutionError) {
+            throw error;
+        }
         throw new SourceResolutionError({
             kind: 'asset',
             source: asset.source,

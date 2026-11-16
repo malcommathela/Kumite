@@ -40,6 +40,18 @@ export type {
     SourceResolutionIssue,
     ImplementationAssetMaterializationOptions,
 } from './source-resolver';
+export {
+    ImplementationMaterializationError,
+    materializeImplementationArtifact,
+} from './implementation-materializer';
+export type {
+    ImplementationMaterializationErrorCode,
+    ImplementationMaterializationManifest,
+    ImplementationMaterializationOptions,
+    ImplementationMaterializationResult,
+    MaterializedLocalAsset,
+    MaterializedSourceFile,
+} from './implementation-materializer';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
