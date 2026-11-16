@@ -775,7 +775,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 });
             }
             if (existing.length === 1) {
-                return existing[0];
+                return existing[0]!;
             }
             let lastError: unknown;
             for (const candidate of candidates) {
