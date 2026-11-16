@@ -762,6 +762,7 @@ export async function materializeImplementationArtifact(
             registryUrl: artifact.source.registryUrl,
             sourceUrl: artifact.source.sourceUrl,
             provenance: artifact.source.provenance,
+            ...(artifact.source.license ? { license: artifact.source.license } : {}),
             registryItems: artifact.source.registryItems,
         };
         const manifest: ImplementationMaterializationManifest = {

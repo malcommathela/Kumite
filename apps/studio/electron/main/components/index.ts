@@ -7,11 +7,13 @@ import type {
     ShadcnLibraryItem,
     ShadcnPreviewResult,
     ShadcnProjectStatus,
+    ImplementationRequest,
 } from '@kumite/models';
-import { getShadcnLibraryItem, isShadcnBlock, SHADCN_COMPONENTS } from '@kumite/models';
+import { getShadcnLibraryItem, isShadcnBlock } from '@kumite/models';
 import fs from 'fs';
 import path from 'path';
-import { ensureCatalogBase, installCatalogItems } from './catalog';
+import { ensureCatalogBase } from './catalog';
+import { artifactCatalogPreviewServer } from './artifact-preview';
 import { runPackageManagerCommand, runShadcnCommand, runShadcnCommandWithRetry } from './cli';
 import { isEmptyFile, restoreFiles, snapshotFiles } from './files';
 import {
@@ -24,7 +26,7 @@ import {
 } from './inspect';
 import { isInstallCancelled, sharedInstallQueue } from './install-queue';
 import { guardEmptyChartContainer } from './patches';
-import { catalogPreviewServer, componentPreviewServer } from './preview';
+import { componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
 export {
@@ -85,6 +87,8 @@ export type {
     PreparedInsertionDependency,
     PreparedInsertionFile,
 } from './insertion-preparation';
+export { ArtifactCatalogPreviewServer, artifactCatalogPreviewServer } from './artifact-preview';
+export type { ArtifactCatalogPreviewResult } from './artifact-preview';
 
 function resolveProjectPath(projectPath: unknown): string {
     if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
@@ -680,30 +684,61 @@ export async function startCatalogPreview(
                   ),
               ]
             : [];
+        if (requested.length === 0) {
+            return { urls: {}, sources: {}, errors: {}, missing: [], error: null, log: null };
+        }
         const base = await ensureCatalogBase();
-        const install =
-            requested.length > 0 ? await installCatalogItems(requested, onProgress) : null;
-        const status = install?.status ?? base.status;
-        const definitions = SHADCN_COMPONENTS.filter(
-            (component) => component.previewable !== false && status.installed[component.name],
-        );
-        const result = await catalogPreviewServer.start(
+        const errors: Record<string, string> = {};
+        const requests: ImplementationRequest[] = [];
+        for (const name of requested) {
+            const definition = getShadcnLibraryItem(name);
+            if (!definition || definition.previewable === false) {
+                errors[name] =
+                    definition?.limitation ?? `No artifact preview is available for "${name}".`;
+                continue;
+            }
+            requests.push({
+                provider: 'shadcn',
+                kind: isShadcnBlock(definition) ? 'block' : 'component',
+                name,
+                ...(isShadcnBlock(definition) ? { registryUrl: definition.registryUrl } : {}),
+            });
+        }
+        const result = await artifactCatalogPreviewServer.start(
             base.root,
-            definitions,
+            requests,
             typeof projectId === 'string' ? projectId : 'catalog-ui',
+            {
+                storeRoot: path.join(base.root, '.kumite-artifact-store'),
+                onProgress,
+            },
         );
-        const log = [install?.log, result.log].filter(Boolean).join('\n\n');
+        Object.assign(errors, result.errors);
+        const log = [base.log, result.log].filter(Boolean).join('\n\n');
+        onProgress?.({
+            component: requested.join(', '),
+            phase: 'done',
+            message: 'Artifact preview preparation finished.',
+        });
         return {
             urls: result.urls,
             sessions: result.sessions,
-            missing: install?.missing ?? [],
-            error: result.error,
+            sources: result.sources,
+            errors,
+            missing: Object.keys(errors),
+            error:
+                result.error ??
+                (Object.keys(errors).length > 0
+                    ? 'Some catalog artifacts could not be previewed locally.'
+                    : null),
             log: log || null,
         };
     } catch (error: any) {
         return {
             urls: {},
             sessions: {},
+            sources: {},
+            errors: {},
             missing: [],
             error: error?.message ?? 'Could not prepare the component previews.',
             log: null,
@@ -713,9 +748,10 @@ export async function startCatalogPreview(
 
 /** Releases a project's catalog sessions without stopping other consumers. */
 export async function releaseCatalogPreview(projectId: unknown): Promise<boolean> {
-    if (typeof projectId !== 'string' || projectId.trim().length === 0) {
-        return false;
-    }
-    await catalogPreviewServer.releaseProject(projectId);
+    const ownerId =
+        typeof projectId === 'string' && projectId.trim().length > 0
+            ? projectId
+            : 'catalog-ui';
+    await artifactCatalogPreviewServer.releaseOwner(ownerId);
     return true;
 }

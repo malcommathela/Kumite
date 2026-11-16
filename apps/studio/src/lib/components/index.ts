@@ -44,6 +44,7 @@ export class ComponentsManager {
     previewError: string | null = null;
     catalogPreviews: Record<string, string> = {};
     catalogSessions: Record<string, string> = {};
+    catalogPreviewSources: Record<string, 'artifact'> = {};
     catalogBaseLoading = false;
     catalogBaseError: string | null = null;
     catalogItemLoading: Record<string, boolean> = {};
@@ -200,16 +201,6 @@ export class ComponentsManager {
             this.previewLoading = false;
             return;
         }
-        if (block && isShadcnBlock(block) && block.previewUrl) {
-            this.previewComponent = componentName;
-            this.previewUrl = navigator.onLine ? block.previewUrl : null;
-            this.previewSessionId = null;
-            this.previewError = navigator.onLine
-                ? null
-                : 'You’re offline. The official shadcn block preview needs an internet connection.';
-            this.previewLoading = false;
-            return;
-        }
         if (!this.catalogPreviews[componentName]) {
             await this.ensureCatalogPreviews([componentName]);
         }
@@ -320,6 +311,7 @@ export class ComponentsManager {
             // ask for a fresh one instead of reusing the cached address.
             delete this.catalogPreviews[name];
             delete this.catalogSessions[name];
+            delete this.catalogPreviewSources[name];
         });
         return this.ensureCatalogPreviews([name]);
     }
@@ -365,13 +357,19 @@ export class ComponentsManager {
             runInAction(() => {
                 this.catalogPreviews = { ...this.catalogPreviews, ...(result.urls ?? {}) };
                 this.catalogSessions = { ...this.catalogSessions, ...(result.sessions ?? {}) };
+                this.catalogPreviewSources = {
+                    ...this.catalogPreviewSources,
+                    ...(result.sources ?? {}),
+                };
                 for (const name of batch) {
                     this.catalogItemLoading[name] = false;
                     if (this.catalogPreviews[name]) {
                         delete this.catalogItemErrors[name];
                         continue;
                     }
+                    delete this.catalogPreviewSources[name];
                     this.catalogItemErrors[name] =
+                        result.errors?.[name] ??
                         result.error ??
                         `Kumite could not prepare ${name} for preview. Check the CLI output for details.`;
                 }
@@ -413,6 +411,7 @@ export class ComponentsManager {
         runInAction(() => {
             this.catalogPreviews = {};
             this.catalogSessions = {};
+            this.catalogPreviewSources = {};
             this.catalogItemErrors = {};
             this.catalogItemLoading = {};
             this.catalogPending.clear();
@@ -424,12 +423,12 @@ export class ComponentsManager {
             this.previewSessionId = null;
             this.previewError = null;
         });
-        if (projectId) {
-            try {
-                await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_RELEASE, { projectId });
-            } catch (error) {
-                console.error('Failed to release catalog preview sessions', error);
-            }
+        try {
+            await invokeMainChannel(MainChannels.COMPONENTS_PREVIEW_RELEASE, {
+                projectId: projectId ?? 'catalog-ui',
+            });
+        } catch (error) {
+            console.error('Failed to release catalog preview sessions', error);
         }
     }
 

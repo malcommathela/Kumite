@@ -10,7 +10,6 @@ import { readComponentsJson, resolveAlias } from './inspect';
 import {
     buildHandshakeScript,
     PREVIEW_MARKER,
-    PreviewRuntimeManager,
     safeEntryId,
     stableSessionId,
 } from './preview-runtime';
@@ -513,36 +512,10 @@ function removePreviewFiles(projectPath: string): void {
 
 export const componentPreviewServer = new ComponentPreviewServer();
 
-function buildCatalogEntry(definition: ShadcnLibraryItem, sessionId: string): string {
-    const lines: string[] = [ENTRY_MARKER];
-    lines.push(`import React from 'react';`);
-    lines.push(`import { createRoot } from 'react-dom/client';`);
-    lines.push(`import '@/index.css';`);
-    for (const moduleImport of definition.imports) {
-        lines.push(buildImportStatement(moduleImport.source, moduleImport));
-    }
-    lines.push(`const PREVIEW_SESSION = ${JSON.stringify(sessionId)};`);
-    lines.push(...previewShellLines());
-    lines.push(`function Preview() {`);
-    lines.push(`    return (`);
-    lines.push(
-        `        <div className="flex min-h-screen w-full items-center justify-center bg-background p-6 text-foreground">`,
-    );
-    lines.push(`            ${definition.previewCode.trim()}`);
-    lines.push(`        </div>`);
-    lines.push(`    );`);
-    lines.push(`}`);
-    lines.push(``);
-    lines.push(`createRoot(document.getElementById('root')!).render(`);
-    lines.push(`    <PreviewRoot>`);
-    lines.push(`        <Preview />`);
-    lines.push(`    </PreviewRoot>,`);
-    lines.push(`);`);
-    lines.push(``);
-    return lines.join('\n');
-}
-
 export function buildCatalogHtml(title: string, sessionId: string, entryId: string): string {
+    const safeTitle = title.replace(/[<>&"]/g, (value) =>
+        ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[value]!,
+    );
     return `${HTML_MARKER}
 <!-- ${PREVIEW_MARKER} -->
 <!doctype html>
@@ -550,7 +523,7 @@ export function buildCatalogHtml(title: string, sessionId: string, entryId: stri
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>${title}</title>
+        <title>${safeTitle}</title>
     </head>
     <body class="bg-background text-foreground">
         <div id="root"></div>
@@ -560,106 +533,3 @@ export function buildCatalogHtml(title: string, sessionId: string, entryId: stri
 </html>
 `;
 }
-
-export interface CatalogPreviewStart {
-    urls: Record<string, string>;
-    sessions: Record<string, string>;
-    error: string | null;
-    log: string | null;
-}
-
-/**
- * Serves catalog items from Kumite's private preview workspace.
- *
- * The workspace belongs to Kumite, so a dev server can be reused across
- * projects and every item gets its own session directory. Entries are additive:
- * batches arrive as the library scrolls, and a later batch never deletes the
- * previews already on screen. The runtime owns the process, its refcount, and
- * its cleanup.
- */
-export class CatalogPreviewServer {
-    private runtime = new PreviewRuntimeManager();
-
-    async start(
-        projectPath: string,
-        definitions: ShadcnLibraryItem[],
-        ownerId = 'catalog-ui',
-    ): Promise<CatalogPreviewStart> {
-        if (projectLifecycle.isShuttingDown) {
-            return {
-                urls: {},
-                sessions: {},
-                error: 'Kumite is shutting down.',
-                log: null,
-            };
-        }
-        const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
-        if (!fs.existsSync(viteBin)) {
-            return {
-                urls: {},
-                sessions: {},
-                error: 'The preview workspace has no local Vite install.',
-                log: null,
-            };
-        }
-        const items = definitions.filter(
-            (definition) => definition.previewable !== false && definition.previewCode.trim(),
-        );
-        if (items.length === 0) {
-            return {
-                urls: {},
-                sessions: {},
-                error: 'The catalog has no previewable components.',
-                log: null,
-            };
-        }
-
-        const entries = items.map((definition) => {
-            const sessionId = stableSessionId(projectPath, definition.name, 'catalog');
-            // The written module name and the HTML script src must agree.
-            const entryId = safeEntryId(definition.name);
-            return {
-                sessionId,
-                entryId,
-                html: buildCatalogHtml(definition.title, sessionId, entryId),
-                source: buildCatalogEntry(definition, sessionId),
-            };
-        });
-
-        const result = await this.runtime.ensure({
-            projectPath,
-            kind: 'catalog',
-            viteBin,
-            basePort: 3320,
-            entries,
-            ownerId,
-        });
-        if (result.error) {
-            return { urls: {}, sessions: {}, error: result.error, log: result.log };
-        }
-
-        const urls: Record<string, string> = {};
-        const sessions: Record<string, string> = {};
-        for (const [index, definition] of items.entries()) {
-            const sessionId = entries[index].sessionId;
-            const url = result.urls[sessionId];
-            if (!url) {
-                continue;
-            }
-            urls[definition.name] = url;
-            sessions[definition.name] = sessionId;
-        }
-        return { urls, sessions, error: null, log: null };
-    }
-
-    async stop(): Promise<void> {
-        await this.runtime.stopAll();
-    }
-
-    /** Releases only the sessions a project owns; other consumers keep the server. */
-    async releaseProject(ownerId: string): Promise<void> {
-        await this.runtime.releaseOwner(ownerId);
-    }
-}
-
-export const catalogPreviewServer = new CatalogPreviewServer();

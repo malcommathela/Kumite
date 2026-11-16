@@ -360,4 +360,28 @@ describe('shared preview runtime', () => {
         expect(rebound.listening).toBe(true);
         await closeServer(rebound);
     });
+
+    it('preserves unknown files when releasing a generated preview session', async () => {
+        const root = tempProject();
+        const manager = new PreviewRuntimeManager({ idleTimeoutMs: 60_000 });
+        const spec = entry(root, 'ks_keep_user_file');
+        const directory = path.join(root, '__kumite_preview', 'ks_keep_user_file');
+        const userFile = path.join(directory, 'notes.txt');
+        fs.writeFileSync(userFile, 'user-owned');
+
+        await manager.ensure({
+            projectPath: root,
+            kind: 'catalog',
+            viteBin: VITE_BIN,
+            basePort: 3492,
+            ownerId: 'project:keep-user-file',
+            entries: [spec],
+        });
+        await manager.stopAll();
+
+        expect(fs.readFileSync(userFile, 'utf8')).toBe('user-owned');
+        expect(fs.existsSync(path.join(directory, 'index.html'))).toBe(false);
+        expect(fs.existsSync(path.join(directory, `${spec.entryId}.tsx`))).toBe(false);
+        expect(fs.existsSync(directory)).toBe(true);
+    });
 });

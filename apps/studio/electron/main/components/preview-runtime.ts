@@ -1,6 +1,6 @@
 import { PREVIEW_MESSAGE_SOURCE } from '@kumite/models';
 import type { ChildProcess } from 'child_process';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
 import { processLifecycle } from '../lifecycle/processes';
@@ -21,6 +21,7 @@ export type { PreviewLifecycleState, PreviewMessage } from '@kumite/models';
 
 export const PREVIEW_DIR = '__kumite_preview';
 export const PREVIEW_MARKER = 'kumite-preview-session';
+const SESSION_SOURCE_MARKER = '/* kumite-preview-session-source */';
 const DEFAULT_IDLE_TIMEOUT_MS = 10 * 60_000;
 const MAX_CONCURRENT_STARTS = 2;
 
@@ -42,6 +43,8 @@ export interface PreviewSessionFiles {
     htmlPath: string;
     sourcePath: string;
     urlPath: string;
+    htmlHash: string;
+    sourceHash: string;
 }
 
 export interface PreviewSessionInfo {
@@ -75,7 +78,6 @@ interface RuntimeRecord {
 interface PendingRequest {
     ownerId: string;
     generation: number;
-    sessionIds: Set<string>;
 }
 
 interface PendingStart {
@@ -180,17 +182,6 @@ function sessionDirectory(projectPath: string, sessionId: string): string {
     return path.join(projectPath, PREVIEW_DIR, safeEntryId(sessionId));
 }
 
-function writeIfChanged(file: string, contents: string): void {
-    try {
-        if (fs.readFileSync(file, 'utf8') === contents) {
-            return;
-        }
-    } catch {
-        // Missing or unreadable: write it.
-    }
-    fs.writeFileSync(file, contents, 'utf8');
-}
-
 /**
  * Writes a session's HTML and module. The HTML carries the marker; a file of
  * the same name without it belongs to the user and is never overwritten.
@@ -202,6 +193,7 @@ export function writeSessionEntry(
     const directory = sessionDirectory(projectPath, spec.sessionId);
     const htmlPath = path.join(directory, 'index.html');
     const sourcePath = path.join(directory, `${safeEntryId(spec.entryId)}.tsx`);
+    const source = `${SESSION_SOURCE_MARKER}\n${spec.source}`;
     fs.mkdirSync(directory, { recursive: true });
 
     if (fs.existsSync(htmlPath)) {
@@ -209,10 +201,36 @@ export function writeSessionEntry(
         if (!existing.includes(PREVIEW_MARKER)) {
             throw new Error('Preview files already exist in this project.');
         }
+        if (existing !== spec.html) {
+            throw new Error('Preview HTML changed since this session was created; refusing to overwrite it.');
+        }
     }
-
-    writeIfChanged(htmlPath, spec.html);
-    writeIfChanged(sourcePath, spec.source);
+    if (fs.existsSync(sourcePath)) {
+        const existing = fs.readFileSync(sourcePath, 'utf8');
+        if (!existing.startsWith(SESSION_SOURCE_MARKER) || existing !== source) {
+            throw new Error('Preview module already exists with different or user-owned content.');
+        }
+    }
+    const created: string[] = [];
+    try {
+        if (!fs.existsSync(htmlPath)) {
+            fs.writeFileSync(htmlPath, spec.html, { encoding: 'utf8', flag: 'wx' });
+            created.push(htmlPath);
+        }
+        if (!fs.existsSync(sourcePath)) {
+            fs.writeFileSync(sourcePath, source, { encoding: 'utf8', flag: 'wx' });
+            created.push(sourcePath);
+        }
+    } catch (error) {
+        for (const file of created) {
+            try {
+                fs.unlinkSync(file);
+            } catch {
+                // Preserve files that could not be verified for cleanup.
+            }
+        }
+        throw error;
+    }
 
     return {
         sessionId: spec.sessionId,
@@ -221,37 +239,38 @@ export function writeSessionEntry(
         htmlPath,
         sourcePath,
         urlPath: `/${PREVIEW_DIR}/${safeEntryId(spec.sessionId)}/index.html`,
+        htmlHash: crypto.createHash('sha256').update(spec.html).digest('hex'),
+        sourceHash: crypto.createHash('sha256').update(source).digest('hex'),
     };
 }
 
 function removeSessionEntry(files: PreviewSessionFiles): void {
-    const keepDirectory = (() => {
-        try {
-            return !fs.readFileSync(files.htmlPath, 'utf8').includes(PREVIEW_MARKER);
-        } catch {
-            return false;
+    try {
+        const html = fs.readFileSync(files.htmlPath, 'utf8');
+        if (
+            html.includes(PREVIEW_MARKER) &&
+            crypto.createHash('sha256').update(html).digest('hex') === files.htmlHash
+        ) {
+            fs.unlinkSync(files.htmlPath);
         }
-    })();
-    if (keepDirectory) {
-        return;
+    } catch {
+        // Missing or modified: preserve it.
     }
     try {
-        fs.rmSync(files.directory, { recursive: true, force: true });
-    } catch {
-        // Ignore cleanup failures.
-    }
-}
-
-function removeSessionById(projectPath: string, sessionId: string): void {
-    const directory = sessionDirectory(projectPath, sessionId);
-    try {
-        const html = fs.readFileSync(path.join(directory, 'index.html'), 'utf8');
-        if (!html.includes(PREVIEW_MARKER)) {
-            return;
+        const source = fs.readFileSync(files.sourcePath, 'utf8');
+        if (
+            source.startsWith(SESSION_SOURCE_MARKER) &&
+            crypto.createHash('sha256').update(source).digest('hex') === files.sourceHash
+        ) {
+            fs.unlinkSync(files.sourcePath);
         }
-        fs.rmSync(directory, { recursive: true, force: true });
     } catch {
-        // Missing or user-owned: leave it alone.
+        // Missing or modified: preserve it.
+    }
+    try {
+        fs.rmdirSync(files.directory);
+    } catch {
+        // Unknown files keep the session directory in place.
     }
 }
 
@@ -309,7 +328,6 @@ export class PreviewRuntimeManager {
         pending?.requests.set(requestId, {
             ownerId: options.ownerId,
             generation,
-            sessionIds: new Set(options.entries.map((entry) => entry.sessionId)),
         });
 
         // Batch A and batch B can arrive while one server is starting. Chain
@@ -378,6 +396,9 @@ export class PreviewRuntimeManager {
             }
             const started = await this.startRuntime(options, key, pending);
             if (started.error || !started.runtime) {
+                for (const files of written) {
+                    removeSessionEntry(files);
+                }
                 return {
                     urls: {},
                     error: started.error ?? 'Failed to start the preview server.',
@@ -458,11 +479,6 @@ export class PreviewRuntimeManager {
         if (!started.server) {
             if (!this.pendingIsValid(pending)) {
                 this.pending.delete(key);
-            }
-            for (const request of pending.requests.values()) {
-                for (const sessionId of request.sessionIds) {
-                    removeSessionById(options.projectPath, sessionId);
-                }
             }
             return { runtime: null, error: started.error, log: started.log };
         }

@@ -1,4 +1,5 @@
-import { catalogPreviewServer, componentPreviewServer } from '../components/preview';
+import { artifactCatalogPreviewServer } from '../components/artifact-preview';
+import { componentPreviewServer } from '../components/preview';
 import runManager from '../run';
 import { processLifecycle } from './processes';
 import { ProjectLifecycleState, projectLifecycle } from './state';
@@ -65,7 +66,7 @@ async function runClose(projectId: string): Promise<CloseProjectResult> {
     );
     await collect(
         'catalog preview sessions',
-        () => catalogPreviewServer.releaseProject(projectId),
+        () => artifactCatalogPreviewServer.releaseOwner(projectId),
         errors,
     );
 
@@ -131,7 +132,7 @@ export async function shutdownResources(): Promise<CloseProjectResult> {
         errors.push(...result.errors);
     }
     await collect('component preview', () => componentPreviewServer.stop(), errors);
-    await collect('catalog preview', () => catalogPreviewServer.stop(), errors);
+    await collect('catalog preview', () => artifactCatalogPreviewServer.stop(), errors);
     await collect(
         'managed processes',
         async () => {

@@ -99,9 +99,10 @@ export async function runPackageManagerInstall(
     projectPath: string,
     packageManager: PackageManager,
     onProgress?: ProgressListener,
+    signal?: AbortSignal,
 ): Promise<ShadcnCommandResult> {
     const command = packageManager === 'bun' ? getBunExecutablePath() : packageManager;
-    return runProjectCommand(command, ['install'], projectPath, packageManager, onProgress);
+    return runProjectCommand(command, ['install'], projectPath, packageManager, onProgress, signal);
 }
 
 function commandEnvironment(packageManager: PackageManager): NodeJS.ProcessEnv {
@@ -130,6 +131,7 @@ async function runProjectCommand(
     projectPath: string,
     packageManager: PackageManager,
     onProgress?: ProgressListener,
+    signal?: AbortSignal,
 ): Promise<ShadcnCommandResult> {
     const printable = `${command} ${commandArgs.join(' ')}`;
     const useShell = process.platform === 'win32' && packageManager !== 'bun';
@@ -141,6 +143,7 @@ async function runProjectCommand(
             printable,
             onProgress,
             env: commandEnvironment(packageManager),
+            signal,
         });
     }
 
@@ -152,6 +155,7 @@ async function runProjectCommand(
             timeout: COMMAND_TIMEOUT_MS,
             maxBuffer: 20 * 1024 * 1024,
             env: commandEnvironment(packageManager),
+            signal,
         });
         return { command: printable, success: true, output: stripAnsi(`${stdout}\n${stderr}`) };
     } catch (error: any) {
@@ -168,6 +172,7 @@ interface StreamingOptions {
     printable: string;
     env: NodeJS.ProcessEnv;
     onProgress: ProgressListener;
+    signal?: AbortSignal;
 }
 
 /**
@@ -183,12 +188,14 @@ function runStreamingCommand(
         let output = '';
         let settled = false;
         let child: ChildProcess;
+        let abort = () => undefined;
         const finish = (success: boolean) => {
             if (settled) {
                 return;
             }
             settled = true;
             clearTimeout(timer);
+            options.signal?.removeEventListener('abort', abort);
             resolve({ command: options.printable, success, output: stripAnsi(output) });
         };
         const timer = setTimeout(() => {
@@ -198,6 +205,10 @@ function runStreamingCommand(
         }, COMMAND_TIMEOUT_MS);
 
         try {
+            if (options.signal?.aborted) {
+                finish(false);
+                return;
+            }
             child = spawn(command, commandArgs, {
                 cwd: options.cwd,
                 shell: options.shell,
@@ -209,6 +220,15 @@ function runStreamingCommand(
             output += `\n${error?.message ?? 'Failed to start the command.'}`;
             finish(false);
             return;
+        }
+
+        abort = () => {
+            output += '\nThe install was cancelled.';
+            killProcess(child);
+        };
+        options.signal?.addEventListener('abort', abort, { once: true });
+        if (options.signal?.aborted) {
+            abort();
         }
 
         const append = (data: Buffer) => {

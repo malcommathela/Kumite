@@ -950,9 +950,7 @@ const ComponentsTab = observer(() => {
                                         variant="ghost"
                                         className="h-7 px-2 text-[11px]"
                                         title={
-                                            isShadcnBlock(definition) && definition.previewUrl
-                                                ? 'Preview from the official shadcn registry'
-                                                : 'Preview from Kumite’s catalog workspace'
+                                            'Local preview of the resolved implementation artifact'
                                         }
                                         onClick={() => {
                                             setLibraryOpen(true);
@@ -1159,6 +1157,11 @@ const ComponentsTab = observer(() => {
                     {selectedDefinition ? (
                         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
                             <div className="relative m-4 flex min-h-[300px] items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/20 lg:m-5">
+                                {selectedCatalogUrl && (
+                                    <span className="absolute left-3 top-3 z-10 rounded bg-background/90 px-2 py-1 text-[10px] font-medium text-muted-foreground shadow-sm">
+                                        Local artifact preview
+                                    </span>
+                                )}
                                 {manager.previewComponent === selectedDefinition.name &&
                                 manager.previewError ? (
                                     <div className="max-w-sm p-6 text-center text-sm text-muted-foreground">
@@ -1209,10 +1212,7 @@ const ComponentsTab = observer(() => {
                                                 ? `Live preview is unavailable: ${selectedItemError}`
                                                 : manager.catalogBaseError
                                                   ? `Live previews are unavailable: ${manager.catalogBaseError}`
-                                                  : isShadcnBlock(selectedDefinition) &&
-                                                      selectedDefinition.previewUrl
-                                                    ? 'Previewed from the pinned official shadcn blocks registry.'
-                                                    : 'Live preview is unavailable for this item.'}
+                                                  : 'Local artifact preview is unavailable for this item.'}
                                         </p>
                                     </div>
                                 )}
@@ -1227,6 +1227,27 @@ const ComponentsTab = observer(() => {
                                             shadcn/ui · {getItemCategory(selectedDefinition)}
                                         </div>
                                     </div>
+                                    {manager.catalogPreviewSources[selectedDefinition.name] && (
+                                        <div>
+                                            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                Preview source
+                                            </div>
+                                            <div className="mt-1 text-xs text-muted-foreground">
+                                                Resolved upstream artifact · local runtime
+                                            </div>
+                                        </div>
+                                    )}
+                                    {isShadcnBlock(selectedDefinition) &&
+                                        selectedDefinition.previewUrl && (
+                                            <a
+                                                className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                                                href={selectedDefinition.previewUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                Open official preview reference
+                                            </a>
+                                        )}
                                     <div>
                                         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                                             {isShadcnBlock(selectedDefinition)
@@ -1273,10 +1294,7 @@ const ComponentsTab = observer(() => {
                                                 manager.catalogBaseLoading
                                             }
                                             title={
-                                                isShadcnBlock(selectedDefinition) &&
-                                                selectedDefinition.previewUrl
-                                                    ? 'Preview from the official shadcn registry'
-                                                    : 'Preview from Kumite’s catalog workspace'
+                                                'Preview the resolved source artifact locally'
                                             }
                                             onClick={() => void preview(selectedDefinition)}
                                         >
@@ -1284,10 +1302,7 @@ const ComponentsTab = observer(() => {
                                             selectedItemLoading ||
                                             manager.catalogBaseLoading
                                                 ? 'Preparing preview…'
-                                                : isShadcnBlock(selectedDefinition) &&
-                                                    selectedDefinition.previewUrl
-                                                  ? 'Preview block'
-                                                  : 'Live preview'}
+                                                : 'Local artifact preview'}
                                         </Button>
                                     )}
                                     {selectedDefinition.insertable !== false && (

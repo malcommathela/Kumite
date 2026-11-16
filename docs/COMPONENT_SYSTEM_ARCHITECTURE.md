@@ -7,26 +7,24 @@ ImplementationArtifact -> isolated preview or project-specific preparation ->
 approved materialization`.
 
 The provider-neutral resolver, immutable artifact store, demo inventory and
-read-only insertion preparation are implemented foundations. The currently
-wired catalog preview and insertion UI still use the legacy catalog templates
-and installation flow; they are not yet canonical artifact consumers.
+read-only insertion preparation are implemented foundations. Catalog preview now
+consumes artifacts; project insertion still uses the legacy template flow.
 
 ## Component record
 
 The component contract is `packages/models/src/components/index.ts`; the curated
 official block records are in `packages/models/src/components/blocks.ts`.
-Definitions record registry identity, import templates, preview source and
-capability limits. Registry provenance is pinned; unknown licensing or
-attribution must never be treated as permissive.
+Definitions record registry identity, legacy import/JSX templates and capability
+limits. Templates remain only for compatibility consumers; artifact provenance
+is pinned and unknown licensing or attribution is never treated as permissive.
 
 ## Adapters
 
 Implemented: `shadcn-ui`. Not implemented: 21st-dev, aceternity-ui, magic-ui, custom, local.
 
-An adapter owns three things: the catalog of installable definitions, the CLI or file
-operations that write into the user's project, and the provenance record it leaves
-behind. The app does not vendor component source; it drives the component's own
-official installation mechanism and then reads what landed on disk.
+Source adapters own provider discovery, artifact resolution, and source
+provenance. Explicit shadcn installation remains a separate CLI action; preview
+resolution does not invoke the CLI or write into the active project.
 
 ## shadcn/ui adapter (Phase 3B / 3D)
 
@@ -173,15 +171,19 @@ metadata, `components.json`, JS/TS aliases, Tailwind and stylesheet paths, and
 the package-manager lockfile. It returns the complete source-file and asset
 inventory, identical-file reuse candidates, conflicts, installed/missing
 dependencies with version provenance, entry-point export semantics, required
-configuration, warnings, and unsupported requirements. It never writes files
-or invokes a package manager. The write/approval UI and transactional project
-publication are not wired to this preparation API yet.
+configuration, warnings, unsupported requirements, and deterministic AST-based
+import-alias transformations. It records original and transformed hashes
+separately and places source under an artifact-specific project namespace to
+avoid collisions. It never writes files or invokes a package manager. The
+write/approval UI and transactional project publication are not wired to this
+preparation API yet.
 
-Blocks install from their direct JSON URL at the pinned commit, not by mutable
+Explicit shadcn CLI installation uses block direct JSON URLs at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
 `calendar-01` and `dashboard-01` JSON installed their reusable source files and
 registry dependencies. `registry:page` routes are not created by the CLI for a
-Vite project, so Kumite inserts the block's verified component export instead.
+Vite project. The still-wired legacy insertion path inserts a component export;
+the artifact preparation API instead selects the full page entry point.
 The installed file is recorded in `.kumite/components.json`; existing files are
 never overwritten. Variants that share a destination file cannot be installed
 side-by-side without the user resolving that conflict.
@@ -189,9 +191,9 @@ side-by-side without the user resolving that conflict.
 ### Library UI
 
 The Components panel opens a searchable, categorized library with component and
-block filters. Catalog browsing and official block previews work without an
-active project. The detail view offers preview, copy-for-agent and use actions;
-project writes remain explicit. 21st.dev and Magic UI use the same visible
+block filters. Artifact-backed catalog previews work without an active project;
+official URLs remain external reference links. The detail view offers preview,
+copy-for-agent and use actions; project writes remain explicit. 21st.dev and Magic UI use the same visible
 provider slot but remain unavailable until their catalogs, installation paths,
 preview sources and provenance are verified.
 
@@ -270,9 +272,8 @@ CLI wrote them.
 
 ### Preview
 
-The flows described below are the legacy installed-source/catalog-template
-previews. Artifact-backed preview runtime integration remains outstanding; these
-legacy templates are compatibility fallbacks only, not the canonical source.
+The installed-project preview below remains a compatibility flow that reads an
+already-installed project source. Catalog previews are artifact-backed.
 
 Installed components preview their actual project source in an isolated Vite
 server on the first free port from 3310. Kumite creates its temporary entry files
@@ -283,20 +284,29 @@ examples render the installed source in the local isolated Vite preview. Remote
 previews show an offline message when the network is unavailable. Local previews
 require Vite in the active project.
 
-The library also previews the **whole catalog**, including items the active
-project does not have, from Kumite's own workspace: `catalog.ts` prepares the
-base under `<userData>/catalog-preview` once per run (React, Vite, Tailwind and
-`shadcn init -d`), then installs only the items the grid actually shows, one
-`shadcn add` per visible batch. `preview.ts` writes one entry per component into
-`kumite-preview/` before starting a second Vite server on the first free port
-from 3320. `catalogPreviewServer` serves every entry from that one process, so
-the grid shows live cards without starting a server per component, and entries
-added by later batches never restart or invalidate the ones already showing.
-Opening the library therefore never pays for the whole catalog, and scrolling
-only installs what comes into view. The workspace is repaired rather than
-rebuilt when an install is interrupted, and the active project is never
-modified. When the workspace cannot be prepared, cards fall back to the styled
-thumbnails and the failure is shown in the detail pane and the last CLI output.
+The library resolves only visible catalog requests to pinned artifacts.
+`artifact-preview.ts` validates and stores each immutable snapshot, materializes
+its source/assets under a deterministic workspace identity, and merges verified
+source files into the private Vite workspace without overwriting a differing
+file. Runtime wrappers import the real artifact entry/export; generated session
+files live separately under `__kumite_preview/`. A shared
+`PreviewRuntimeManager` serves all sessions from one process on the lifecycle
+port manager, with per-consumer session ids and reference-counted runtime
+cleanup. Active preview owners hold persistent artifact references; releasing an
+owner aborts pending resolution/materialization and releases its sessions.
+Materialized artifacts and the shared Vite workspace remain cached after the
+last session closes; age-based workspace garbage collection is not implemented.
+`catalog.ts` prepares only the React/Vite/Tailwind workspace; it no longer runs
+`shadcn add` for catalog cards. The active project is not used or modified.
+
+Dependencies already present in that private workspace are reused. Artifact
+versions are honored; missing unspecified versions are resolved to the exact
+version from npm's `latest` dist-tag and recorded in
+`.kumite-artifact-preview-dependencies.json` and the workspace lockfile. Exact
+explicit version conflicts fail instead of downgrading. This policy applies only
+to Kumite's preview workspace; no packages are installed into the active project.
+Each item reports local artifact-preview errors instead of silently falling back
+to the official remote preview. Official preview URLs remain external references.
 
 ### Insertion
 

@@ -103,6 +103,8 @@ const SHADCN_VERSION = '3.7.0';
 function createShadcnAdapter(
     resolverOptions: ShadcnSourceResolverOptions = {},
 ): ImplementationSourceAdapter {
+    const resolvers = new WeakMap<AbortSignal, ReturnType<typeof createShadcnSourceResolver>>();
+    let defaultResolver: ReturnType<typeof createShadcnSourceResolver> | null = null;
     return {
         provider: 'shadcn',
         async discover({ signal } = {}) {
@@ -139,7 +141,20 @@ function createShadcnAdapter(
                     `shadcn commit "${request.commit}" is unsupported; this resolver is pinned to ${SHADCN_COMMIT}.`,
                 );
             }
-            return createShadcnSourceResolver({ ...resolverOptions, signal }).resolve(request);
+            const activeSignal = signal ?? resolverOptions.signal;
+            let resolver = activeSignal ? resolvers.get(activeSignal) : defaultResolver ?? undefined;
+            if (!resolver) {
+                resolver = createShadcnSourceResolver({
+                    ...resolverOptions,
+                    signal: activeSignal,
+                });
+                if (activeSignal) {
+                    resolvers.set(activeSignal, resolver);
+                } else {
+                    defaultResolver = resolver;
+                }
+            }
+            return resolver.resolve(request);
         },
     };
 }

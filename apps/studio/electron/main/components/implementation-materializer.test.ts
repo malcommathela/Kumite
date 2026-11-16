@@ -205,6 +205,7 @@ describe('implementation artifact materializer', () => {
         assert.deepEqual(JSON.parse(fs.readFileSync(result.manifestPath, 'utf8')), result.manifest);
         assert.ok(result.manifest.files.every((file) => !path.isAbsolute(file.path)));
         assert.equal('retrievedAt' in result.manifest.artifact.source, false);
+        assert.equal(result.manifest.artifact.source.license?.identifier, 'MIT');
     });
 
     it('preserves example demo source and data byte-for-byte', async () => {
