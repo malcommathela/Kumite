@@ -30,6 +30,7 @@ import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
 export {
     createShadcnSourceResolver,
     hashImplementationArtifact,
+    materializeImplementationAsset,
     resolveShadcnImplementation,
     SourceResolutionError,
 } from './source-resolver';
@@ -37,6 +38,7 @@ export type {
     ShadcnSourceResolverOptions,
     SourceFetcher,
     SourceResolutionIssue,
+    ImplementationAssetMaterializationOptions,
 } from './source-resolver';
 
 function resolveProjectPath(projectPath: unknown): string {
