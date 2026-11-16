@@ -161,7 +161,6 @@ export class StyleManager {
                 change: change,
             };
             return target;
-
         });
 
         return {

@@ -3,9 +3,7 @@ import { getOidFromJsxElement } from './diff/helpers';
 import { walkJsxElements } from './jsx-walk';
 
 export type ComponentInvocationFailure =
-    | 'unsupported-component-name'
-    | 'no-candidate'
-    | 'ambiguous-candidate';
+    'unsupported-component-name' | 'no-candidate' | 'ambiguous-candidate';
 
 export type ComponentInvocationLookup =
     | { ok: true; instanceId: string; component: string }
@@ -50,9 +48,7 @@ export function findComponentInvocation(
             return { ok: true, instanceId: candidates[0], component };
         }
         if (candidates.length === 0) {
-            return sawUnsupportedName
-                ? unsupported(component)
-                : noCandidate(component, 0, 0);
+            return sawUnsupportedName ? unsupported(component) : noCandidate(component, 0, 0);
         }
         return {
             ok: false,

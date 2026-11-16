@@ -39,16 +39,15 @@ export function applyContentChanges(
         if (!loc) {
             return;
         }
-        index.set(
-            keyOf(loc.start.line, loc.start.column, loc.end.line, loc.end.column),
-            node,
-        );
+        index.set(keyOf(loc.start.line, loc.start.column, loc.end.line, loc.end.column), node);
     });
 
     const failures: ContentChangeFailure[] = [];
     for (const { oid, change } of changes) {
         const span = change.span;
-        const node = index.get(keyOf(span.start.line, span.start.column, span.end.line, span.end.column));
+        const node = index.get(
+            keyOf(span.start.line, span.start.column, span.end.line, span.end.column),
+        );
         if (!node) {
             failures.push({
                 oid,
@@ -85,12 +84,7 @@ function valueOf(node: ContentNode): string {
     return t.isNumericLiteral(node) ? String(node.value) : node.value;
 }
 
-function keyOf(
-    startLine: number,
-    startColumn: number,
-    endLine: number,
-    endColumn: number,
-): string {
+function keyOf(startLine: number, startColumn: number, endLine: number, endColumn: number): string {
     return `${startLine}:${startColumn}-${endLine}:${endColumn}`;
 }
 

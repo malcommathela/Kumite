@@ -5,6 +5,7 @@ import { subscribe, type AsyncSubscription } from '@parcel/watcher';
 import { mainWindow } from '..';
 import { sendAnalytics } from '../analytics';
 import { writeFile } from '../code/files';
+import { projectLifecycle } from '../lifecycle/state';
 import { removeIdsFromDirectory } from './cleanup';
 import { ALLOWED_EXTENSIONS, getValidFiles, IGNORED_DIRECTORIES } from './helpers';
 import { createMappingFromContent, getFileWithIds as getFileContentWithIds } from './setup';
@@ -14,6 +15,7 @@ class RunManager {
     private static instance: RunManager;
     private mapping = new Map<string, TemplateNode>();
     private subscription: AsyncSubscription | null = null;
+    private subscriptionFolder: string | null = null;
     private selfModified = new Set<string>();
     state: RunState = RunState.STOPPED;
     runningDirs = new Set<string>();
@@ -50,19 +52,41 @@ class RunManager {
                 return false;
             }
 
+            let project: ReturnType<typeof projectLifecycle.activate>;
+            try {
+                project = projectLifecycle.activate(id, folderPath);
+            } catch (error: any) {
+                this.setState(RunState.ERROR, error?.message ?? 'Kumite is shutting down.');
+                return false;
+            }
+            const generation = project.generation;
+
             this.setState(RunState.SETTING_UP, 'Setting up...');
             this.mapping.clear();
             await this.addIdsToDirectoryAndCreateMapping(folderPath);
             await this.listen(folderPath);
 
+            if (!this.isCurrent(id, generation)) {
+                await this.clearSubscriptionFor(folderPath);
+                await this.cleanProjectDir(folderPath);
+                this.setState(RunState.STOPPED, 'Stopped.');
+                return false;
+            }
+
             if (!this.startTerminal(id, folderPath, command)) {
-                await this.clearSubscription();
+                await this.clearSubscriptionFor(folderPath);
                 await this.cleanProjectDir(folderPath);
                 this.mapping.clear();
                 this.selfModified.clear();
                 this.setState(RunState.ERROR, 'Failed to start the project terminal.');
                 return false;
             }
+
+            if (!this.isCurrent(id, generation)) {
+                await this.stopProject(id, folderPath);
+                return false;
+            }
+
             this.runningDirs.add(folderPath);
             this.setState(RunState.RUNNING, 'Running...');
 
@@ -78,14 +102,25 @@ class RunManager {
         }
     }
 
+    private isCurrent(id: string, generation: number): boolean {
+        return !projectLifecycle.isShuttingDown && projectLifecycle.generation(id) === generation;
+    }
+
     async stop(id: string, folderPath: string): Promise<boolean> {
+        return this.stopProject(id, folderPath);
+    }
+
+    /** Stops only this project's server, watcher and generated project state. */
+    async stopProject(id: string, folderPath: string): Promise<boolean> {
         try {
             this.setState(RunState.STOPPING, 'Stopping terminal...');
-            this.stopTerminal(id);
+            if (!(await this.stopTerminal(id))) {
+                throw new Error('the project terminal did not exit');
+            }
 
             this.setState(RunState.STOPPING, 'Cleaning up...');
+            await this.clearSubscriptionFor(folderPath);
             await this.cleanProjectDir(folderPath);
-            await this.stopAll();
             this.setState(RunState.STOPPED, 'Stopped.');
             sendAnalytics('run stopped');
             return true;
@@ -115,11 +150,18 @@ class RunManager {
     }
 
     startTerminal(id: string, folderPath: string, command: string): boolean {
-        if (!terminal.create(id, { cwd: folderPath })) {
+        if (
+            !terminal.create(id, {
+                cwd: folderPath,
+                onUrl: (url) => {
+                    mainWindow?.webContents.send(MainChannels.RUN_URL_CHANGED, { id, url });
+                },
+            })
+        ) {
             return false;
         }
         if (!terminal.executeCommand(id, command)) {
-            terminal.kill(id);
+            void terminal.kill(id);
             return false;
         }
         sendAnalytics('terminal started', {
@@ -128,9 +170,10 @@ class RunManager {
         return true;
     }
 
-    stopTerminal(id: string) {
-        terminal.kill(id);
+    async stopTerminal(id: string): Promise<boolean> {
+        const stopped = await terminal.kill(id);
         sendAnalytics('terminal stopped');
+        return stopped;
     }
 
     async listen(folderPath: string) {
@@ -138,6 +181,7 @@ class RunManager {
             await this.subscription.unsubscribe();
             this.subscription = null;
         }
+        this.subscriptionFolder = folderPath;
 
         const ignoredDirectories = IGNORED_DIRECTORIES.map((dir) => `**/${dir}/**`);
 
@@ -202,13 +246,17 @@ class RunManager {
     }
 
     async stopAll() {
-        for (const dir of this.runningDirs) {
+        const stopped = await terminal.killAll();
+        for (const dir of [...this.runningDirs]) {
             await this.cleanProjectDir(dir);
         }
         await this.clearSubscription();
         this.runningDirs.clear();
         this.mapping.clear();
         this.selfModified.clear();
+        if (!stopped) {
+            throw new Error('One or more project terminals did not exit.');
+        }
     }
 
     async cleanProjectDir(folderPath: string): Promise<void> {
@@ -221,7 +269,15 @@ class RunManager {
             await this.subscription.unsubscribe();
             this.subscription = null;
         }
+        this.subscriptionFolder = null;
         this.createdFiles.clear();
+    }
+
+    /** Stops the watcher only when it belongs to the project being closed. */
+    async clearSubscriptionFor(folderPath: string) {
+        if (this.subscriptionFolder === folderPath) {
+            await this.clearSubscription();
+        }
     }
 }
 

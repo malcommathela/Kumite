@@ -146,7 +146,8 @@ function toReportPath(relative: string): string {
     return relative.split(path.sep).join('/');
 }
 
-function listFiles(root: string, prefix = ''): { relative: string; absolute: string }[] {    const entries = fs.readdirSync(path.join(root, prefix), { withFileTypes: true });
+function listFiles(root: string, prefix = ''): { relative: string; absolute: string }[] {
+    const entries = fs.readdirSync(path.join(root, prefix), { withFileTypes: true });
     const files: { relative: string; absolute: string }[] = [];
     for (const entry of entries) {
         const relative = prefix ? path.join(prefix, entry.name) : entry.name;

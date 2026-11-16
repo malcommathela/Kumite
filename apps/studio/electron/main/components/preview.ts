@@ -1,13 +1,15 @@
 import type { ShadcnLibraryItem, ShadcnProjectStatus } from '@kumite/models';
-import { spawn, type ChildProcess } from 'child_process';
-import { detect } from 'detect-port';
+import type { ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { processLifecycle } from '../lifecycle/processes';
+import { projectOwnerId } from '../lifecycle/ports';
+import { projectLifecycle } from '../lifecycle/state';
+import { startVitePreview } from '../lifecycle/vite';
 import { readComponentsJson, resolveAlias } from './inspect';
 import {
     buildHandshakeScript,
     PREVIEW_MARKER,
-    PreviewRuntimeManager,
     safeEntryId,
     stableSessionId,
 } from './preview-runtime';
@@ -15,22 +17,80 @@ import {
 const PREVIEW_STEM = '__kumite_preview';
 const HTML_MARKER = '<!-- kumite-preview -->';
 const ENTRY_MARKER = '/* kumite-preview */';
-const START_TIMEOUT_MS = 45_000;
+const PREFERRED_PORT = 3310;
 
 interface RunningPreview {
     projectPath: string;
+    sessionId: string;
+    resourceId: string;
     port: number;
     url: string;
     process: ChildProcess;
-    log: string;
+    generation: number;
+}
+
+interface PendingPreview {
+    generation: number;
+    cancelled: boolean;
+    resourceId: string;
 }
 
 class ComponentPreviewServer {
-    private current: RunningPreview | null = null;
+    private runtimes = new Map<string, RunningPreview>();
+    private pendings = new Map<string, PendingPreview>();
+    private generations = new Map<string, number>();
+    private starts = new Map<string, Promise<unknown>>();
+    private chains = new Map<string, Promise<void>>();
+
+    private key(projectPath: string): string {
+        return path.resolve(projectPath);
+    }
+
+    private generationFor(projectPath: string): number {
+        return this.generations.get(this.key(projectPath)) ?? 0;
+    }
+
+    private bumpGeneration(projectPath: string): number {
+        const key = this.key(projectPath);
+        const next = this.generationFor(key) + 1;
+        this.generations.set(key, next);
+        return next;
+    }
 
     async start(
         status: ShadcnProjectStatus,
         definition: ShadcnLibraryItem,
+        ownerId?: string | null,
+    ): Promise<{
+        url: string | null;
+        error: string | null;
+        log: string | null;
+        sessionId: string | null;
+    }> {
+        const key = this.key(status.projectPath);
+        const previous = this.chains.get(key) ?? Promise.resolve();
+        const task = previous
+            .catch(() => undefined)
+            .then(() => this.startInternal(status, definition, ownerId));
+        this.chains.set(
+            key,
+            task.then(
+                () => undefined,
+                () => undefined,
+            ),
+        );
+        this.starts.set(key, task);
+        return task.finally(() => {
+            if (this.starts.get(key) === task) {
+                this.starts.delete(key);
+            }
+        });
+    }
+
+    private async startInternal(
+        status: ShadcnProjectStatus,
+        definition: ShadcnLibraryItem,
+        ownerId?: string | null,
     ): Promise<{
         url: string | null;
         error: string | null;
@@ -38,6 +98,15 @@ class ComponentPreviewServer {
         sessionId: string | null;
     }> {
         const projectPath = status.projectPath;
+        const key = this.key(projectPath);
+        if (projectLifecycle.isShuttingDown) {
+            return {
+                url: null,
+                error: 'Kumite is shutting down.',
+                log: null,
+                sessionId: null,
+            };
+        }
         if (definition.previewable === false) {
             return {
                 url: null,
@@ -72,7 +141,17 @@ class ComponentPreviewServer {
             };
         }
 
-        await this.stop();
+        // One preview per project: await the previous server, then start again
+        // under a fresh generation. Other projects keep their own runtime.
+        const existing = this.runtimes.get(key);
+        if (existing) {
+            await this.stopRuntime(key, existing);
+        }
+
+        const generation = this.bumpGeneration(projectPath);
+        const resourceId = `component-preview:${key}`;
+        const pending: PendingPreview = { generation, cancelled: false, resourceId };
+        this.pendings.set(key, pending);
 
         const sessionId = stableSessionId(projectPath, `component:${definition.name}`, 'component');
         let entrySource: string;
@@ -80,6 +159,7 @@ class ComponentPreviewServer {
             entrySource = buildEntryFile(projectPath, status, definition, sessionId);
             writePreviewFiles(projectPath, entrySource, sessionId);
         } catch (error: any) {
+            this.pendings.delete(key);
             return {
                 url: null,
                 error: error?.message ?? 'Failed to build the preview entry.',
@@ -88,108 +168,117 @@ class ComponentPreviewServer {
             };
         }
 
-        let port: number;
-        let child: ChildProcess;
-        try {
-            port = await detect(3310);
-            child = spawn(
-                process.execPath,
-                [viteBin, '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
-                {
-                    cwd: projectPath,
-                    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', NODE_ENV: 'development' },
-                    windowsHide: true,
-                    stdio: ['ignore', 'pipe', 'pipe'],
-                },
-            );
-        } catch (error: any) {
+        const started = await startVitePreview({
+            resourceId,
+            projectPath,
+            viteBin,
+            preferredPort: PREFERRED_PORT,
+            ownerId: projectOwnerId(ownerId ?? projectPath),
+            ownerScope: 'project',
+            projectId: ownerId ?? null,
+            type: 'component-preview',
+            isValid: () =>
+                !pending.cancelled &&
+                this.pendings.get(key) === pending &&
+                this.generationFor(projectPath) === generation,
+        });
+
+        if (!started.server) {
+            if (this.pendings.get(key) === pending) {
+                this.pendings.delete(key);
+            }
             removePreviewFiles(projectPath);
-            return {
-                url: null,
-                error: error?.message ?? 'Failed to start the preview server.',
-                log: null,
-                sessionId: null,
-            };
+            return { url: null, error: started.error, log: started.log, sessionId: null };
         }
 
         const running: RunningPreview = {
             projectPath,
-            port,
-            url: `http://127.0.0.1:${port}/${PREVIEW_STEM}.html`,
-            process: child,
-            log: '',
+            sessionId,
+            resourceId,
+            port: started.server.port,
+            url: `${started.server.origin}/${PREVIEW_STEM}.html`,
+            process: started.server.process,
+            generation,
         };
-        const appendLog = (data: Buffer) => {
-            running.log = `${running.log}${data.toString()}`.slice(-8000);
-        };
-        child.stdout?.on('data', appendLog);
-        child.stderr?.on('data', appendLog);
 
-        const ready = await waitForServer(running);
-        if (!ready) {
-            const error =
-                child.exitCode === null ? 'Preview server timed out.' : 'Preview server exited.';
-            const log = running.log || null;
-            cleanupRunning(running);
-            return { url: null, error, log, sessionId: null };
+        if (
+            pending.cancelled ||
+            this.pendings.get(key) !== pending ||
+            this.generationFor(projectPath) !== generation
+        ) {
+            await processLifecycle.stop(resourceId);
+            removePreviewFiles(projectPath);
+            return {
+                url: null,
+                error: 'Preview start was cancelled.',
+                log: started.log,
+                sessionId: null,
+            };
         }
 
-        this.current = running;
+        this.pendings.delete(key);
+        this.runtimes.set(key, running);
+        running.process.on('exit', () => {
+            if (this.runtimes.get(key) === running) {
+                this.runtimes.delete(key);
+                removePreviewFiles(projectPath);
+            }
+        });
         return { url: running.url, error: null, log: null, sessionId };
     }
 
-    async stop(): Promise<void> {
-        const running = this.current;
-        this.current = null;
-        if (!running) {
-            return;
+    private async stopRuntime(key: string, running: RunningPreview): Promise<void> {
+        if (this.runtimes.get(key) === running) {
+            this.runtimes.delete(key);
         }
-        cleanupRunning(running);
+        if (!(await processLifecycle.stop(running.resourceId))) {
+            // Keep the generated entry so a retry still has a page to serve.
+            throw new Error(`The preview server for ${running.projectPath} did not exit.`);
+        }
+        removePreviewFiles(running.projectPath);
     }
-}
 
-function cleanupRunning(running: RunningPreview): void {
-    killProcess(running.process);
-    removePreviewFiles(running.projectPath);
-}
+    /** Stops every preview server owned by this project. Idempotent. */
+    async stopProject(projectPath: string): Promise<void> {
+        const key = this.key(projectPath);
+        this.bumpGeneration(projectPath);
+        const pending = this.pendings.get(key);
+        if (pending) {
+            pending.cancelled = true;
+        }
+        const start = this.starts.get(key);
+        if (start) {
+            await start.catch(() => undefined);
+        }
+        if (this.pendings.get(key) === pending) {
+            this.pendings.delete(key);
+        }
+        const running = this.runtimes.get(key);
+        if (running) {
+            await this.stopRuntime(key, running);
+        }
+    }
 
-function waitForServer(running: RunningPreview): Promise<boolean> {
-    return new Promise((resolve) => {
-        const startedAt = Date.now();
-        const tick = async () => {
-            if (running.process.exitCode !== null || Date.now() - startedAt > START_TIMEOUT_MS) {
-                resolve(false);
-                return;
-            }
+    async stop(): Promise<void> {
+        const failures: string[] = [];
+        for (const projectPath of [...this.runtimes.keys()]) {
             try {
-                const response = await fetch(running.url, {
-                    signal: AbortSignal.timeout(3000),
-                });
-                if (response.ok) {
-                    resolve(true);
-                    return;
-                }
-            } catch {
-                // Server is not accepting connections yet.
+                await this.stopProject(projectPath);
+            } catch (error: any) {
+                failures.push(error?.message ?? String(error));
             }
-            setTimeout(tick, 500);
-        };
-        void tick();
-    });
-}
-
-function killProcess(child: ChildProcess): void {
-    if (child.exitCode !== null || !child.pid) {
-        return;
+        }
+        for (const projectPath of [...this.pendings.keys()]) {
+            try {
+                await this.stopProject(projectPath);
+            } catch (error: any) {
+                failures.push(error?.message ?? String(error));
+            }
+        }
+        if (failures.length > 0) {
+            throw new Error(failures.join(' '));
+        }
     }
-    if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
-            windowsHide: true,
-            stdio: 'ignore',
-        });
-        return;
-    }
-    child.kill('SIGTERM');
 }
 
 function toRelativeImport(projectPath: string, filePath: string): string {
@@ -423,36 +512,10 @@ function removePreviewFiles(projectPath: string): void {
 
 export const componentPreviewServer = new ComponentPreviewServer();
 
-function buildCatalogEntry(definition: ShadcnLibraryItem, sessionId: string): string {
-    const lines: string[] = [ENTRY_MARKER];
-    lines.push(`import React from 'react';`);
-    lines.push(`import { createRoot } from 'react-dom/client';`);
-    lines.push(`import '@/index.css';`);
-    for (const moduleImport of definition.imports) {
-        lines.push(buildImportStatement(moduleImport.source, moduleImport));
-    }
-    lines.push(`const PREVIEW_SESSION = ${JSON.stringify(sessionId)};`);
-    lines.push(...previewShellLines());
-    lines.push(`function Preview() {`);
-    lines.push(`    return (`);
-    lines.push(
-        `        <div className="flex min-h-screen w-full items-center justify-center bg-background p-6 text-foreground">`,
-    );
-    lines.push(`            ${definition.previewCode.trim()}`);
-    lines.push(`        </div>`);
-    lines.push(`    );`);
-    lines.push(`}`);
-    lines.push(``);
-    lines.push(`createRoot(document.getElementById('root')!).render(`);
-    lines.push(`    <PreviewRoot>`);
-    lines.push(`        <Preview />`);
-    lines.push(`    </PreviewRoot>,`);
-    lines.push(`);`);
-    lines.push(``);
-    return lines.join('\n');
-}
-
 export function buildCatalogHtml(title: string, sessionId: string, entryId: string): string {
+    const safeTitle = title.replace(/[<>&"]/g, (value) =>
+        ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[value]!,
+    );
     return `${HTML_MARKER}
 <!-- ${PREVIEW_MARKER} -->
 <!doctype html>
@@ -460,7 +523,7 @@ export function buildCatalogHtml(title: string, sessionId: string, entryId: stri
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>${title}</title>
+        <title>${safeTitle}</title>
     </head>
     <body class="bg-background text-foreground">
         <div id="root"></div>
@@ -470,91 +533,3 @@ export function buildCatalogHtml(title: string, sessionId: string, entryId: stri
 </html>
 `;
 }
-
-export interface CatalogPreviewStart {
-    urls: Record<string, string>;
-    sessions: Record<string, string>;
-    error: string | null;
-    log: string | null;
-}
-
-/**
- * Serves catalog items from Kumite's private preview workspace.
- *
- * The workspace belongs to Kumite, so a dev server can be reused across
- * projects and every item gets its own session directory. Entries are additive:
- * batches arrive as the library scrolls, and a later batch never deletes the
- * previews already on screen. The runtime owns the process, its refcount, and
- * its cleanup.
- */
-export class CatalogPreviewServer {
-    private runtime = new PreviewRuntimeManager();
-
-    async start(
-        projectPath: string,
-        definitions: ShadcnLibraryItem[],
-    ): Promise<CatalogPreviewStart> {
-        const viteBin = path.join(projectPath, 'node_modules', 'vite', 'bin', 'vite.js');
-        if (!fs.existsSync(viteBin)) {
-            return {
-                urls: {},
-                sessions: {},
-                error: 'The preview workspace has no local Vite install.',
-                log: null,
-            };
-        }
-        const items = definitions.filter(
-            (definition) => definition.previewable !== false && definition.previewCode.trim(),
-        );
-        if (items.length === 0) {
-            return {
-                urls: {},
-                sessions: {},
-                error: 'The catalog has no previewable components.',
-                log: null,
-            };
-        }
-
-        const entries = items.map((definition) => {
-            const sessionId = stableSessionId(projectPath, definition.name, 'catalog');
-            // The written module name and the HTML script src must agree.
-            const entryId = safeEntryId(definition.name);
-            return {
-                sessionId,
-                entryId,
-                html: buildCatalogHtml(definition.title, sessionId, entryId),
-                source: buildCatalogEntry(definition, sessionId),
-            };
-        });
-
-        const result = await this.runtime.ensure({
-            projectPath,
-            kind: 'catalog',
-            viteBin,
-            basePort: 3320,
-            entries,
-        });
-        if (result.error) {
-            return { urls: {}, sessions: {}, error: result.error, log: result.log };
-        }
-
-        const urls: Record<string, string> = {};
-        const sessions: Record<string, string> = {};
-        for (const [index, definition] of items.entries()) {
-            const sessionId = entries[index].sessionId;
-            const url = result.urls[sessionId];
-            if (!url) {
-                continue;
-            }
-            urls[definition.name] = url;
-            sessions[definition.name] = sessionId;
-        }
-        return { urls, sessions, error: null, log: null };
-    }
-
-    async stop(): Promise<void> {
-        this.runtime.stopAll();
-    }
-}
-
-export const catalogPreviewServer = new CatalogPreviewServer();

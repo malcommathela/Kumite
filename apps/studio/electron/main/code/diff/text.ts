@@ -17,10 +17,7 @@ export interface TextEditVerdict {
  * element whose text was `{title}` could have its expression replaced by a
  * string literal.
  */
-export function updateNodeTextContent(
-    node: t.JSXElement,
-    textContent: string,
-): TextEditVerdict {
+export function updateNodeTextContent(node: t.JSXElement, textContent: string): TextEditVerdict {
     const field = textContentField(node);
     if (!field.editable) {
         return {

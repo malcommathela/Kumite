@@ -74,7 +74,9 @@ function findJsxNode(node: t.Node, oid: string): t.JSXElement | null {
         return node;
     }
     for (const key of t.VISITOR_KEYS[node.type] ?? []) {
-        const value = (node as unknown as Record<string, t.Node | t.Node[] | null | undefined>)[key];
+        const value = (node as unknown as Record<string, t.Node | t.Node[] | null | undefined>)[
+            key
+        ];
         if (Array.isArray(value)) {
             for (const child of value) {
                 if (!child || typeof (child as t.Node).type !== 'string') {
@@ -98,7 +100,9 @@ function findJsxNode(node: t.Node, oid: string): t.JSXElement | null {
 /** Removes `target` from whichever child array in `root` holds it. */
 function detachNode(root: t.Node, target: t.Node): boolean {
     for (const key of t.VISITOR_KEYS[root.type] ?? []) {
-        const value = (root as unknown as Record<string, t.Node | t.Node[] | null | undefined>)[key];
+        const value = (root as unknown as Record<string, t.Node | t.Node[] | null | undefined>)[
+            key
+        ];
         if (Array.isArray(value)) {
             const index = value.indexOf(target);
             if (index !== -1) {

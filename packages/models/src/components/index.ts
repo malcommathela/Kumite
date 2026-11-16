@@ -1,4 +1,17 @@
 import type { CodeImport } from '../code';
+export {
+    ImplementationArtifactSchema,
+    IMPLEMENTATION_KINDS,
+    IMPLEMENTATION_PROVIDERS,
+    deserializeImplementationArtifact,
+    serializeImplementationArtifact,
+} from './implementation';
+export type {
+    ImplementationArtifact,
+    ImplementationKind,
+    ImplementationProvider,
+    ImplementationRequest,
+} from './implementation';
 import {
     getBlockInsertWrapperClass,
     getShadcnBlock,
@@ -13,11 +26,7 @@ export {
     SHADCN_BLOCKS,
 } from './blocks';
 export type { ShadcnBlockDefinition } from './blocks';
-export {
-    advancePreviewState,
-    parsePreviewMessage,
-    PREVIEW_MESSAGE_SOURCE,
-} from './preview';
+export { advancePreviewState, parsePreviewMessage, PREVIEW_MESSAGE_SOURCE } from './preview';
 export type { PreviewLifecycleState, PreviewMessage } from './preview';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
@@ -51,9 +60,9 @@ export interface ShadcnComponentDefinition {
     /** Names exported by the pinned component file; empty when there is none. */
     parts: string[];
     imports: CodeImport[];
-    /** JSX written into the selected element when inserting. One root element. */
+    /** @deprecated Compatibility fallback for insertion; artifact entry points are canonical. */
     insertCode: string;
-    /** JSX rendered by the isolated preview page. */
+    /** @deprecated Compatibility fallback for installed-source previews only. */
     previewCode: string;
     /** False when the pinned snapshot has no installable item. Defaults to true. */
     installable?: boolean;
@@ -110,15 +119,15 @@ export interface ShadcnPreviewResult {
 }
 
 /**
- * URLs for the catalog components that are ready to preview, rendered from
- * Kumite's own preview workspace rather than the active project. Items are
- * installed in batches, so a batch reports the ones it could not prepare.
- * `sessions` carries the handshake id for each URL so the renderer can ignore
- * messages that do not belong to the iframe it rendered.
+ * URLs for catalog entries rendered from verified implementation artifacts in
+ * Kumite's private preview workspace. `sessions` carries the handshake id for
+ * each URL so the renderer can ignore messages from other preview sessions.
  */
 export interface ShadcnCatalogPreview {
     urls: Record<string, string>;
     sessions?: Record<string, string>;
+    sources?: Record<string, 'artifact'>;
+    errors?: Record<string, string>;
     missing?: string[];
     error: string | null;
     log: string | null;

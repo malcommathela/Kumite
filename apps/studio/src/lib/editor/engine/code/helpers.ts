@@ -48,7 +48,6 @@ export function getEditTargetRequest(
     return diffRequest;
 }
 
-
 export function addTailwindToRequest(
     request: CodeDiffRequest,
     styles: Record<string, StyleChange>,

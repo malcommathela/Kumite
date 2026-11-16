@@ -1,4 +1,9 @@
-import { useAuthManager, useProjectsManager, useRouteManager } from '@/components/Context';
+import {
+    useAppStateManager,
+    useAuthManager,
+    useProjectsManager,
+    useRouteManager,
+} from '@/components/Context';
 import { Route } from '@/lib/routes';
 import { observer } from 'mobx-react-lite';
 import { ProjectEditor } from './editor';
@@ -9,10 +14,11 @@ export const Routes = observer(() => {
     const routeManager = useRouteManager();
     const authManager = useAuthManager();
     const projectsManager = useProjectsManager();
+    const appState = useAppStateManager();
 
     if (!authManager.authenticated && authManager.isAuthEnabled) {
         routeManager.route = Route.SIGN_IN;
-    } else if (projectsManager.project) {
+    } else if (projectsManager.project && !appState.showHome) {
         routeManager.route = Route.EDITOR;
     } else {
         routeManager.route = Route.PROJECTS;

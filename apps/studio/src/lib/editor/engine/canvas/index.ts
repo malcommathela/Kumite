@@ -150,7 +150,7 @@ export class CanvasManager {
         const savedActiveFrameId = project.settings?.activeFrameId ?? null;
         this.activeFrameIdValue = this.webFrames.some((frame) => frame.id === savedActiveFrameId)
             ? savedActiveFrameId
-            : this.webFrames[0]?.id ?? null;
+            : (this.webFrames[0]?.id ?? null);
     }
 
     clear() {

@@ -110,7 +110,7 @@ export const Toolbar = observer(() => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="flex flex-col border p-1 px-1.5 bg-background/30 dark:bg-background/85 backdrop-blur rounded-lg drop-shadow-xl"
+                    className="flex flex-col rounded-2xl border border-border bg-surface/90 p-1 px-1.5 shadow-xl backdrop-blur"
                     transition={{
                         type: 'spring',
                         bounce: 0.1,

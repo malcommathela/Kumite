@@ -170,7 +170,9 @@ function mergeImportDeclaration(declaration: t.ImportDeclaration, moduleImport: 
     );
     const additions: t.ImportSpecifier[] = [];
     if (moduleImport.defaultImport && !hasDefault) {
-        declaration.specifiers.unshift(t.importDefaultSpecifier(t.identifier(moduleImport.defaultImport)));
+        declaration.specifiers.unshift(
+            t.importDefaultSpecifier(t.identifier(moduleImport.defaultImport)),
+        );
     }
     for (const name of moduleImport.namedImports ?? []) {
         if (localNames.has(name)) {

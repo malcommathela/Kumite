@@ -173,13 +173,15 @@ export class AstManager {
                 );
                 return;
             }
-            if (res?.reason === 'ambiguous-candidate' || res?.reason === 'unsupported-component-name') {
+            if (
+                res?.reason === 'ambiguous-candidate' ||
+                res?.reason === 'unsupported-component-name'
+            ) {
                 // Do not guess an instance boundary; leave the element without one.
                 console.warn(`Instance boundary not resolved: ${res.message}`);
                 return;
             }
             await this.findNodeInstance(webviewId, originalNode, parent, templateNode);
-
         }
     }
 

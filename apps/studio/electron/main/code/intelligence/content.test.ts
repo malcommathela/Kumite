@@ -250,7 +250,9 @@ export function Page() {
     );
 }`);
         const paragraphs = collectJsxElements(ast).filter(
-            (element) => t.isJSXIdentifier(element.openingElement.name) && element.openingElement.name.name === 'p',
+            (element) =>
+                t.isJSXIdentifier(element.openingElement.name) &&
+                element.openingElement.name.name === 'p',
         );
         assert.equal(paragraphs.length, 2);
         const second = findElementAt(ast, nodeFor(paragraphs[1]));

@@ -28,7 +28,8 @@ const PopoverAnchor = PopoverPrimitive.Anchor;
 const PopoverClose = PopoverPrimitive.Close;
 
 export interface PopoverProps
-    extends React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Root>,
+    extends
+        React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Root>,
         VariantProps<typeof popoverVariants> {}
 
 const PopoverContent = React.forwardRef<
@@ -64,8 +65,9 @@ const PopoverScrollArea: React.FC<PopoverScrollAreaProps> = ({ className, childr
     );
 };
 
-interface PopoverSeparatorProps
-    extends React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root> {
+interface PopoverSeparatorProps extends React.ComponentPropsWithoutRef<
+    typeof SeparatorPrimitive.Root
+> {
     fullLength?: boolean;
 }
 

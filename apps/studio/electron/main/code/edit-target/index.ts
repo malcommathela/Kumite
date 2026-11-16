@@ -29,9 +29,7 @@ export type EditTargetResolution =
  * (for instance edits) the component that would receive the call-site prop is
  * found. Any of those failing is a typed refusal, never a fallback.
  */
-export async function resolveEditTarget(
-    request: CodeDiffRequest,
-): Promise<EditTargetResolution> {
+export async function resolveEditTarget(request: CodeDiffRequest): Promise<EditTargetResolution> {
     if (!request.oid) {
         return fail(
             'missing-oid',
@@ -70,7 +68,10 @@ export async function resolveEditTarget(
 
     const editTarget = request.editTarget ?? null;
     if (!editTarget || editTarget.kind === 'implementation-node') {
-        return { ok: true, target: { kind: 'implementation-node', sourceOid: request.oid, sourcePath } };
+        return {
+            ok: true,
+            target: { kind: 'implementation-node', sourceOid: request.oid, sourcePath },
+        };
     }
 
     if (!editTarget.instanceId) {
@@ -79,7 +80,10 @@ export async function resolveEditTarget(
             'This element has no component instance id. Re-select the instance and retry.',
         );
     }
-    if (editTarget.instanceId !== editTarget.callSiteOid || editTarget.callSiteOid !== request.oid) {
+    if (
+        editTarget.instanceId !== editTarget.callSiteOid ||
+        editTarget.callSiteOid !== request.oid
+    ) {
         // The runtime instance id is derived from the call-site oid; a mismatch
         // means the mapping moved underneath the action.
         return fail(

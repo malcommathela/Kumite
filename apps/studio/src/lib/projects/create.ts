@@ -111,7 +111,7 @@ export class CreateManager {
         if (result.success && result.response?.projectPath) {
             this.state = CreateState.PROMPT;
             const newProject = this.createProject(result.response.projectPath);
-            this.projectsManager.project = newProject;
+            await this.projectsManager.openProject(newProject);
             setTimeout(() => {
                 this.projectsManager.projectsTab = ProjectTabs.PROJECTS;
             }, 100);
@@ -127,9 +127,6 @@ export class CreateManager {
 
             this.clearSlowConnectionTimer();
 
-            setTimeout(() => {
-                this.projectsManager.runner?.startIfPortAvailable();
-            }, 1000);
             sendAnalytics('prompt create project success');
         } else {
             this.error = result.error || 'Failed to create project';

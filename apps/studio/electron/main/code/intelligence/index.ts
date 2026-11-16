@@ -1,9 +1,6 @@
 import type * as t from '@babel/types';
 import type { TemplateNode } from '@kumite/models/element';
-import {
-    getCapabilities,
-    type ComponentCapabilities,
-} from './capabilities';
+import { getCapabilities, type ComponentCapabilities } from './capabilities';
 import {
     describeCallSite,
     resolveOwnership,

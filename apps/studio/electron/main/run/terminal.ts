@@ -5,21 +5,26 @@ import * as pty from 'node-pty';
 import os from 'os';
 import { mainWindow } from '..';
 import { getBunCommand } from '../bun';
+import { processLifecycle } from '../lifecycle/processes';
+import { projectOwnerId } from '../lifecycle/ports';
+import { findLocalUrl } from '../lifecycle/vite';
 
 interface ManagedTerminal {
     write(data: string): void;
     resize(cols: number, rows: number): void;
-    kill(): void;
+    kill(): Promise<void>;
 }
 
 class TerminalManager {
     private static instance: TerminalManager;
     private processes: Map<string, ManagedTerminal>;
     private outputHistory: Map<string, string>;
+    private lastUrls: Map<string, string>;
 
     private constructor() {
         this.processes = new Map();
         this.outputHistory = new Map();
+        this.lastUrls = new Map();
     }
 
     static getInstance(): TerminalManager {
@@ -29,11 +34,13 @@ class TerminalManager {
         return TerminalManager.instance;
     }
 
-    create(id: string, options?: { cwd?: string }): boolean {
+    create(id: string, options?: { cwd?: string; onUrl?: (url: string) => void }): boolean {
         const isWindows = os.platform() === 'win32';
         const shell = isWindows ? 'powershell.exe' : '/bin/sh';
+        const resourceId = `terminal:${id}`;
         const onData = (data: string) => {
             this.checkTerminalState(data);
+            this.detectUrl(id, data, options?.onUrl);
             this.addTerminalMessage(id, data);
         };
 
@@ -44,7 +51,23 @@ class TerminalManager {
             });
 
             ptyProcess.onData(onData);
-            this.processes.set(id, ptyProcess);
+            processLifecycle.register({
+                resourceId,
+                ownerId: projectOwnerId(id),
+                ownerScope: 'project',
+                projectId: id,
+                type: 'terminal',
+                pty: ptyProcess,
+            });
+            this.processes.set(id, {
+                write: (data) => ptyProcess.write(data),
+                resize: (cols, rows) => ptyProcess.resize(cols, rows),
+                kill: async () => {
+                    if (!(await processLifecycle.stop(resourceId))) {
+                        throw new Error(`Terminal ${id} did not exit.`);
+                    }
+                },
+            });
             return true;
         } catch (error) {
             console.warn('Native terminal unavailable; using a non-resizable shell.', error);
@@ -55,11 +78,20 @@ class TerminalManager {
                 cwd: options?.cwd,
                 stdio: ['pipe', 'pipe', 'pipe'],
                 windowsHide: true,
+                detached: !isWindows,
             });
             child.stdout?.on('data', (data: Buffer) => onData(data.toString()));
             child.stderr?.on('data', (data: Buffer) => onData(data.toString()));
             child.on('error', (error) => {
                 this.setTerminalError(id, `Failed to start project shell: ${error.message}`);
+            });
+            processLifecycle.register({
+                resourceId,
+                ownerId: projectOwnerId(id),
+                ownerScope: 'project',
+                projectId: id,
+                type: 'terminal',
+                child,
             });
             this.processes.set(id, {
                 write: (data) => {
@@ -67,14 +99,9 @@ class TerminalManager {
                 },
                 // shortcut: redirected shells cannot resize; restore a native PTY when the host can build its addon.
                 resize: () => {},
-                kill: () => {
-                    if (isWindows && child.pid) {
-                        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
-                            windowsHide: true,
-                            stdio: 'ignore',
-                        });
-                    } else {
-                        child.kill('SIGTERM');
+                kill: async () => {
+                    if (!(await processLifecycle.stop(resourceId))) {
+                        throw new Error(`Terminal ${id} did not exit.`);
                     }
                 },
             });
@@ -83,6 +110,20 @@ class TerminalManager {
             this.setTerminalError(id, `Failed to create terminal: ${error}`);
             return false;
         }
+    }
+
+    private detectUrl(id: string, data: string, onUrl?: (url: string) => void) {
+        const local = findLocalUrl(data);
+        if (!local) {
+            return;
+        }
+        const url = `${local.url}/`;
+        if (this.lastUrls.get(id) === url) {
+            return;
+        }
+        this.lastUrls.set(id, url);
+        processLifecycle.setPort(`terminal:${id}`, local.port, '127.0.0.1');
+        onUrl?.(url);
     }
 
     private setTerminalError(id: string, message: string) {
@@ -202,14 +243,18 @@ class TerminalManager {
         }
     }
 
-    kill(id: string): boolean {
+    async kill(id: string): Promise<boolean> {
+        const current = this.processes.get(id);
+        if (!current) {
+            this.lastUrls.delete(id);
+            this.outputHistory.delete(id);
+            return true;
+        }
         try {
-            const process = this.processes.get(id);
-            if (process) {
-                process.kill();
-                this.processes.delete(id);
-                this.outputHistory.delete(id);
-            }
+            await current.kill();
+            this.processes.delete(id);
+            this.outputHistory.delete(id);
+            this.lastUrls.delete(id);
             return true;
         } catch (error) {
             console.error('Failed to kill terminal.', error);
@@ -217,10 +262,10 @@ class TerminalManager {
         }
     }
 
-    killAll(): boolean {
-        this.processes.forEach((process) => process.kill());
-        this.processes.clear();
-        return true;
+    async killAll(): Promise<boolean> {
+        const ids = [...this.processes.keys()];
+        const results = await Promise.all(ids.map((id) => this.kill(id)));
+        return results.every(Boolean);
     }
 
     executeCommand(id: string, command: string): boolean {

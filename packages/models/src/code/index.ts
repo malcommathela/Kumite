@@ -82,5 +82,4 @@ export type CodeDiffFailureReason =
     | 'source-write-failure';
 
 export type CodeDiffResult =
-    | { ok: true; diffs: CodeDiff[] }
-    | { ok: false; reason: CodeDiffFailureReason; message: string };
+    { ok: true; diffs: CodeDiff[] } | { ok: false; reason: CodeDiffFailureReason; message: string };

@@ -81,7 +81,11 @@ export const EditPanel = observer(() => {
 
     function renderTabs() {
         return (
-            <Tabs onValueChange={(value) => tabChange(value as EditorTabValue)} value={selectedTab}>
+            <Tabs
+                className="flex h-full flex-col"
+                onValueChange={(value) => tabChange(value as EditorTabValue)}
+                value={selectedTab}
+            >
                 <TabsList
                     className={cn(
                         'bg-transparent w-full select-none justify-between items-center px-2',
@@ -226,7 +230,7 @@ export const EditPanel = observer(() => {
                 <Separator className="mt-0" />
                 <ChatHistory isOpen={isChatHistoryOpen} onOpenChange={setIsChatHistoryOpen} />
                 <div
-                    className={`h-[calc(100vh-7.75rem)] ${selectedTab === EditorTabValue.DEV ? 'overflow-hidden' : 'overflow-auto'}`}
+                    className={`min-h-0 flex-1 ${selectedTab === EditorTabValue.DEV ? 'overflow-hidden' : 'overflow-auto'}`}
                 >
                     <TabsContent value={EditorTabValue.CHAT}>
                         <ChatTab />
@@ -276,15 +280,14 @@ export const EditPanel = observer(() => {
                 <div
                     id="editor-panel"
                     className={cn(
-                        'w-full transition-width duration-300 opacity-100 bg-background/95 overflow-hidden group/panel h-full',
+                        'group/panel h-full w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-xl transition-width duration-300',
                         editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : 'visible',
-                        'rounded-tl-xl',
                     )}
                 >
                     <div
                         className={cn(
-                            'border-[0.5px] backdrop-blur-xl shadow h-full relative transition-opacity duration-300',
-                            isOpen ? 'opacity-100 visible' : 'opacity-0 invisible',
+                            'relative h-full backdrop-blur-xl transition-opacity duration-300',
+                            isOpen ? 'visible opacity-100' : 'invisible opacity-0',
                         )}
                     >
                         {renderTabs()}

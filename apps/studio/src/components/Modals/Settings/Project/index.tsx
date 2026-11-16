@@ -21,8 +21,7 @@ const ProjectTab = observer(() => {
 
     const handleUpdatePath = async () => {
         const path = (await invokeMainChannel(MainChannels.PICK_COMPONENTS_DIRECTORY)) as
-            | string
-            | null;
+            string | null;
 
         if (!path) {
             console.error('No path selected');

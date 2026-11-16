@@ -32,21 +32,25 @@ const ProjectBreadcrumb = observer(() => {
     const [isClosingProject, setIsClosingProject] = useState(false);
 
     async function handleNavigateToProjects(tab?: ProjectTabs) {
+        if (isClosingProject) {
+            return;
+        }
         try {
             setIsClosingProject(true);
             await takeScreenshotWithTimeout();
-            await projectsManager.runner?.stop();
+            const result = await projectsManager.closeProject();
+            if (!result.success) {
+                console.error('Project cleanup did not complete:', result.errors.join('; '));
+            }
         } catch (error) {
-            console.error('Failed to take screenshot:', error);
-        }
-        setTimeout(() => {
-            projectsManager.project = null;
+            console.error('Failed to close the project:', error);
+        } finally {
             if (tab) {
                 projectsManager.projectsTab = tab;
             }
             routeManager.route = Route.PROJECTS;
             setIsClosingProject(false);
-        }, 100);
+        }
     }
 
     const takeScreenshotWithTimeout = async () => {
@@ -93,20 +97,20 @@ const ProjectBreadcrumb = observer(() => {
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant={'ghost'}
-                        className="mx-0 px-0 gap-2 text-foreground-kumite text-small hover:text-foreground-active hover:bg-transparent"
+                        className="mx-0 h-8 gap-2 rounded-full px-2.5 text-[12.5px] text-foreground-secondary hover:bg-background-hover hover:text-foreground"
                     >
                         <KumiteWordmark
                             className={cn(
-                                'hidden md:inline text-sm',
+                                'hidden text-sm md:inline',
                                 isClosingProject && 'animate-pulse',
                             )}
                         />
-                        <span className="mx-0 max-w-[60px] md:max-w-[100px] lg:max-w-[200px] px-0 text-foreground-kumite text-small truncate cursor-pointer">
+                        <span className="mx-0 max-w-[60px] truncate px-0 text-foreground-secondary md:max-w-[100px] lg:max-w-[200px]">
                             {isClosingProject
                                 ? 'Stopping project...'
                                 : projectsManager.project?.name}
                         </span>
-                        <Icons.ChevronDown className="transition-all rotate-0 group-data-[state=open]:-rotate-180 duration-200 ease-in-out text-foreground-kumite " />
+                        <Icons.ChevronDown className="text-foreground-tertiary transition-all duration-200 ease-in-out rotate-0 group-data-[state=open]:-rotate-180" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent

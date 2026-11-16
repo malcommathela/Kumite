@@ -1,14 +1,15 @@
+import { WorkspaceShell } from '@/components/Shell';
 import { useProjectsManager } from '@/components/Context';
 import { ProjectTabs } from '@/lib/projects';
 import { observer } from 'mobx-react-lite';
 import ProjectsTab from './ProjectsTab';
 import CreateProject from './ProjectsTab/Create';
 import PromptCreation from './PromptCreation';
-import { TopBar } from './TopBar';
 import { CreateMethod } from './helpers';
 
 export const Projects = observer(() => {
     const projectsManager = useProjectsManager();
+
     const renderTab = () => {
         switch (projectsManager.projectsTab) {
             case ProjectTabs.PROJECTS:
@@ -30,11 +31,8 @@ export const Projects = observer(() => {
     };
 
     return (
-        <div className="w-full h-[calc(100vh-2.5rem)]">
-            <TopBar />
-            <div className="flex h-[calc(100vh-5.5rem)] justify-center overflow-hidden w-full">
-                {renderTab()}
-            </div>
-        </div>
+        <WorkspaceShell sidebar={projectsManager.projectsTab === ProjectTabs.PROJECTS}>
+            {renderTab()}
+        </WorkspaceShell>
     );
 });

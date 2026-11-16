@@ -6,6 +6,7 @@ import {
     getComponentStatus,
     initializeComponents,
     installComponent,
+    releaseCatalogPreview,
     startCatalogPreview,
     startComponentPreview,
     stopComponentPreview,
@@ -48,8 +49,8 @@ export function listenForComponentMessages() {
 
     ipcMain.handle(
         MainChannels.COMPONENTS_PREVIEW_START,
-        async (_event, args: { projectPath: string; component: string }) => {
-            return startComponentPreview(args?.projectPath, args?.component);
+        async (_event, args: { projectPath: string; component: string; projectId?: string }) => {
+            return startComponentPreview(args?.projectPath, args?.component, args?.projectId);
         },
     );
 
@@ -58,9 +59,20 @@ export function listenForComponentMessages() {
     });
 
     ipcMain.handle(
+        MainChannels.COMPONENTS_PREVIEW_RELEASE,
+        async (_event, args: { projectId?: string }) => {
+            return releaseCatalogPreview(args?.projectId);
+        },
+    );
+
+    ipcMain.handle(
         MainChannels.COMPONENTS_PREVIEW_CATALOG,
-        async (event, args: { components?: string[] }) => {
-            return startCatalogPreview(args?.components, progressReporter(event.sender));
+        async (event, args: { components?: string[]; projectId?: string }) => {
+            return startCatalogPreview(
+                args?.components,
+                args?.projectId,
+                progressReporter(event.sender),
+            );
         },
     );
 }

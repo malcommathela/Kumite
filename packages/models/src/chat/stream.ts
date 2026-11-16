@@ -28,6 +28,4 @@ export interface RateLimitedStreamResponse extends StreamResponse {
 }
 
 export type CompletedStreamResponse =
-    | FullStreamResponse
-    | RateLimitedStreamResponse
-    | ErrorStreamResponse;
+    FullStreamResponse | RateLimitedStreamResponse | ErrorStreamResponse;

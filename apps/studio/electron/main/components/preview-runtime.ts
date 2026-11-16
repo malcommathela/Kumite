@@ -1,28 +1,28 @@
 import { PREVIEW_MESSAGE_SOURCE } from '@kumite/models';
-import { spawn, type ChildProcess } from 'child_process';
-import crypto from 'crypto';
-import { detect } from 'detect-port';
+import type { ChildProcess } from 'child_process';
+import crypto from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
+import { processLifecycle } from '../lifecycle/processes';
+import { runtimeOwnerId } from '../lifecycle/ports';
+import { startVitePreview } from '../lifecycle/vite';
 
 export { advancePreviewState, parsePreviewMessage } from '@kumite/models';
 export type { PreviewLifecycleState, PreviewMessage } from '@kumite/models';
 
 /**
- * Project-scoped preview runtime.
+ * Shared preview runtime.
  *
  * A Vite dev server is one process per (project, preview kind). Every preview
  * that shares that server owns a session directory under
- * `__kumite_preview/<session id>/`. Keeping one process per project and kind,
- * instead of one global process, means two projects can be previewed at the
- * same time and opening the library for a second project never breaks the
- * previews already rendered for the first one.
+ * `__kumite_preview/<session id>/`. Sessions record which consumer owns them so
+ * closing one project never kills a server another consumer still uses.
  */
 
 export const PREVIEW_DIR = '__kumite_preview';
 export const PREVIEW_MARKER = 'kumite-preview-session';
-const START_TIMEOUT_MS = 45_000;
-const IDLE_TIMEOUT_MS = 10 * 60_000;
+const SESSION_SOURCE_MARKER = '/* kumite-preview-session-source */';
+const DEFAULT_IDLE_TIMEOUT_MS = 10 * 60_000;
 const MAX_CONCURRENT_STARTS = 2;
 
 export interface PreviewEntrySpec {
@@ -43,6 +43,8 @@ export interface PreviewSessionFiles {
     htmlPath: string;
     sourcePath: string;
     urlPath: string;
+    htmlHash: string;
+    sourceHash: string;
 }
 
 export interface PreviewSessionInfo {
@@ -56,14 +58,35 @@ interface RuntimeKey {
     kind: string;
 }
 
+interface RuntimeSession {
+    files: PreviewSessionFiles;
+    ownerId: string;
+}
+
 interface RuntimeRecord {
     key: RuntimeKey;
+    resourceId: string;
     port: number;
+    origin: string;
     process: ChildProcess;
     log: string;
-    sessions: Map<string, PreviewSessionFiles>;
+    sessions: Map<string, RuntimeSession>;
     lastUsedAt: number;
     idleTimer: ReturnType<typeof setTimeout> | null;
+}
+
+interface PendingRequest {
+    ownerId: string;
+    generation: number;
+}
+
+interface PendingStart {
+    key: string;
+    resourceId: string;
+    cancelled: boolean;
+    child: ChildProcess | null;
+    requests: Map<number, PendingRequest>;
+    cancelPromise: Promise<void> | null;
 }
 
 export interface EnsureRuntimeOptions {
@@ -71,9 +94,11 @@ export interface EnsureRuntimeOptions {
     kind: string;
     /** The local Vite binary the project already has installed. */
     viteBin: string;
-    /** Port to try first; the runtime walks upward until one is free. */
+    /** Preferred port hint. Vite increments when it is taken. */
     basePort: number;
     entries: PreviewEntrySpec[];
+    /** Consumer that owns the requested sessions. */
+    ownerId: string;
 }
 
 export interface EnsureRuntimeResult {
@@ -157,17 +182,6 @@ function sessionDirectory(projectPath: string, sessionId: string): string {
     return path.join(projectPath, PREVIEW_DIR, safeEntryId(sessionId));
 }
 
-function writeIfChanged(file: string, contents: string): void {
-    try {
-        if (fs.readFileSync(file, 'utf8') === contents) {
-            return;
-        }
-    } catch {
-        // Missing or unreadable: write it.
-    }
-    fs.writeFileSync(file, contents, 'utf8');
-}
-
 /**
  * Writes a session's HTML and module. The HTML carries the marker; a file of
  * the same name without it belongs to the user and is never overwritten.
@@ -179,6 +193,7 @@ export function writeSessionEntry(
     const directory = sessionDirectory(projectPath, spec.sessionId);
     const htmlPath = path.join(directory, 'index.html');
     const sourcePath = path.join(directory, `${safeEntryId(spec.entryId)}.tsx`);
+    const source = `${SESSION_SOURCE_MARKER}\n${spec.source}`;
     fs.mkdirSync(directory, { recursive: true });
 
     if (fs.existsSync(htmlPath)) {
@@ -186,10 +201,36 @@ export function writeSessionEntry(
         if (!existing.includes(PREVIEW_MARKER)) {
             throw new Error('Preview files already exist in this project.');
         }
+        if (existing !== spec.html) {
+            throw new Error('Preview HTML changed since this session was created; refusing to overwrite it.');
+        }
     }
-
-    writeIfChanged(htmlPath, spec.html);
-    writeIfChanged(sourcePath, spec.source);
+    if (fs.existsSync(sourcePath)) {
+        const existing = fs.readFileSync(sourcePath, 'utf8');
+        if (!existing.startsWith(SESSION_SOURCE_MARKER) || existing !== source) {
+            throw new Error('Preview module already exists with different or user-owned content.');
+        }
+    }
+    const created: string[] = [];
+    try {
+        if (!fs.existsSync(htmlPath)) {
+            fs.writeFileSync(htmlPath, spec.html, { encoding: 'utf8', flag: 'wx' });
+            created.push(htmlPath);
+        }
+        if (!fs.existsSync(sourcePath)) {
+            fs.writeFileSync(sourcePath, source, { encoding: 'utf8', flag: 'wx' });
+            created.push(sourcePath);
+        }
+    } catch (error) {
+        for (const file of created) {
+            try {
+                fs.unlinkSync(file);
+            } catch {
+                // Preserve files that could not be verified for cleanup.
+            }
+        }
+        throw error;
+    }
 
     return {
         sessionId: spec.sessionId,
@@ -198,64 +239,39 @@ export function writeSessionEntry(
         htmlPath,
         sourcePath,
         urlPath: `/${PREVIEW_DIR}/${safeEntryId(spec.sessionId)}/index.html`,
+        htmlHash: crypto.createHash('sha256').update(spec.html).digest('hex'),
+        sourceHash: crypto.createHash('sha256').update(source).digest('hex'),
     };
 }
 
 function removeSessionEntry(files: PreviewSessionFiles): void {
-    const keepDirectory = (() => {
-        try {
-            return !fs.readFileSync(files.htmlPath, 'utf8').includes(PREVIEW_MARKER);
-        } catch {
-            return false;
+    try {
+        const html = fs.readFileSync(files.htmlPath, 'utf8');
+        if (
+            html.includes(PREVIEW_MARKER) &&
+            crypto.createHash('sha256').update(html).digest('hex') === files.htmlHash
+        ) {
+            fs.unlinkSync(files.htmlPath);
         }
-    })();
-    if (keepDirectory) {
-        return;
+    } catch {
+        // Missing or modified: preserve it.
     }
     try {
-        fs.rmSync(files.directory, { recursive: true, force: true });
+        const source = fs.readFileSync(files.sourcePath, 'utf8');
+        if (
+            source.startsWith(SESSION_SOURCE_MARKER) &&
+            crypto.createHash('sha256').update(source).digest('hex') === files.sourceHash
+        ) {
+            fs.unlinkSync(files.sourcePath);
+        }
     } catch {
-        // Ignore cleanup failures.
+        // Missing or modified: preserve it.
     }
-}
-
-function killProcess(child: ChildProcess): void {
-    if (child.exitCode !== null || !child.pid) {
-        return;
+    try {
+        fs.rmdirSync(files.directory);
+    } catch {
+        // Unknown files keep the session directory in place.
     }
-    if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
-            windowsHide: true,
-            stdio: 'ignore',
-        });
-        return;
-    }
-    child.kill('SIGTERM');
-}
-
-function waitForServer(getUrl: () => string, child: ChildProcess): Promise<boolean> {
-    return new Promise((resolve) => {
-        const startedAt = Date.now();
-        const tick = async () => {
-            if (child.exitCode !== null || Date.now() - startedAt > START_TIMEOUT_MS) {
-                resolve(false);
-                return;
-            }
-            try {
-                const response = await fetch(getUrl(), {
-                    signal: AbortSignal.timeout(3000),
-                });
-                if (response.ok) {
-                    resolve(true);
-                    return;
-                }
-            } catch {
-                // Not accepting connections yet.
-            }
-            setTimeout(tick, 500);
-        };
-        void tick();
-    });
 }
 
 export class PreviewRuntimeManager {
@@ -264,6 +280,9 @@ export class PreviewRuntimeManager {
     private chains = new Map<string, Promise<void>>();
     private startsInFlight = 0;
     private startWaiters: Array<() => void> = [];
+    private pending = new Map<string, PendingStart>();
+    private ownerGenerations = new Map<string, number>();
+    private requestId = 0;
 
     constructor(
         private options: {
@@ -273,7 +292,15 @@ export class PreviewRuntimeManager {
     ) {}
 
     private get idleTimeoutMs(): number {
-        return this.options.idleTimeoutMs ?? IDLE_TIMEOUT_MS;
+        return this.options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+    }
+
+    private ownerGeneration(ownerId: string): number {
+        return this.ownerGenerations.get(ownerId) ?? 0;
+    }
+
+    private isOwnerValid(ownerId: string, generation: number): boolean {
+        return this.ownerGeneration(ownerId) === generation;
     }
 
     /**
@@ -283,11 +310,33 @@ export class PreviewRuntimeManager {
      */
     async ensure(options: EnsureRuntimeOptions): Promise<EnsureRuntimeResult> {
         const key = runtimeKey(options.projectPath, options.kind);
+        const generation = this.ownerGeneration(options.ownerId);
+        const requestId = ++this.requestId;
+
+        let pending = this.pending.get(key);
+        if (!pending && !this.runtimes.has(key)) {
+            pending = {
+                key,
+                resourceId: this.resourceId(key),
+                cancelled: false,
+                child: null,
+                requests: new Map(),
+                cancelPromise: null,
+            };
+            this.pending.set(key, pending);
+        }
+        pending?.requests.set(requestId, {
+            ownerId: options.ownerId,
+            generation,
+        });
+
         // Batch A and batch B can arrive while one server is starting. Chain
         // them instead of merging their results, or B would be told about A's
         // entries only and never receive its own URLs.
         const previous = this.chains.get(key) ?? Promise.resolve();
-        const task = previous.catch(() => undefined).then(() => this.ensureInternal(options));
+        const task = previous
+            .catch(() => undefined)
+            .then(() => this.ensureInternal(options, key, generation, requestId, pending));
         this.chains.set(
             key,
             task.then(
@@ -298,11 +347,33 @@ export class PreviewRuntimeManager {
         return task;
     }
 
-    private async ensureInternal(options: EnsureRuntimeOptions): Promise<EnsureRuntimeResult> {
+    private resourceId(key: string): string {
+        return `catalog-preview:${key}`;
+    }
+
+    private async ensureInternal(
+        options: EnsureRuntimeOptions,
+        key: string,
+        ownerGeneration: number,
+        requestId: number,
+        pending: PendingStart | undefined,
+    ): Promise<EnsureRuntimeResult> {
+        const cancelled = (): EnsureRuntimeResult => ({
+            urls: {},
+            error: 'Preview start was cancelled.',
+            log: null,
+        });
+
+        if (!this.isOwnerValid(options.ownerId, ownerGeneration)) {
+            this.dropRequest(pending, requestId);
+            return cancelled();
+        }
+
         let written: PreviewSessionFiles[];
         try {
             written = options.entries.map((entry) => writeSessionEntry(options.projectPath, entry));
         } catch (error: any) {
+            this.dropRequest(pending, requestId);
             return {
                 urls: {},
                 error: error?.message ?? 'Failed to write the preview entry.',
@@ -310,16 +381,24 @@ export class PreviewRuntimeManager {
             };
         }
 
-        const key = runtimeKey(options.projectPath, options.kind);
         let runtime = this.runtimes.get(key);
         if (runtime && runtime.process.exitCode !== null) {
-            this.forget(key, runtime, false);
+            await this.forget(key, runtime, true);
             runtime = undefined;
         }
 
         if (!runtime) {
-            const started = await this.startRuntime(options, key, written);
+            if (!pending || pending.cancelled) {
+                for (const files of written) {
+                    removeSessionEntry(files);
+                }
+                return cancelled();
+            }
+            const started = await this.startRuntime(options, key, pending);
             if (started.error || !started.runtime) {
+                for (const files of written) {
+                    removeSessionEntry(files);
+                }
                 return {
                     urls: {},
                     error: started.error ?? 'Failed to start the preview server.',
@@ -329,93 +408,108 @@ export class PreviewRuntimeManager {
             runtime = started.runtime;
         }
 
+        if (!this.isOwnerValid(options.ownerId, ownerGeneration) || pending?.cancelled === true) {
+            this.dropRequest(pending, requestId);
+            for (const files of written) {
+                if (!runtime.sessions.has(files.sessionId)) {
+                    removeSessionEntry(files);
+                }
+            }
+            return cancelled();
+        }
+
         runtime.lastUsedAt = Date.now();
         for (const files of written) {
-            runtime.sessions.set(files.sessionId, files);
+            runtime.sessions.set(files.sessionId, { files, ownerId: options.ownerId });
         }
         this.touch(key, runtime);
+        this.dropRequest(pending, requestId);
 
         return {
             urls: Object.fromEntries(
-                written.map((files) => [
-                    files.sessionId,
-                    `http://127.0.0.1:${runtime!.port}${files.urlPath}`,
-                ]),
+                written.map((files) => [files.sessionId, `${runtime!.origin}${files.urlPath}`]),
             ),
             error: null,
             log: null,
         };
     }
 
+    private dropRequest(pending: PendingStart | undefined, requestId: number): void {
+        if (!pending) {
+            return;
+        }
+        pending.requests.delete(requestId);
+        if (pending.requests.size === 0) {
+            this.pending.delete(pending.key);
+        }
+    }
+
+    private pendingIsValid(pending: PendingStart): boolean {
+        if (pending.cancelled) {
+            return false;
+        }
+        for (const request of pending.requests.values()) {
+            if (this.isOwnerValid(request.ownerId, request.generation)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private async startRuntime(
         options: EnsureRuntimeOptions,
         key: string,
-        written: PreviewSessionFiles[],
+        pending: PendingStart,
     ): Promise<{ runtime: RuntimeRecord | null; error: string | null; log: string | null }> {
         await this.acquireStartSlot();
-        let port: number;
-        let child: ChildProcess;
-        try {
-            port = await detect(options.basePort);
-            child = spawn(
-                process.execPath,
-                [options.viteBin, '--port', String(port), '--strictPort', '--host', '127.0.0.1'],
-                {
-                    cwd: options.projectPath,
-                    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', NODE_ENV: 'development' },
-                    windowsHide: true,
-                    stdio: ['ignore', 'pipe', 'pipe'],
-                },
-            );
-        } catch (error: any) {
-            this.releaseStartSlot();
-            for (const files of written) {
-                removeSessionEntry(files);
+        const resourceId = pending.resourceId;
+        const started = await startVitePreview({
+            resourceId,
+            projectPath: options.projectPath,
+            viteBin: options.viteBin,
+            preferredPort: options.basePort,
+            ownerId: runtimeOwnerId(options.projectPath, options.kind),
+            ownerScope: 'shared',
+            type: 'catalog-preview',
+            startTimeoutMs: this.options.startTimeoutMs,
+            isValid: () => this.pending.get(key) === pending && this.pendingIsValid(pending),
+        });
+        this.releaseStartSlot();
+
+        if (!started.server) {
+            if (!this.pendingIsValid(pending)) {
+                this.pending.delete(key);
             }
-            return {
-                runtime: null,
-                error: error?.message ?? 'Failed to start the preview server.',
-                log: null,
-            };
+            return { runtime: null, error: started.error, log: started.log };
+        }
+
+        pending.child = started.server.process;
+        if (!this.pendingIsValid(pending)) {
+            await processLifecycle.stop(resourceId);
+            this.pending.delete(key);
+            return { runtime: null, error: 'Preview start was cancelled.', log: started.log };
         }
 
         const runtime: RuntimeRecord = {
             key: { projectPath: options.projectPath, kind: options.kind },
-            port,
-            process: child,
-            log: '',
+            resourceId,
+            port: started.server.port,
+            origin: started.server.origin,
+            process: started.server.process,
+            log: started.server.log,
             sessions: new Map(),
             lastUsedAt: Date.now(),
             idleTimer: null,
         };
-        const appendLog = (data: Buffer) => {
-            runtime.log = `${runtime.log}${data.toString()}`.slice(-8000);
-        };
-        child.stdout?.on('data', appendLog);
-        child.stderr?.on('data', appendLog);
-
-        const firstUrl = `http://127.0.0.1:${port}/${PREVIEW_DIR}/${safeEntryId(
-            written[0]?.sessionId ?? 'index',
-        )}/index.html`;
-        const ready = await waitForServer(() => firstUrl, child);
-        this.releaseStartSlot();
-
-        if (!ready) {
-            const error =
-                child.exitCode === null ? 'Preview server timed out.' : 'Preview server exited.';
-            const log = runtime.log || null;
-            killProcess(child);
-            for (const files of written) {
-                removeSessionEntry(files);
-            }
-            return { runtime: null, error, log };
-        }
-        child.on('exit', () => {
+        runtime.process.on('exit', () => {
             const current = this.runtimes.get(key);
             if (current === runtime) {
                 this.runtimes.delete(key);
                 if (runtime.idleTimer) {
                     clearTimeout(runtime.idleTimer);
+                }
+                for (const session of runtime.sessions.values()) {
+                    removeSessionEntry(session.files);
                 }
             }
         });
@@ -452,7 +546,7 @@ export class PreviewRuntimeManager {
         runtime.idleTimer = setTimeout(() => {
             const current = this.runtimes.get(key);
             if (current === runtime && Date.now() - runtime.lastUsedAt >= this.idleTimeoutMs) {
-                this.forget(key, runtime, true);
+                void this.forget(key, runtime, true);
             }
         }, this.idleTimeoutMs);
         // Timers keep a Node/Bun test process alive; the app's lifetime is the
@@ -460,44 +554,125 @@ export class PreviewRuntimeManager {
         runtime.idleTimer.unref?.();
     }
 
-    private forget(key: string, runtime: RuntimeRecord, cleanupFiles: boolean): void {
+    private async forget(
+        key: string,
+        runtime: RuntimeRecord,
+        cleanupFiles: boolean,
+    ): Promise<void> {
         if (runtime.idleTimer) {
             clearTimeout(runtime.idleTimer);
         }
-        this.runtimes.delete(key);
-        killProcess(runtime.process);
+        if (this.runtimes.get(key) === runtime) {
+            this.runtimes.delete(key);
+        }
+        if (!(await processLifecycle.stop(runtime.resourceId))) {
+            // Keep the generated session files while the server may still read them.
+            throw new Error(`The preview server for ${key} did not exit.`);
+        }
         if (cleanupFiles) {
-            for (const files of runtime.sessions.values()) {
-                removeSessionEntry(files);
+            for (const session of runtime.sessions.values()) {
+                removeSessionEntry(session.files);
             }
         }
+    }
+
+    /** Releases every session owned by a consumer without killing shared users. */
+    async releaseOwner(ownerId: string): Promise<void> {
+        this.ownerGenerations.set(ownerId, this.ownerGeneration(ownerId) + 1);
+
+        for (const [key, runtime] of [...this.runtimes.entries()]) {
+            for (const [sessionId, session] of [...runtime.sessions.entries()]) {
+                if (session.ownerId === ownerId) {
+                    runtime.sessions.delete(sessionId);
+                }
+            }
+            if (runtime.sessions.size === 0) {
+                // Keep the shared runtime for the idle window; another consumer
+                // may reopen the library before it expires.
+                this.touch(key, runtime);
+            }
+        }
+
+        for (const [key, pending] of [...this.pending.entries()]) {
+            for (const [requestId, request] of [...pending.requests.entries()]) {
+                if (request.ownerId === ownerId) {
+                    pending.requests.delete(requestId);
+                }
+            }
+            if (pending.requests.size === 0) {
+                await this.cancelPending(key, pending);
+            }
+        }
+    }
+
+    private async cancelPending(key: string, pending: PendingStart): Promise<void> {
+        if (pending.cancelPromise) {
+            return pending.cancelPromise;
+        }
+        pending.cancelled = true;
+        this.pending.delete(key);
+        pending.cancelPromise = (async () => {
+            if (pending.child && !(await processLifecycle.stop(pending.resourceId))) {
+                throw new Error(`The pending preview server for ${key} did not exit.`);
+            }
+        })();
+        await pending.cancelPromise;
     }
 
     /** Stops the runtime for one project kind and removes its session files. */
-    stop(projectPath: string, kind: string): void {
+    async stop(projectPath: string, kind: string): Promise<void> {
         const key = runtimeKey(projectPath, kind);
+        const pending = this.pending.get(key);
+        if (pending) {
+            await this.cancelPending(key, pending);
+        }
         const runtime = this.runtimes.get(key);
         if (runtime) {
-            this.forget(key, runtime, true);
+            await this.forget(key, runtime, true);
         }
     }
 
-    stopProject(projectPath: string): void {
+    async stopProject(projectPath: string): Promise<void> {
+        const resolved = path.resolve(projectPath);
         for (const [key, runtime] of [...this.runtimes.entries()]) {
-            if (runtime.key.projectPath === path.resolve(projectPath)) {
-                this.forget(key, runtime, true);
+            if (runtime.key.projectPath === resolved) {
+                await this.forget(key, runtime, true);
+            }
+        }
+        for (const [key, pending] of [...this.pending.entries()]) {
+            if (key.startsWith(`${resolved}::`)) {
+                await this.cancelPending(key, pending);
             }
         }
     }
 
-    stopAll(): void {
+    async stopAll(): Promise<void> {
+        const failures: string[] = [];
+        for (const pending of [...this.pending.values()]) {
+            try {
+                await this.cancelPending(pending.key, pending);
+            } catch (error: any) {
+                failures.push(error?.message ?? String(error));
+            }
+        }
         for (const [key, runtime] of [...this.runtimes.entries()]) {
-            this.forget(key, runtime, true);
+            try {
+                await this.forget(key, runtime, true);
+            } catch (error: any) {
+                failures.push(error?.message ?? String(error));
+            }
+        }
+        if (failures.length > 0) {
+            throw new Error(failures.join(' '));
         }
     }
 
     /** Number of live servers. Exposed for tests and diagnostics. */
     get size(): number {
         return this.runtimes.size;
+    }
+
+    get pendingCount(): number {
+        return this.pending.size;
     }
 }

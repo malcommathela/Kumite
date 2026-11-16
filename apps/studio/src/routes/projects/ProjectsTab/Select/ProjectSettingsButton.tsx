@@ -17,16 +17,23 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@kumite/ui/dropdown-menu';
-import { Icons } from '@kumite/ui/icons';
 import { Input } from '@kumite/ui/input';
 import { Label } from '@kumite/ui/label';
 import { cn } from '@kumite/ui/utils';
+import { Archive, ArchiveRestore, FolderOpen, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 
-export default function ProjectSettingsButton({ project }: { project: Project }) {
+export default function ProjectSettingsButton({
+    project,
+    iconOnly = false,
+}: {
+    project: Project;
+    iconOnly?: boolean;
+}) {
     const { t } = useTranslation();
     const projectsManager = useProjectsManager();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -34,14 +41,14 @@ export default function ProjectSettingsButton({ project }: { project: Project })
     const [showRenameDialog, setShowRenameDialog] = useState(false);
     const [projectName, setProjectName] = useState(project.name);
     const isProjectNameEmpty = useMemo(() => projectName.length === 0, [projectName]);
-    const [isDirectoryHovered, setIsDirectoryHovered] = useState(false);
+    const isArchived = !!project.archivedAt;
 
     useEffect(() => {
         setProjectName(project.name);
     }, [project.name]);
 
-    const handleDeleteProject = () => {
-        projectsManager.deleteProject(project, deleteProjectFolder);
+    const handleDeleteProject = async () => {
+        await projectsManager.deleteProject(project, deleteProjectFolder);
         setShowDeleteDialog(false);
     };
 
@@ -60,37 +67,43 @@ export default function ProjectSettingsButton({ project }: { project: Project })
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button size="default" variant="ghost" className="gap-2 w-full lg:w-auto">
-                        <Icons.DotsVertical />
-                        <p>{t('projects.actions.projectSettings')}</p>
-                    </Button>
+                    {iconOnly ? (
+                        <Button
+                            size="icon-sm"
+                            variant="secondary"
+                            className="border-border bg-background/90 text-foreground-secondary backdrop-blur"
+                            aria-label={`${project.name} options`}
+                        >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                    ) : (
+                        <Button size="default" variant="ghost" className="w-full gap-2 lg:w-auto">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <p>{t('projects.actions.projectSettings')}</p>
+                        </Button>
+                    )}
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuItem
-                        onSelect={handleOpenProjectFolder}
-                        onMouseEnter={() => setIsDirectoryHovered(true)}
-                        onMouseLeave={() => setIsDirectoryHovered(false)}
-                        className="text-foreground-active hover:!bg-background-kumite hover:!text-foreground-active gap-2"
-                    >
-                        {isDirectoryHovered ? (
-                            <Icons.DirectoryOpen className="w-4 h-4" />
-                        ) : (
-                            <Icons.Directory className="w-4 h-4" />
-                        )}
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={handleOpenProjectFolder}>
+                        <FolderOpen />
                         {t('projects.actions.showInExplorer')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onSelect={() => setShowRenameDialog(true)}
-                        className="text-foreground-active hover:!bg-background-kumite hover:!text-foreground-active gap-2"
-                    >
-                        <Icons.Pencil className="w-4 h-4" />
+                    <DropdownMenuItem onSelect={() => setShowRenameDialog(true)}>
+                        <Pencil />
                         {t('projects.actions.renameProject')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        onSelect={() => setShowDeleteDialog(true)}
-                        className="gap-2 text-red-400 hover:!bg-red-200/80 hover:!text-red-700 dark:text-red-200 dark:hover:!bg-red-800 dark:hover:!text-red-100"
+                        onSelect={() => projectsManager.setProjectArchived(project, !isArchived)}
                     >
-                        <Icons.Trash className="w-4 h-4" />
+                        {isArchived ? <ArchiveRestore /> : <Archive />}
+                        {isArchived ? 'Restore from archive' : 'Move to archive'}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        onSelect={() => setShowDeleteDialog(true)}
+                        className={cn('text-red-400 focus:bg-red-500/10 focus:text-red-300')}
+                    >
+                        <Trash2 />
                         {t('projects.actions.deleteProject')}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -117,12 +130,12 @@ export default function ProjectSettingsButton({ project }: { project: Project })
                         </Label>
                     </div>
                     <AlertDialogFooter>
-                        <Button variant={'ghost'} onClick={() => setShowDeleteDialog(false)}>
+                        <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
                             {t('projects.actions.cancel')}
                         </Button>
                         <Button
-                            variant={'destructive'}
-                            className="rounded-md text-sm"
+                            variant="destructive"
+                            className="text-sm"
                             onClick={handleDeleteProject}
                         >
                             {t('projects.actions.delete')}
@@ -130,12 +143,13 @@ export default function ProjectSettingsButton({ project }: { project: Project })
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
             <AlertDialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('projects.dialogs.rename.title')}</AlertDialogTitle>
                     </AlertDialogHeader>
-                    <div className="flex flex-col w-full gap-2">
+                    <div className="flex w-full flex-col gap-2">
                         <Label htmlFor="text">{t('projects.dialogs.rename.label')}</Label>
                         <Input
                             minLength={0}
@@ -154,14 +168,10 @@ export default function ProjectSettingsButton({ project }: { project: Project })
                         </p>
                     </div>
                     <AlertDialogFooter>
-                        <Button variant={'ghost'} onClick={() => setShowRenameDialog(false)}>
+                        <Button variant="outline" onClick={() => setShowRenameDialog(false)}>
                             {t('projects.actions.cancel')}
                         </Button>
-                        <Button
-                            disabled={isProjectNameEmpty}
-                            className="rounded-md text-sm"
-                            onClick={handleRenameProject}
-                        >
+                        <Button disabled={isProjectNameEmpty} onClick={handleRenameProject}>
                             {t('projects.actions.rename')}
                         </Button>
                     </AlertDialogFooter>

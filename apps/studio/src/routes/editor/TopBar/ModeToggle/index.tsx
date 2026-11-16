@@ -1,10 +1,9 @@
 import { useEditorEngine } from '@/components/Context';
 import { HotKeyLabel } from '@/components/ui/hotkeys-label';
 import { EditorMode } from '@/lib/models';
-import { ToggleGroup, ToggleGroupItem } from '@kumite/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
+import { cn } from '@kumite/ui/utils';
 import { observer } from 'mobx-react-lite';
-import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Hotkey } from '/common/hotkeys';
@@ -37,53 +36,30 @@ const ModeToggle = observer(() => {
     }
 
     return (
-        <div className="relative">
-            <ToggleGroup
-                className="font-normal h-7 mt-1"
-                type="single"
-                value={mode}
-                onValueChange={(value) => {
-                    if (value) {
-                        editorEngine.mode = value as EditorMode;
-                        setMode(value as EditorMode);
-                    }
-                }}
-            >
-                {MODE_TOGGLE_ITEMS.map((item) => (
-                    <Tooltip key={item.mode}>
-                        <TooltipTrigger asChild>
-                            <ToggleGroupItem
-                                variant={'custom-overline'}
-                                value={item.mode}
-                                aria-label={item.hotkey.description}
-                                className={`transition-all duration-150 ease-in-out px-4 py-2 whitespace-nowrap ${
-                                    mode === item.mode
-                                        ? 'text-active font-medium hover:text-active'
-                                        : 'font-normal hover:text-foreground-hover'
-                                }`}
-                            >
-                                {t(`editor.modes.${item.mode.toLowerCase()}.name`)}
-                            </ToggleGroupItem>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            <HotKeyLabel hotkey={item.hotkey} />
-                        </TooltipContent>
-                    </Tooltip>
-                ))}
-            </ToggleGroup>
-            <motion.div
-                className="absolute -top-1 h-0.5 bg-foreground"
-                initial={false}
-                animate={{
-                    width: '50%',
-                    x: mode === EditorMode.DESIGN ? '0%' : '100%',
-                }}
-                transition={{
-                    type: 'tween',
-                    ease: 'easeInOut',
-                    duration: 0.2,
-                }}
-            />
+        <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface/85 p-0.5 shadow-lg backdrop-blur-xl">
+            {MODE_TOGGLE_ITEMS.map((item) => (
+                <Tooltip key={item.mode}>
+                    <TooltipTrigger asChild>
+                        <button
+                            onClick={() => {
+                                editorEngine.mode = item.mode;
+                                setMode(item.mode);
+                            }}
+                            className={cn(
+                                'h-7 whitespace-nowrap rounded-full px-3.5 text-[12px] transition-colors',
+                                mode === item.mode
+                                    ? 'bg-background-active text-foreground'
+                                    : 'text-foreground-tertiary hover:text-foreground',
+                            )}
+                        >
+                            {t(`editor.modes.${item.mode.toLowerCase()}.name`)}
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                        <HotKeyLabel hotkey={item.hotkey} />
+                    </TooltipContent>
+                </Tooltip>
+            ))}
         </div>
     );
 });

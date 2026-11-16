@@ -3,9 +3,7 @@ import { getOidFromJsxElement } from '../diff/helpers';
 import { walkJsxElements } from '../jsx-walk';
 
 export type ClassNameForwardingFailure =
-    | 'component-not-found'
-    | 'no-classname-forwarding'
-    | 'no-classname-prop';
+    'component-not-found' | 'no-classname-forwarding' | 'no-classname-prop';
 
 export type ClassNameForwarding =
     | { ok: true; component: string; path: string | null }

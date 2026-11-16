@@ -29,7 +29,4 @@ export interface ToolChatMessage extends CoreToolMessage {
 }
 
 export type ChatMessage =
-    | UserChatMessage
-    | AssistantChatMessage
-    | SystemChatMessage
-    | ToolChatMessage;
+    UserChatMessage | AssistantChatMessage | SystemChatMessage | ToolChatMessage;
