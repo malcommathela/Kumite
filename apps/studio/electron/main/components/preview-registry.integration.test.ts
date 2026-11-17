@@ -47,25 +47,29 @@ createRoot(document.getElementById('root')!).render(<RegistryFixture />);
             key, artifactHash: 'a'.repeat(64), kind: 'component', name: 'Registry fixture', source: moduleSource,
         }]);
         const sessionId = stableSessionId(root, key, 'registry-integration');
-        const manager = new PreviewRuntimeManager({ startTimeoutMs: 30_000, idleTimeoutMs: 60_000 });
+        const manager = new PreviewRuntimeManager({ startTimeoutMs: 30_000, idleTimeoutMs: 5 * 60_000 });
         managers.push(manager);
+        console.info('[preview-integration] starting Vite runtime');
         const result = await manager.ensure({
             projectPath: root, kind: 'registry-integration',
             viteBin: path.resolve(process.cwd(), '../../node_modules/vite/bin/vite.js'),
             basePort: 38941, ownerId: 'registry-integration-test',
             entries: [{ sessionId, entryId: 'registry-fixture', html: buildCatalogHtml('Registry fixture', sessionId, 'registry-fixture'), source: registry.entrySources[key]! }],
         });
-        assert.equal(result.error, null, result.log ?? 'Vite failed to start');
+        assert.equal(result.error, null, `Vite failed to start: ${result.error ?? 'unknown error'}\n${result.log ?? '(no Vite output captured)'}`);
         const url = result.urls[sessionId];
         assert.ok(url, 'Vite did not return a URL for the registry preview');
-        const browser = await chromium.launch({ headless: true });
+        console.info('[preview-integration] launching Chromium');
+        const browser = await chromium.launch({ headless: true, timeout: 30_000 });
         browsers.push(browser);
         const page = await browser.newPage();
         const pageErrors: string[] = [];
         page.on('pageerror', (error) => pageErrors.push(error.message));
-        const response = await page.goto(url, { waitUntil: 'networkidle' });
+        console.info(`[preview-integration] navigating to ${url}`);
+        const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
         assert.equal(response?.status(), 200);
-        await page.getByTestId('registry-preview-mounted').waitFor({ state: 'visible' });
+        console.info('[preview-integration] waiting for React mount');
+        await page.getByTestId('registry-preview-mounted').waitFor({ state: 'visible', timeout: 30_000 });
         assert.equal(await page.getByTestId('registry-preview-mounted').textContent(), 'Generated registry preview mounted');
         assert.deepEqual(pageErrors, []);
     }, 90_000);
