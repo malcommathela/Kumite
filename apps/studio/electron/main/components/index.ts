@@ -690,6 +690,7 @@ export async function startCatalogPreview(
     projectId?: unknown,
     onProgress?: (progress: ShadcnInstallProgress) => void,
     onSnapshotReady?: (name: string) => void,
+    onSnapshotFailed?: (name: string, message: string) => void,
 ): Promise<ShadcnCatalogPreview> {
     try {
         const requested = Array.isArray(components)
@@ -771,10 +772,13 @@ export async function startCatalogPreview(
                         );
                         onSnapshotReady?.(capture.name);
                     } catch (error) {
+                        const message =
+                            error instanceof Error ? error.message : String(error);
                         console.warn(
                             `Could not capture library preview for "${capture.name}":`,
                             error,
                         );
+                        onSnapshotFailed?.(capture.name, message);
                     }
                 }
             },
