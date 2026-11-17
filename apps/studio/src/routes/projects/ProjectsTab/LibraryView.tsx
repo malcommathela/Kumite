@@ -313,7 +313,7 @@ const LibraryCard = observer(function LibraryCard({
         );
         observer.observe(node);
         return () => observer.disconnect();
-    }, [hasEnteredViewport, item.name, item.previewable, onVisible]);
+    }, [hasEnteredViewport, item.name, item.previewable, manager, onVisible]);
 
     return (
         <button
@@ -351,7 +351,7 @@ const LibraryCard = observer(function LibraryCard({
                         <ComponentThumbnail name={item.name} />
                     </div>
                 )}
-                {previewError && item.previewable && (
+                {previewError && item.previewable && !snapshot && (
                     <span
                         className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] text-foreground-quadranary backdrop-blur"
                         title={previewError}
