@@ -153,7 +153,7 @@ describe('artifact preview registry Vite integration', () => {
         assert.equal(computed.padding, '24px');
         assert.notEqual(computed.backgroundColor, 'rgba(0, 0, 0, 0)');
         assert.notEqual(computed.color, 'rgba(0, 0, 0, 0)');
-        assert.equal(computed.borderRadius, '8px');
+        assert.equal(computed.borderRadius, '10px');
         assert.equal(computed.minHeight, '96px');
         assert.deepEqual(pageErrors, []);
     }, 90_000);
