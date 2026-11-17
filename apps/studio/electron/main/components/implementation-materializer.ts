@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+﻿import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ImplementationArtifactSchema, type ImplementationArtifact } from '@kumite/models';
@@ -24,7 +24,7 @@ export function isImplementationMaterializationActive(destinationDirectory: stri
 
 async function publishStageDirectory(stageDirectory: string, destinationDirectory: string): Promise<void> {
     const transientCodes = new Set(['EPERM', 'EBUSY', 'EACCES']);
-    const maxAttempts = process.platform === 'win32' ? 6 : 1;
+    const maxAttempts = process.platform === 'win32' ? 10 : 1;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         try {
             if (fs.existsSync(destinationDirectory)) {
@@ -35,9 +35,24 @@ async function publishStageDirectory(stageDirectory: string, destinationDirector
         } catch (error) {
             if (error instanceof ImplementationMaterializationError) throw error;
             const code = (error as NodeJS.ErrnoException).code;
-            if (!transientCodes.has(code ?? '') || attempt === maxAttempts - 1) throw error;
+            if (!transientCodes.has(code ?? '') || attempt === maxAttempts - 1) {
+                if (process.platform === 'win32' && transientCodes.has(code ?? '') && fs.existsSync(stageDirectory) && !fs.existsSync(destinationDirectory)) {
+                    try {
+                        fs.cpSync(stageDirectory, destinationDirectory, { recursive: true });
+                        try {
+                            fs.rmSync(stageDirectory, { recursive: true, force: true });
+                        } catch {
+                            // Suppress stage cleanup lock; workspace cleanup removes abandoned stages
+                        }
+                        return;
+                    } catch {
+                        // Throw original rename error if fallback copy fails
+                    }
+                }
+                throw error;
+            }
             if (!fs.existsSync(stageDirectory) || fs.existsSync(destinationDirectory)) throw error;
-            await new Promise((resolve) => setTimeout(resolve, 40 * (attempt + 1)));
+            await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
         }
     }
 }
@@ -620,7 +635,7 @@ const SOURCE_ALIASES: ImplementationMaterializationManifest['sourceAliases'] = [
     { specifierPrefix: '~/lib/', relativePath: 'registry/new-york-v4/lib/' },
 ];
 
-export async function materializeImplementationArtifact(
+async function materializeImplementationArtifactUnlocked(
     artifactValue: ImplementationArtifact,
     destinationDirectory: string,
     options: ImplementationMaterializationOptions = {},

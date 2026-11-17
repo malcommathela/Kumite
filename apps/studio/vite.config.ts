@@ -55,7 +55,7 @@ export default defineConfig(({ command }) => {
                             rollupOptions: {
                                 external: Object.keys(
                                     'dependencies' in pkg ? pkg.dependencies : {},
-                                ),
+                                ).filter((name) => !name.startsWith('@kumite/')),
                             },
                         },
                     },
@@ -71,7 +71,9 @@ export default defineConfig(({ command }) => {
                             minify: isBuild,
                             outDir: 'dist-electron/preload',
                             rollupOptions: {
-                                external: Object.keys(pkg.dependencies ?? {}),
+                                external: Object.keys(pkg.dependencies ?? {}).filter(
+                                    (name) => !name.startsWith('@kumite/'),
+                                ),
                                 output: {
                                     format: 'cjs',
                                     entryFileNames: '[name].js',

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { after, describe, it } from 'bun:test';
+import { afterAll, describe, it } from 'bun:test';
 import { chromium, type Browser } from '@playwright/test';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 import { buildCatalogHtml } from './preview';

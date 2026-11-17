@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { after, describe, it } from 'bun:test';
+import { afterAll, describe, it } from 'bun:test';
 import { cleanupArtifactPreviewWorkspace } from './preview-workspace-cleanup';
 
 const roots: string[] = [];

@@ -1,5 +1,7 @@
 import { COMPONENT_CLI_VERSION } from '@kumite/models';
-import { app } from 'electron';
+import * as electronModule from 'electron';
+import os from 'os';
+const electronApp = (electronModule as any).app ?? (electronModule as any).default?.app;
 import fs from 'fs';
 import path from 'path';
 import { runPackageManagerInstall } from './cli';
@@ -72,7 +74,8 @@ const INDEX_CSS = `@import "tailwindcss";
 `;
 
 function workspaceRoot(): string {
-    return path.join(app.getPath('userData'), WORKSPACE_DIR);
+    const base = typeof electronApp?.getPath === 'function' ? electronApp.getPath('userData') : path.join(os.tmpdir(), 'kumite-e2e-shadcn-profile');
+    return path.join(base, WORKSPACE_DIR);
 }
 
 function writeBaseFiles(root: string): void {
