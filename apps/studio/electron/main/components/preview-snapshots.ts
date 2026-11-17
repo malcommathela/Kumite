@@ -92,10 +92,16 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
                 const expectedSession = ${JSON.stringify(sessionId)};
                 const expectedSource = ${JSON.stringify(PREVIEW_MESSAGE_SOURCE)};
                 let timeout;
+                let finished = false;
                 const finish = () => {
+                    if (finished) return;
+                    finished = true;
                     clearTimeout(timeout);
                     window.removeEventListener('message', onMessage);
-                    Promise.resolve(document.fonts?.ready)
+                    Promise.race([
+                        Promise.resolve(document.fonts?.ready),
+                        new Promise((settle) => setTimeout(settle, 2000)),
+                    ])
                         .then(() => new Promise(requestAnimationFrame))
                         .then(() => new Promise(requestAnimationFrame))
                         .then(() => resolve(true), reject);
