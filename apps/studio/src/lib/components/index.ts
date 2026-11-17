@@ -510,6 +510,7 @@ export class ComponentsManager {
         runInAction(() => {
             this.catalogPreviews = {};
             this.catalogSnapshots = {};
+            this.catalogSnapshotRequests.clear();
             this.catalogSessions = {};
             this.catalogPreviewSources = {};
             this.catalogItemErrors = {};
