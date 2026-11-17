@@ -845,6 +845,7 @@ export async function materializeImplementationArtifact(
         });
         abortIfRequested(options.signal);
         await publishStageDirectory(stageDirectory, directory);
+        activeMaterializationStages.delete(path.resolve(stageDirectory));
         stageDirectory = null;
 
         return {
