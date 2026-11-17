@@ -60,7 +60,11 @@ createRoot(document.getElementById('root')!).render(<RegistryFixture />);
         const url = result.urls[sessionId];
         assert.ok(url, 'Vite did not return a URL for the registry preview');
         console.info('[preview-integration] launching Chromium');
-        const browser = await chromium.launch({ headless: true, timeout: 30_000 });
+        const browser = await chromium.launch({
+            headless: true,
+            timeout: 60_000,
+            ...(process.platform === 'win32' ? { channel: 'msedge' as const } : {}),
+        });
         browsers.push(browser);
         const page = await browser.newPage();
         const pageErrors: string[] = [];
