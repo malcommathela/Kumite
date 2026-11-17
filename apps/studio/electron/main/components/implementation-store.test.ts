@@ -9,7 +9,9 @@ import {
     collectUnreferencedImplementationArtifacts,
     implementationWorkspaceIdentity,
     readStoredImplementationArtifact,
+    reconcileStalePreviewArtifactReferences,
     setImplementationArtifactReference,
+    storeAndReferenceImplementationArtifact,
     storeImplementationArtifact,
 } from './implementation-store';
 import { hashImplementationArtifact, hashImplementationSource } from './source-resolver';
@@ -84,7 +86,10 @@ describe('implementation artifact store', () => {
         );
         artifact.files[0].content = 'mutated';
         await assert.rejects(storeImplementationArtifact(artifact, root));
-        assert.equal((await readStoredImplementationArtifact(stored.artifactId, root))?.artifact.id, 'fixture');
+        assert.equal(
+            (await readStoredImplementationArtifact(stored.artifactId, root))?.artifact.id,
+            'fixture',
+        );
     });
 
     it('retains referenced artifacts and collects only unreferenced known files', async () => {
@@ -112,5 +117,56 @@ describe('implementation artifact store', () => {
         const result = await collectUnreferencedImplementationArtifacts(root);
         assert.deepEqual(result.retained, [stored.artifactId]);
         assert.equal(await fs.readFile(unknownFile, 'utf8'), 'keep');
+    });
+
+    it('acquires a consumer atomically with artifact storage while GC runs', async () => {
+        const root = await makeRoot();
+        const artifact = fixtureArtifact();
+        const [, stored] = await Promise.all([
+            collectUnreferencedImplementationArtifacts(root),
+            storeAndReferenceImplementationArtifact(artifact, 'preview:active', root),
+        ]);
+        const gc = await collectUnreferencedImplementationArtifacts(root);
+        assert.deepEqual(gc.removed, []);
+        const loaded = await readStoredImplementationArtifact(stored.artifactId, root);
+        assert.equal(loaded?.artifact.integrity.artifactHash, artifact.integrity.artifactHash);
+        const references = JSON.parse(
+            await fs.readFile(path.join(stored.directory, 'references.json'), 'utf8'),
+        ) as { consumers: string[] };
+        assert.deepEqual(references.consumers, ['preview:active']);
+    });
+
+    it('finishes deleting an interrupted atomic tombstone', async () => {
+        const root = await makeRoot();
+        const tombstone = path.join(
+            root,
+            'artifacts',
+            `.${'a'.repeat(64)}.12345678-1234-1234-1234-123456789abc.tombstone`,
+        );
+        await fs.mkdir(tombstone, { recursive: true });
+        await fs.writeFile(path.join(tombstone, 'artifact.json'), '{}');
+        await collectUnreferencedImplementationArtifacts(root);
+        await assert.rejects(fs.stat(tombstone), { code: 'ENOENT' });
+    });
+
+    it('reconciles stale preview leases but preserves durable project references', async () => {
+        const root = await makeRoot();
+        const artifact = fixtureArtifact();
+        const stored = await storeAndReferenceImplementationArtifact(
+            artifact,
+            'preview:crashed-session',
+            root,
+        );
+        await setImplementationArtifactReference(stored.artifactId, 'project:active', true, root);
+
+        await reconcileStalePreviewArtifactReferences(root);
+
+        const references = JSON.parse(
+            await fs.readFile(path.join(stored.directory, 'references.json'), 'utf8'),
+        ) as { consumers: string[] };
+        assert.deepEqual(references.consumers, ['project:active']);
+        const collected = await collectUnreferencedImplementationArtifacts(root);
+        assert.deepEqual(collected.removed, []);
+        assert.deepEqual(collected.retained, [stored.artifactId]);
     });
 });

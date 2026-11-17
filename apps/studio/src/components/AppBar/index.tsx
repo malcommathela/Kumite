@@ -87,7 +87,10 @@ export const AppBar = observer(() => {
         return () => window.removeEventListener('keydown', onKeyDown);
     }, []);
 
-    const goto = (view: 'files' | 'folders' | 'archive' | 'library') => {
+    const goto = async (view: 'files' | 'folders' | 'archive' | 'library') => {
+        if (projectsManager.project && !appState.showHome) {
+            await projectsManager.capturePreview();
+        }
         appState.setView(view);
         appState.showHome = true;
         projectsManager.projectsTab = ProjectTabs.PROJECTS;

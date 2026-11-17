@@ -54,15 +54,7 @@ const ProjectBreadcrumb = observer(() => {
     }
 
     const takeScreenshotWithTimeout = async () => {
-        try {
-            const screenshotPromise = saveScreenshot();
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Screenshot timeout')), 5000);
-            });
-            await Promise.race([screenshotPromise, timeoutPromise]);
-        } catch (error) {
-            console.warn('Screenshot timed out or failed, continuing anyway');
-        }
+        await projectsManager.capturePreview();
     };
 
     const handleOpenProjectFolder = () => {
@@ -71,25 +63,6 @@ const ProjectBreadcrumb = observer(() => {
             invokeMainChannel(MainChannels.OPEN_IN_EXPLORER, project.folderPath);
         }
     };
-
-    async function saveScreenshot() {
-        const project = projectsManager.project;
-        if (!project) {
-            console.error('No project selected');
-            return;
-        }
-        const projectId = project.id;
-        const result = await editorEngine.takeActiveWebviewScreenshot(projectId, {
-            save: true,
-        });
-        if (!result || !result.name) {
-            console.error('Failed to take screenshot');
-            return;
-        }
-        project.previewImg = result.name;
-        project.updatedAt = new Date().toISOString();
-        projectsManager.updateProject(project);
-    }
 
     return (
         <div className="mx-2 flex flex-row items-center text-small gap-2">

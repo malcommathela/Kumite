@@ -513,8 +513,9 @@ function removePreviewFiles(projectPath: string): void {
 export const componentPreviewServer = new ComponentPreviewServer();
 
 export function buildCatalogHtml(title: string, sessionId: string, entryId: string): string {
-    const safeTitle = title.replace(/[<>&"]/g, (value) =>
-        ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[value]!,
+    const safeTitle = title.replace(
+        /[<>&"]/g,
+        (value) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[value]!,
     );
     return `${HTML_MARKER}
 <!-- ${PREVIEW_MARKER} -->

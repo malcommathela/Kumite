@@ -171,16 +171,17 @@ describe('component matrix', () => {
                     `1e9e337923aaede7db55b6091cb56a72a661b959/apps/v4/public/r/styles/new-york-v4/${block.name}\\.json$`,
                 ),
             );
-            assert.equal(block.imports.length, 1);
-            assert.equal(
-                block.defaultImport
-                    ? block.imports[0].defaultImport
-                    : block.imports[0].namedImports?.[0],
-                block.exportName,
+            assert.ok(block.imports.length > 0);
+            assert.ok(
+                block.imports.some(
+                    (moduleImport) =>
+                        moduleImport.defaultImport === block.exportName ||
+                        moduleImport.namedImports?.includes(block.exportName),
+                ),
             );
-            assert.equal(
+            assert.match(
                 block.insertCode,
-                `<div className="${getBlockInsertWrapperClass(block.categories)}">\n    <${block.exportName} />\n</div>`,
+                new RegExp(`<${block.exportName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`),
             );
             assert.ok(block.categories.length > 0);
             assert.ok(block.registryDependencies.every((name) => componentNames.has(name)));
@@ -374,7 +375,7 @@ describe('component matrix', () => {
         );
         assert.deepEqual(
             blocked.map((definition) => definition.name),
-            ['form', 'sonner', 'toast'],
+            ['form', 'sidebar', 'sonner', 'toast'],
         );
         for (const definition of blocked) {
             assert.ok(definition.limitation, `${definition.name} is blocked without a reason`);

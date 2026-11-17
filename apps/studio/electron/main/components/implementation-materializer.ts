@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+﻿import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ImplementationArtifactSchema, type ImplementationArtifact } from '@kumite/models';
@@ -12,6 +12,50 @@ import {
 
 const MANIFEST_FILENAME = '.kumite-implementation.json';
 const INTERNAL_ASSET_CACHE = '.kumite-asset-cache';
+
+const materializationFlights = new Map<string, { artifactHash: string; promise: Promise<ImplementationMaterializationResult> }>();
+const activeMaterializationDirectories = new Map<string, number>();
+const activeMaterializationStages = new Set<string>();
+
+export function isImplementationMaterializationActive(destinationDirectory: string): boolean {
+    const resolved = path.resolve(destinationDirectory);
+    return (activeMaterializationDirectories.get(resolved) ?? 0) > 0 || activeMaterializationStages.has(resolved);
+}
+
+async function publishStageDirectory(stageDirectory: string, destinationDirectory: string): Promise<void> {
+    const transientCodes = new Set(['EPERM', 'EBUSY', 'EACCES']);
+    const maxAttempts = process.platform === 'win32' ? 10 : 1;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+            if (fs.existsSync(destinationDirectory)) {
+                throw new ImplementationMaterializationError('destination-exists', `Materialization destination appeared while resolving: ${destinationDirectory}`);
+            }
+            fs.renameSync(stageDirectory, destinationDirectory);
+            return;
+        } catch (error) {
+            if (error instanceof ImplementationMaterializationError) throw error;
+            const code = (error as NodeJS.ErrnoException).code;
+            if (!transientCodes.has(code ?? '') || attempt === maxAttempts - 1) {
+                if (process.platform === 'win32' && transientCodes.has(code ?? '') && fs.existsSync(stageDirectory) && !fs.existsSync(destinationDirectory)) {
+                    try {
+                        fs.cpSync(stageDirectory, destinationDirectory, { recursive: true });
+                        try {
+                            fs.rmSync(stageDirectory, { recursive: true, force: true });
+                        } catch {
+                            // Suppress stage cleanup lock; workspace cleanup removes abandoned stages
+                        }
+                        return;
+                    } catch {
+                        // Throw original rename error if fallback copy fails
+                    }
+                }
+                throw error;
+            }
+            if (!fs.existsSync(stageDirectory) || fs.existsSync(destinationDirectory)) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+        }
+    }
+}
 
 type FileRole = ImplementationArtifact['files'][number]['role'];
 
@@ -591,7 +635,7 @@ const SOURCE_ALIASES: ImplementationMaterializationManifest['sourceAliases'] = [
     { specifierPrefix: '~/lib/', relativePath: 'registry/new-york-v4/lib/' },
 ];
 
-export async function materializeImplementationArtifact(
+async function materializeImplementationArtifactUnlocked(
     artifactValue: ImplementationArtifact,
     destinationDirectory: string,
     options: ImplementationMaterializationOptions = {},
@@ -671,6 +715,7 @@ export async function materializeImplementationArtifact(
         }
         const parent = path.dirname(directory);
         stageDirectory = fs.mkdtempSync(path.join(parent, '.kumite-implementation-stage-'));
+        activeMaterializationStages.add(path.resolve(stageDirectory));
         for (const plan of filePlans) {
             abortIfRequested(options.signal);
             const output = path.resolve(stageDirectory, ...plan.relativePath.split('/'));
@@ -814,13 +859,8 @@ export async function materializeImplementationArtifact(
             flag: 'wx',
         });
         abortIfRequested(options.signal);
-        if (fs.existsSync(directory)) {
-            throw new ImplementationMaterializationError(
-                'destination-exists',
-                `Materialization destination appeared while resolving: ${directory}`,
-            );
-        }
-        fs.renameSync(stageDirectory, directory);
+        await publishStageDirectory(stageDirectory, directory);
+        activeMaterializationStages.delete(path.resolve(stageDirectory));
         stageDirectory = null;
 
         return {
@@ -847,6 +887,7 @@ export async function materializeImplementationArtifact(
     } catch (error) {
         throw wrapError(error, 'io', 'Implementation materialization failed');
     } finally {
+        if (stageDirectory) activeMaterializationStages.delete(path.resolve(stageDirectory));
         if (stageDirectory && fs.existsSync(stageDirectory)) {
             try {
                 fs.rmSync(stageDirectory, { recursive: true, force: true });
@@ -855,4 +896,33 @@ export async function materializeImplementationArtifact(
             }
         }
     }
+}
+
+
+export function materializeImplementationArtifact(
+    artifactValue: ImplementationArtifact,
+    destinationDirectory: string,
+    options: ImplementationMaterializationOptions = {},
+): Promise<ImplementationMaterializationResult> {
+    const directory = path.resolve(destinationDirectory);
+    const artifactHash = artifactValue?.integrity?.artifactHash ?? '';
+    const pending = materializationFlights.get(directory);
+    if (pending?.artifactHash === artifactHash) return pending.promise;
+    const task = (async () => {
+        activeMaterializationDirectories.set(directory, (activeMaterializationDirectories.get(directory) ?? 0) + 1);
+        try {
+            if (pending) await pending.promise.catch(() => undefined);
+            return await materializeImplementationArtifactUnlocked(artifactValue, destinationDirectory, options);
+        } finally {
+            const remaining = (activeMaterializationDirectories.get(directory) ?? 1) - 1;
+            if (remaining > 0) activeMaterializationDirectories.set(directory, remaining);
+            else activeMaterializationDirectories.delete(directory);
+        }
+    })();
+    materializationFlights.set(directory, { artifactHash, promise: task });
+    const clear = () => {
+        if (materializationFlights.get(directory)?.promise === task) materializationFlights.delete(directory);
+    };
+    void task.then(clear, clear);
+    return task;
 }

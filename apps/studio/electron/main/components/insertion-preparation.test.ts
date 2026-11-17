@@ -109,8 +109,8 @@ describe('implementation insertion preparation', () => {
                 ...artifact().files[0].path.split('/'),
             ),
         ]);
-        assert.deepEqual(plan.dependenciesToInstall, ['clsx']);
-        assert.equal(plan.dependencies[0].action, 'present');
+        assert.deepEqual(plan.dependenciesToInstall, ['lucide-react', 'clsx']);
+        assert.equal(plan.dependencies[0].action, 'install');
         assert.equal(plan.dependencies[0].compatible, 'unknown');
         assert.equal(plan.entryImport.export?.kind, 'named');
         assert.deepEqual(fs.readdirSync(root).sort(), before);

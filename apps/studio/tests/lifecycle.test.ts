@@ -267,7 +267,7 @@ describe('shared preview runtime', () => {
         await manager.releaseOwner('project:a');
         expect(manager.size).toBe(1);
         await manager.releaseOwner('project:b');
-        expect(manager.size).toBe(1);
+        expect(manager.size).toBe(0);
         await manager.stopAll();
         expect(manager.size).toBe(0);
     });

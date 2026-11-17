@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { after, describe, it } from 'node:test';
+import { afterAll, describe, it } from 'bun:test';
 import { type ImplementationArtifact, type ImplementationKind } from '@kumite/models';
 import {
     createShadcnSourceResolver,
@@ -15,6 +15,7 @@ import {
 import {
     ImplementationMaterializationError,
     materializeImplementationArtifact,
+    isImplementationMaterializationActive,
 } from './implementation-materializer';
 
 const FIXTURE_PATH = path.join(import.meta.dirname, 'fixtures', 'dashboard-01-responses.json.gz');
@@ -24,7 +25,7 @@ const REGISTRY_ROOT =
     '/apps/v4/public/r/styles/new-york-v4';
 const roots: string[] = [];
 
-after(() => {
+afterAll(() => {
     for (const root of roots) {
         fs.rmSync(root, { recursive: true, force: true });
     }
@@ -667,5 +668,40 @@ describe('implementation artifact materializer', () => {
                 error instanceof ImplementationMaterializationError &&
                 error.code === 'path-conflict',
         );
+    });
+    it('shares one in-flight publication for concurrent requests targeting the same artifact', async () => {
+        const artifact = await resolveFixture('component', 'button');
+        const root = temporaryDirectory();
+        const destination = path.join(root, 'concurrent');
+        const [first, second] = await Promise.all([
+            materializeImplementationArtifact(artifact, destination),
+            materializeImplementationArtifact(artifact, destination),
+        ]);
+        assert.equal(first.materializationDirectory, destination);
+        assert.equal(second.materializationDirectory, destination);
+        assert.equal(first.manifest.artifact.integrity.artifactHash, artifact.integrity.artifactHash);
+        assert.equal(second.manifest.artifact.integrity.artifactHash, artifact.integrity.artifactHash);
+        assert.deepEqual(fs.readdirSync(root), ['concurrent']);
+    });
+    it('tracks queued materialization ownership until all same-destination callers finish', async () => {
+        const artifact = await resolveFixture('block', 'dashboard-01');
+        const root = temporaryDirectory();
+        const destination = path.join(root, 'active');
+        let release!: () => void;
+        let markStarted!: () => void;
+        const started = new Promise<void>((resolve) => { markStarted = resolve; });
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        const pending = materializeImplementationArtifact(artifact, destination, {
+            assetFetcher: async (url, signal) => {
+                markStarted();
+                await gate;
+                return fixtureFetcher()(url, signal);
+            },
+        });
+        await started;
+        assert.equal(isImplementationMaterializationActive(destination), true);
+        release();
+        await pending;
+        assert.equal(isImplementationMaterializationActive(destination), false);
     });
 });

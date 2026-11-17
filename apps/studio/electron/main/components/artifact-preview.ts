@@ -6,10 +6,9 @@ import type {
     ImplementationRequest,
     ShadcnInstallProgress,
 } from '@kumite/models';
-import { Project } from 'ts-morph';
 import { runPackageManagerInstall } from './cli';
 import { projectLifecycle } from '../lifecycle/state';
-import { CATALOG_PREVIEW_VITE_CONFIG } from './catalog';
+import { GENERATED_CONFIG_MARKER, buildArtifactPreviewViteConfig } from './preview-vite-config';
 import { implementationResolutionService } from './implementation-service';
 import {
     ImplementationMaterializationError,
@@ -18,15 +17,15 @@ import {
 } from './implementation-materializer';
 import {
     implementationWorkspaceIdentity,
+    reconcileStalePreviewArtifactReferences,
     setImplementationArtifactReference,
-    storeImplementationArtifact,
+    storeAndReferenceImplementationArtifact,
 } from './implementation-store';
-import {
-    PreviewRuntimeManager,
-    safeEntryId,
-    stableSessionId,
-} from './preview-runtime';
+import { PreviewRuntimeManager, safeEntryId, stableSessionId } from './preview-runtime';
 import { buildCatalogHtml } from './preview';
+import { buildArtifactPreviewModule } from './artifact-preview-module';
+import { generateArtifactPreviewRegistry } from './preview-registry';
+import { cleanupArtifactPreviewWorkspace } from './preview-workspace-cleanup';
 
 const MATERIALIZATIONS_DIRECTORY = '.kumite-materializations';
 const SOURCE_ROOT = 'src';
@@ -85,14 +84,10 @@ function readMaterializationManifest(
     ) {
         throw new Error('Cached artifact materialization does not match the requested artifact.');
     }
-    const materializedBySource = new Map(
-        manifest.files.map((file) => [file.path, file.sha256]),
-    );
+    const materializedBySource = new Map(manifest.files.map((file) => [file.path, file.sha256]));
     if (
         artifact.files.some((file) => materializedBySource.get(file.path) !== file.sha256) ||
-        manifest.files.some(
-            (file) => !artifact.files.some((source) => source.path === file.path),
-        )
+        manifest.files.some((file) => !artifact.files.some((source) => source.path === file.path))
     ) {
         throw new Error('Cached source inventory does not match the requested artifact.');
     }
@@ -115,23 +110,50 @@ function readMaterializationManifest(
     return manifest;
 }
 
-async function ensureMaterialization(
+const materializations = new Map<
+    string,
+    Promise<{ directory: string; manifest: ImplementationMaterializationManifest }>
+>();
+
+/**
+ * Two visible batches can ask for the same artifact at once; the materializer's
+ * stage→final rename fails if the winner already moved the directory into
+ * place, so concurrent callers share one materialization.
+ */
+function ensureMaterialization(
     artifact: ImplementationArtifact,
     workspaceRoot: string,
     signal?: AbortSignal,
 ): Promise<{ directory: string; manifest: ImplementationMaterializationManifest }> {
     const directory = materializationPath(workspaceRoot, artifact);
     if (fs.existsSync(directory)) {
-        return { directory, manifest: readMaterializationManifest(directory, artifact) };
+        return Promise.resolve({
+            directory,
+            manifest: readMaterializationManifest(directory, artifact),
+        });
     }
-    await materializeImplementationArtifact(artifact, directory, { signal });
-    return { directory, manifest: readMaterializationManifest(directory, artifact) };
+    const pending = materializations.get(directory);
+    if (pending) {
+        return pending;
+    }
+    const task = (async () => {
+        // The materializer refuses to create its own parent (so a bad path
+        // cannot escape), and the preview store owns this directory.
+        fs.mkdirSync(path.dirname(directory), { recursive: true });
+        await materializeImplementationArtifact(artifact, directory, { signal });
+        return { directory, manifest: readMaterializationManifest(directory, artifact) };
+    })().finally(() => materializations.delete(directory));
+    materializations.set(directory, task);
+    return task;
 }
 
 function copyVerified(source: string, destination: string, expectedHash: string): void {
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     if (fs.existsSync(destination)) {
-        if (!fs.statSync(destination).isFile() || sha256(fs.readFileSync(destination)) !== expectedHash) {
+        if (
+            !fs.statSync(destination).isFile() ||
+            sha256(fs.readFileSync(destination)) !== expectedHash
+        ) {
             throw new Error(`Artifact preview source collision at "${destination}".`);
         }
         return;
@@ -169,36 +191,18 @@ function mergeMaterialization(
     }
 }
 
-export function buildArtifactPreviewViteConfig(): string {
-    return `import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+export { buildArtifactPreviewViteConfig } from './preview-vite-config';
 
-const source = (path: string) => fileURLToPath(new URL(path, import.meta.url));
-
-export default defineConfig({
-    plugins: [react(), tailwindcss()],
-    resolve: {
-        alias: [
-            { find: /^@\\/registry\\/new-york-v4\\//, replacement: source('./src/registry/new-york-v4/') },
-            { find: /^@\\/components\\/ui\\//, replacement: source('./src/registry/new-york-v4/ui/') },
-            { find: /^@\\/components\\//, replacement: source('./src/registry/new-york-v4/components/') },
-            { find: /^@\\/assets\\//, replacement: source('./src/registry/new-york-v4/assets/') },
-            { find: /^@\\/hooks\\//, replacement: source('./src/registry/new-york-v4/hooks/') },
-            { find: /^@\\/lib\\//, replacement: source('./src/registry/new-york-v4/lib/') },
-            { find: /^~\\/registry\\/new-york-v4\\//, replacement: source('./src/registry/new-york-v4/') },
-            { find: /^~\\/components\\/ui\\//, replacement: source('./src/registry/new-york-v4/ui/') },
-            { find: /^~\\/components\\//, replacement: source('./src/registry/new-york-v4/components/') },
-            { find: /^~\\/assets\\//, replacement: source('./src/registry/new-york-v4/assets/') },
-            { find: /^~\\/hooks\\//, replacement: source('./src/registry/new-york-v4/hooks/') },
-            { find: /^~\\/lib\\//, replacement: source('./src/registry/new-york-v4/lib/') },
-            { find: '@', replacement: source('./src/') },
-            { find: '~', replacement: source('./src/') },
-        ],
-    },
-});
-`;
+/**
+ * Configs written by earlier builds start with the plugin import and carry no
+ * marker; accept both so an upgrade can migrate in place instead of stranding
+ * the workspace.
+ */
+function isGeneratedViteConfig(contents: string): boolean {
+    return (
+        contents.startsWith(GENERATED_CONFIG_MARKER) ||
+        contents.startsWith("import react from '@vitejs/plugin-react';")
+    );
 }
 
 function writeViteAliases(workspaceRoot: string): void {
@@ -212,7 +216,7 @@ function writeViteAliases(workspaceRoot: string): void {
     if (existing === config) {
         return;
     }
-    if (existing !== CATALOG_PREVIEW_VITE_CONFIG) {
+    if (!isGeneratedViteConfig(existing)) {
         throw new Error('Refusing to replace an unrecognized preview workspace Vite config.');
     }
     fs.writeFileSync(configPath, config, 'utf8');
@@ -223,7 +227,9 @@ async function resolveLatestVersion(name: string, signal?: AbortSignal): Promise
         signal,
     });
     if (!response.ok) {
-        throw new Error(`Could not resolve an exact version for "${name}" (HTTP ${response.status}).`);
+        throw new Error(
+            `Could not resolve an exact version for "${name}" (HTTP ${response.status}).`,
+        );
     }
     const metadata = (await response.json()) as { 'dist-tags'?: { latest?: string } };
     const version = metadata['dist-tags']?.latest;
@@ -252,7 +258,11 @@ async function prepareDependencies(
     for (const artifact of artifacts) {
         for (const dependency of artifact.dependencies) {
             const previous = requested.get(dependency.name);
-            if (previous?.version && dependency.version && previous.version !== dependency.version) {
+            if (
+                previous?.version &&
+                dependency.version &&
+                previous.version !== dependency.version
+            ) {
                 throw new Error(
                     `Artifacts request conflicting versions of "${dependency.name}": ${previous.version} and ${dependency.version}.`,
                 );
@@ -290,7 +300,12 @@ async function prepareDependencies(
     let changed = false;
     for (const [name, requirement] of requested) {
         abortIfRequested(signal);
-        const installedPath = path.join(workspaceRoot, 'node_modules', ...name.split('/'), 'package.json');
+        const installedPath = path.join(
+            workspaceRoot,
+            'node_modules',
+            ...name.split('/'),
+            'package.json',
+        );
         let installedVersion: string | undefined;
         try {
             installedVersion = (
@@ -299,20 +314,17 @@ async function prepareDependencies(
         } catch {
             installedVersion = undefined;
         }
-        if (
-            installedVersion &&
-            requirement.version &&
-            /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(requirement.version) &&
-            installedVersion !== requirement.version
-        ) {
-            throw new Error(
-                `Preview workspace has ${name}@${installedVersion}, but the artifact requires ${requirement.version}; no downgrade or replacement was attempted.`,
-            );
-        }
-        const version =
-            installedVersion ??
-            requirement.version ??
-            (await resolveLatestVersion(name, signal));
+        // An artifact's exact pin wins. The workspace may already hold another
+        // version resolved from npm's "latest" for a dependency the catalog
+        // never versioned, and refusing to replace it would strand the artifact.
+        const exact =
+            requirement.version && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(requirement.version)
+                ? requirement.version
+                : undefined;
+        const keeping = !exact || installedVersion === exact;
+        const version = keeping
+            ? (installedVersion ?? exact ?? (await resolveLatestVersion(name, signal)))
+            : exact!;
         selected[name] = {
             version,
             policy:
@@ -321,20 +333,9 @@ async function prepareDependencies(
                     : 'artifact registry version',
             artifacts: requirement.artifacts,
         };
-        if (!installedVersion) {
-            if (
-                requirement.version &&
-                packageJson.dependencies[name] &&
-                packageJson.dependencies[name] !== requirement.version
-            ) {
-                throw new Error(
-                    `Preview workspace manifest already pins ${name}@${packageJson.dependencies[name]}, which conflicts with ${requirement.version}.`,
-                );
-            }
-            if (packageJson.dependencies[name] !== version) {
-                packageJson.dependencies[name] = version;
-                changed = true;
-            }
+        if ((!installedVersion || !keeping) && packageJson.dependencies[name] !== version) {
+            packageJson.dependencies[name] = version;
+            changed = true;
         }
     }
     if (changed) {
@@ -352,12 +353,14 @@ async function prepareDependencies(
                     onProgress?.({
                         component: artifacts.map((artifact) => artifact.metadata.name).join(', '),
                         phase: 'installing',
-                        message: 'Installing artifact dependencies in Kumite’s isolated preview workspace…',
+                        message:
+                            'Installing artifact dependencies in Kumite’s isolated preview workspace…',
                         output: progress.chunk,
                     });
                 }
             },
             signal,
+            true,
         );
         abortIfRequested(signal);
         if (!result.success) {
@@ -365,11 +368,16 @@ async function prepareDependencies(
         }
     }
     for (const [name, item] of Object.entries(selected)) {
-        const installedPath = path.join(workspaceRoot, 'node_modules', ...name.split('/'), 'package.json');
+        const installedPath = path.join(
+            workspaceRoot,
+            'node_modules',
+            ...name.split('/'),
+            'package.json',
+        );
         try {
             item.version =
-                (JSON.parse(fs.readFileSync(installedPath, 'utf8')) as { version?: string }).version ??
-                item.version;
+                (JSON.parse(fs.readFileSync(installedPath, 'utf8')) as { version?: string })
+                    .version ?? item.version;
         } catch {
             throw new Error(`Preview dependency "${name}" is still missing after installation.`);
         }
@@ -387,75 +395,12 @@ async function prepareDependencies(
         )}\n`,
         'utf8',
     );
-    return changed ? `Installed ${Object.keys(selected).join(', ')} in the isolated preview workspace.` : '';
+    return changed
+        ? `Installed ${Object.keys(selected).join(', ')} in the isolated preview workspace.`
+        : '';
 }
 
-function exportedEntry(
-    artifact: ImplementationArtifact,
-): { kind: 'default' } | { kind: 'named'; name: string } {
-    const entry = artifact.files.find((file) => file.path === artifact.entryPoint);
-    if (!entry) {
-        throw new Error(`Artifact entry point "${artifact.entryPoint}" is missing.`);
-    }
-    const sourceFile = new Project({
-        skipAddingFilesFromTsConfig: true,
-        useInMemoryFileSystem: true,
-    }).createSourceFile('preview-entry.tsx', entry.content);
-    const exports = sourceFile.getExportedDeclarations();
-    if (exports.has('default')) {
-        return { kind: 'default' };
-    }
-    if (artifact.metadata.type === 'component') {
-        const name = [...exports.keys()].filter((value) => /^[A-Z]/.test(value)).sort()[0];
-        if (name) {
-            return { kind: 'named', name };
-        }
-    }
-    throw new Error(
-        `Artifact entry point "${artifact.entryPoint}" does not expose a renderable ${artifact.metadata.type} export.`,
-    );
-}
-
-function extensionless(value: string): string {
-    return value.replace(/\.(tsx|jsx|ts|js)$/, '');
-}
-
-export function buildArtifactPreviewModule(
-    artifact: ImplementationArtifact,
-    sessionId: string,
-): string {
-    const entry = exportedEntry(artifact);
-    const source = `@/${extensionless(artifact.entryPoint)}`;
-    const importLine =
-        entry.kind === 'default'
-            ? `import Implementation from ${JSON.stringify(source)};`
-            : `import { ${entry.name} as Implementation } from ${JSON.stringify(source)};`;
-    return `/* kumite artifact preview */
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import '@/index.css';
-${importLine}
-function Handshake() {
-    React.useEffect(() => window.__kumitePreview?.post('mounted'), []);
-    return null;
-}
-class Boundary extends React.Component {
-    state = { error: null };
-    static getDerivedStateFromError(error) { return { error: error?.message || 'Preview crashed.' }; }
-    componentDidCatch(error) { window.__kumitePreview?.post('error', error?.message || 'Preview crashed.'); }
-    render() {
-        return this.state.error
-            ? <pre className="whitespace-pre-wrap p-5 text-sm text-red-600">{this.state.error}</pre>
-            : this.props.children;
-    }
-}
-function Preview() {
-    return <React.StrictMode><Boundary><Handshake /><Implementation /></Boundary></React.StrictMode>;
-}
-createRoot(document.getElementById('root')!).render(<Preview />);
-void ${JSON.stringify(sessionId)};
-`;
-}
+export { buildArtifactPreviewModule } from './artifact-preview-module';
 
 export class ArtifactCatalogPreviewServer {
     private readonly runtime = new PreviewRuntimeManager();
@@ -464,6 +409,7 @@ export class ArtifactCatalogPreviewServer {
     private readonly ownerControllers = new Map<string, Set<AbortController>>();
     private readonly ownerTasks = new Map<string, Set<Promise<ArtifactCatalogPreviewResult>>>();
     private dependencyChain: Promise<void> = Promise.resolve();
+    private startupReconciliation: Promise<void> | null = null;
 
     private prepareDependencies(
         workspaceRoot: string,
@@ -489,6 +435,10 @@ export class ArtifactCatalogPreviewServer {
             storeRoot: string;
             onProgress?: (progress: ShadcnInstallProgress) => void;
             signal?: AbortSignal;
+            /** Verified export names (for example the catalog's `parts`) by request name. */
+            preferredExports?: Record<string, string>;
+            /** Catalog key for requests that preview an upstream example artifact. */
+            previewNames?: Record<string, string>;
         },
     ): Promise<ArtifactCatalogPreviewResult> {
         if (projectLifecycle.isShuttingDown) {
@@ -516,7 +466,8 @@ export class ArtifactCatalogPreviewServer {
             ...options,
             signal: controller.signal,
         });
-        const tasks = this.ownerTasks.get(ownerId) ?? new Set<Promise<ArtifactCatalogPreviewResult>>();
+        const tasks =
+            this.ownerTasks.get(ownerId) ?? new Set<Promise<ArtifactCatalogPreviewResult>>();
         tasks.add(task);
         this.ownerTasks.set(ownerId, tasks);
         return task.finally(() => {
@@ -540,6 +491,8 @@ export class ArtifactCatalogPreviewServer {
             storeRoot: string;
             onProgress?: (progress: ShadcnInstallProgress) => void;
             signal?: AbortSignal;
+            preferredExports?: Record<string, string>;
+            previewNames?: Record<string, string>;
         },
     ): Promise<ArtifactCatalogPreviewResult> {
         const urls: Record<string, string> = {};
@@ -547,6 +500,26 @@ export class ArtifactCatalogPreviewServer {
         const sources: Record<string, 'artifact'> = {};
         const errors: Record<string, string> = {};
         const artifacts: ImplementationArtifact[] = [];
+        const previewNames = new Map<ImplementationArtifact, string>();
+        if (!this.startupReconciliation) {
+            this.startupReconciliation = reconcileStalePreviewArtifactReferences(options.storeRoot);
+        }
+        try {
+            await this.startupReconciliation;
+            if (this.runtime.size === 0) {
+                cleanupArtifactPreviewWorkspace(workspaceRoot);
+            }
+        } catch (error) {
+            this.startupReconciliation = null;
+            return {
+                urls,
+                sessions,
+                sources,
+                errors,
+                error: `Could not reconcile artifact preview leases: ${error instanceof Error ? error.message : String(error)}`,
+                log: null,
+            };
+        }
         await Promise.all(
             requests.map(async (request) => {
                 if (options.signal?.aborted) {
@@ -564,23 +537,30 @@ export class ArtifactCatalogPreviewServer {
                         options.signal,
                     );
                     artifacts.push(resolved.artifact);
+                    previewNames.set(
+                        resolved.artifact,
+                        options.previewNames?.[request.name] ?? resolved.artifact.metadata.name,
+                    );
                 } catch (error) {
-                    errors[request.name] = error instanceof Error ? error.message : String(error);
+                    const displayName = options.previewNames?.[request.name] ?? request.name;
+                    errors[displayName] = error instanceof Error ? error.message : String(error);
                 }
             }),
         );
-        const manifests = new Map<string, { directory: string; manifest: ImplementationMaterializationManifest }>();
+        const manifests = new Map<
+            string,
+            { directory: string; manifest: ImplementationMaterializationManifest }
+        >();
         let log = '';
 
         for (const artifact of artifacts) {
             const key = `${artifact.provider}:${artifact.metadata.name}`;
+            const displayName = previewNames.get(artifact) ?? artifact.metadata.name;
             try {
                 abortIfRequested(options.signal);
-                await storeImplementationArtifact(artifact, options.storeRoot);
-                await setImplementationArtifactReference(
-                    artifact.integrity.artifactHash,
+                await storeAndReferenceImplementationArtifact(
+                    artifact,
                     `preview:${ownerId}:${artifact.integrity.artifactHash}`,
-                    true,
                     options.storeRoot,
                 );
                 const owner = this.ownerArtifacts.get(ownerId) ?? new Set<string>();
@@ -590,8 +570,7 @@ export class ArtifactCatalogPreviewServer {
                 mergeMaterialization(workspaceRoot, cached.directory, cached.manifest);
                 manifests.set(key, cached);
             } catch (error) {
-                errors[artifact.metadata.name] =
-                    error instanceof Error ? error.message : String(error);
+                errors[displayName] = error instanceof Error ? error.message : String(error);
             }
         }
 
@@ -599,7 +578,8 @@ export class ArtifactCatalogPreviewServer {
             manifests.has(`${artifact.provider}:${artifact.metadata.name}`),
         );
         if (readyArtifacts.length === 0) {
-            const firstError = Object.values(errors)[0] ?? 'No implementation artifacts were ready.';
+            const firstError =
+                Object.values(errors)[0] ?? 'No implementation artifacts were ready.';
             return { urls, sessions, sources, errors, error: firstError, log: null };
         }
 
@@ -615,35 +595,48 @@ export class ArtifactCatalogPreviewServer {
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             for (const artifact of readyArtifacts) {
-                errors[artifact.metadata.name] = message;
+                errors[previewNames.get(artifact) ?? artifact.metadata.name] = message;
             }
             return { urls, sessions, sources, errors, error: message, log: null };
         }
 
-        const entries = readyArtifacts.flatMap((artifact) => {
+        const previewModules: Array<{
+            key: string; artifactHash: string; kind: string; name: string; source: string;
+            sessionId: string; entryId: string; html: string;
+        }> = [];
+        for (const artifact of readyArtifacts) {
+            const displayName = previewNames.get(artifact) ?? artifact.metadata.name;
             try {
                 const sessionId = stableSessionId(
                     workspaceRoot,
-                    `${ownerId}:${artifact.id}:${artifact.integrity.artifactHash}`,
+                    `${ownerId}:${displayName}:${artifact.id}:${artifact.integrity.artifactHash}`,
                     'implementation-catalog',
                 );
-                const entryId = safeEntryId(artifact.metadata.name);
-                return [
-                    {
-                        sessionId,
-                        entryId,
-                        html: buildCatalogHtml(artifact.metadata.name, sessionId, entryId),
-                        source: buildArtifactPreviewModule(artifact, sessionId),
-                    },
-                ];
+                const entryId = safeEntryId(displayName);
+                previewModules.push({
+                    key: `${artifact.provider}:${artifact.metadata.type}:${artifact.id}:${sessionId}`,
+                    artifactHash: artifact.integrity.artifactHash,
+                    kind: artifact.metadata.type,
+                    name: displayName,
+                    source: buildArtifactPreviewModule(artifact, sessionId, options.preferredExports?.[displayName]),
+                    sessionId,
+                    entryId,
+                    html: buildCatalogHtml(displayName, sessionId, entryId),
+                });
             } catch (error) {
-                errors[artifact.metadata.name] =
-                    error instanceof Error ? error.message : String(error);
-                return [];
+                errors[displayName] = error instanceof Error ? error.message : String(error);
             }
-        });
+        }
+        const registry = await generateArtifactPreviewRegistry(workspaceRoot, previewModules);
+        const entries = previewModules.map((module) => ({
+            sessionId: module.sessionId,
+            entryId: module.entryId,
+            html: module.html,
+            source: registry.entrySources[module.key]!,
+        }));
         if (entries.length === 0) {
-            const firstError = Object.values(errors)[0] ?? 'No artifact entry points were renderable.';
+            const firstError =
+                Object.values(errors)[0] ?? 'No artifact entry points were renderable.';
             return { urls, sessions, sources, errors, error: firstError, log: log || null };
         }
         abortIfRequested(options.signal);
@@ -670,24 +663,34 @@ export class ArtifactCatalogPreviewServer {
         if (result.error) {
             return { urls, sessions, sources, errors, error: result.error, log: result.log ?? log };
         }
-        for (const [index, artifact] of readyArtifacts.filter((value) =>
-            entries.some((entry) => entry.entryId === safeEntryId(value.metadata.name)),
-        ).entries()) {
+        for (const [index, artifact] of readyArtifacts
+            .filter((value) =>
+                entries.some(
+                    (entry) =>
+                        entry.entryId ===
+                        safeEntryId(previewNames.get(value) ?? value.metadata.name),
+                ),
+            )
+            .entries()) {
             const entry = entries[index];
             const url = result.urls[entry.sessionId];
             if (!url) {
                 continue;
             }
-            urls[artifact.metadata.name] = url;
-            sessions[artifact.metadata.name] = entry.sessionId;
-            sources[artifact.metadata.name] = 'artifact';
+            const displayName = previewNames.get(artifact) ?? artifact.metadata.name;
+            urls[displayName] = url;
+            sessions[displayName] = entry.sessionId;
+            sources[displayName] = 'artifact';
         }
         return {
             urls,
             sessions,
             sources,
             errors,
-            error: Object.keys(errors).length > 0 ? 'Some artifact previews could not be prepared.' : null,
+            error:
+                Object.keys(errors).length > 0
+                    ? 'Some artifact previews could not be prepared.'
+                    : null,
             log: [log, result.log].filter(Boolean).join('\n\n') || null,
         };
     }
@@ -700,11 +703,14 @@ export class ArtifactCatalogPreviewServer {
         await Promise.allSettled([...(this.ownerTasks.get(ownerId) ?? [])]);
         await this.runtime.releaseOwner(ownerId);
         const artifacts = this.ownerArtifacts.get(ownerId);
+        const storeRoot = this.ownerStores.get(ownerId);
         if (!artifacts) {
             this.ownerStores.delete(ownerId);
+            if (storeRoot && this.ownerArtifacts.size === 0 && this.runtime.size === 0) {
+                cleanupArtifactPreviewWorkspace(path.dirname(storeRoot));
+            }
             return;
         }
-        const storeRoot = this.ownerStores.get(ownerId);
         if (!storeRoot) {
             throw new Error(`Artifact store root is missing for preview owner "${ownerId}".`);
         }
@@ -718,6 +724,9 @@ export class ArtifactCatalogPreviewServer {
         }
         this.ownerArtifacts.delete(ownerId);
         this.ownerStores.delete(ownerId);
+        if (this.ownerArtifacts.size === 0 && this.runtime.size === 0) {
+            cleanupArtifactPreviewWorkspace(path.dirname(storeRoot));
+        }
     }
 
     async stop(): Promise<void> {

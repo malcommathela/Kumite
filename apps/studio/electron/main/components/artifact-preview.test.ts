@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { describe, it } from 'bun:test';
+import { getShadcnExampleName, getShadcnLibraryItem } from '@kumite/models';
 import type { ImplementationArtifact } from '@kumite/models';
-import {
-    buildArtifactPreviewModule,
-    buildArtifactPreviewViteConfig,
-} from './artifact-preview';
+import { buildArtifactPreviewModule } from './artifact-preview-module';
 
 function artifact(
     kind: ImplementationArtifact['metadata']['type'],
@@ -47,6 +45,12 @@ function artifact(
 }
 
 describe('artifact preview adapter', () => {
+    it('associates supported catalog components with verified upstream examples', () => {
+        assert.equal(getShadcnExampleName(getShadcnLibraryItem('button')!), 'button-demo');
+        assert.equal(getShadcnExampleName(getShadcnLibraryItem('chart')!), 'chart-bar-demo');
+        assert.equal(getShadcnExampleName(getShadcnLibraryItem('sidebar')!), undefined);
+    });
+
     it('imports and renders the actual default block entry point', () => {
         const module = buildArtifactPreviewModule(
             artifact('block', 'export default function DashboardPage() { return <main />; }'),
@@ -63,10 +67,7 @@ describe('artifact preview adapter', () => {
 
     it('preserves named-export semantics for component entry points', () => {
         const module = buildArtifactPreviewModule(
-            artifact(
-                'component',
-                'export function Button() { return <button type="button" />; }',
-            ),
+            artifact('component', 'export function Button() { return <button type="button" />; }'),
             'preview-session',
         );
 
@@ -76,18 +77,115 @@ describe('artifact preview adapter', () => {
         );
     });
 
+    it('skips type-only exports when picking a runtime component export', () => {
+        // `ChartConfig` sorts before `ChartContainer` but is a compiler-only
+        // type; the import must target the runtime value.
+        const module = buildArtifactPreviewModule(
+            artifact(
+                'component',
+                [
+                    'export type ChartConfig = {',
+                    '  desktop: { label: string; color: string };',
+                    '};',
+                    'export const ChartContainer = () => <div className="chart" />;',
+                ].join('\n'),
+            ),
+            'preview-session',
+        );
+
+        assert.match(
+            module,
+            /import \{ ChartContainer as Implementation \} from "@\/registry\/new-york-v4\/ui\/fixture"/,
+        );
+        assert.doesNotMatch(module, /ChartConfig/);
+    });
+
+    it('prefers verified registry metadata over alphabetical order', () => {
+        const module = buildArtifactPreviewModule(
+            artifact(
+                'component',
+                [
+                    'export type ChartConfig = { desktop: { label: string } };',
+                    'export const ChartLegendContent = () => <div />;',
+                    'export const ChartContainer = () => <div className="chart" />;',
+                ].join('\n'),
+            ),
+            'preview-session',
+            'ChartContainer',
+        );
+
+        assert.match(
+            module,
+            /import \{ ChartContainer as Implementation \} from "@\/registry\/new-york-v4\/ui\/fixture"/,
+        );
+    });
+
+    it('ignores a preferred export that is not a runtime value', () => {
+        const module = buildArtifactPreviewModule(
+            artifact(
+                'component',
+                [
+                    'export type ChartConfig = { desktop: { label: string } };',
+                    'export const ChartContainer = () => <div className="chart" />;',
+                ].join('\n'),
+            ),
+            'preview-session',
+            'ChartConfig',
+        );
+
+        assert.match(
+            module,
+            /import \{ ChartContainer as Implementation \} from "@\/registry\/new-york-v4\/ui\/fixture"/,
+        );
+    });
+
+    it('fails explicitly when an entry exposes only type exports', () => {
+        assert.throws(
+            () =>
+                buildArtifactPreviewModule(
+                    artifact('component', 'export type ChartConfig = { label: string };'),
+                    'session',
+                ),
+            /does not expose a renderable component export/,
+        );
+    });
+
     it('rejects a block entry without a default page export', () => {
         assert.throws(
-            () => buildArtifactPreviewModule(artifact('block', 'export function Dashboard() {}'), 'session'),
+            () =>
+                buildArtifactPreviewModule(
+                    artifact('block', 'export function Dashboard() {}'),
+                    'session',
+                ),
             /does not expose a renderable block export/,
         );
     });
 
-    it('provides valid deterministic Vite aliases for preserved source and asset paths', () => {
-        const config = buildArtifactPreviewViteConfig();
+    it('fails explicitly when a required provider is absent from the example composition', () => {
+        const value = artifact('example', 'export default function Example() { return <main />; }');
+        value.requirements.providers = ['SidebarProvider'];
 
-        assert.match(config, /registry\/new-york-v4\/ui/);
-        assert.match(config, /registry\/new-york-v4\/assets/);
-        assert.match(config, /find: \/\^@/);
+        assert.throws(
+            () => buildArtifactPreviewModule(value, 'session'),
+            /cannot safely construct required provider: SidebarProvider/,
+        );
+    });
+
+    it('does not mistake ambient declarations or enums for React component exports', () => {
+        assert.throws(
+            () =>
+                buildArtifactPreviewModule(
+                    artifact(
+                        'component',
+                        [
+                            'export declare const ChartConfig: unknown;',
+                            'export declare function ChartRuntime(): void;',
+                            'export enum ChartMode { Bar, Line }',
+                        ].join('\n'),
+                    ),
+                    'session',
+                ),
+            /does not expose a renderable component export/,
+        );
     });
 });

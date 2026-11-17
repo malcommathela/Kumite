@@ -179,10 +179,40 @@ export class ProjectsManager {
     /** Closes the current project before switching to another one. */
     async openProject(project: Project): Promise<void> {
         if (this._project && this._project.id !== project.id) {
+            await this.capturePreview();
             await this.closeProject();
         }
         this.project = project;
         await this.runner?.startIfPortAvailable();
+    }
+
+    /**
+     * Stores the active project's live surface as its dashboard thumbnail.
+     * Called while the editor is still mounted, since the webviews are gone
+     * once the project closes. The timeout keeps navigation from waiting on a
+     * browser that never paints.
+     */
+    async capturePreview(): Promise<void> {
+        const project = this._project;
+        if (!project || !this.editorEngine) {
+            return;
+        }
+        try {
+            const result = await Promise.race([
+                this.editorEngine.takeActiveWebviewScreenshot(project.id, { save: true }),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+            ]);
+            if (!result?.name) {
+                return;
+            }
+            this.updateProject({
+                ...project,
+                previewImg: result.name,
+                updatedAt: new Date().toISOString(),
+            });
+        } catch (error) {
+            console.warn('Could not capture project preview:', error);
+        }
     }
 
     async scanProjectMetadata(project: Project) {

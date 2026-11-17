@@ -1,8 +1,11 @@
 import { COMPONENT_CLI_VERSION } from '@kumite/models';
-import { app } from 'electron';
+import * as electronModule from 'electron';
+import os from 'os';
+const electronApp = (electronModule as any).app ?? (electronModule as any).default?.app;
 import fs from 'fs';
 import path from 'path';
 import { runPackageManagerInstall } from './cli';
+import { GENERATED_CONFIG_MARKER } from './preview-vite-config';
 
 /**
  * Private Vite runtime shared by artifact-backed catalog previews. Upstream
@@ -48,7 +51,11 @@ const TSCONFIG = {
     include: ['src'],
 };
 
-export const CATALOG_PREVIEW_VITE_CONFIG = `import react from '@vitejs/plugin-react';
+/**
+ * Both generated configs carry this marker, so a newer build may replace an
+ * older generated config while a hand-written file is still never touched.
+ */
+export const CATALOG_PREVIEW_VITE_CONFIG = `${GENERATED_CONFIG_MARKER}import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
@@ -67,7 +74,8 @@ const INDEX_CSS = `@import "tailwindcss";
 `;
 
 function workspaceRoot(): string {
-    return path.join(app.getPath('userData'), WORKSPACE_DIR);
+    const base = typeof electronApp?.getPath === 'function' ? electronApp.getPath('userData') : path.join(os.tmpdir(), 'kumite-e2e-shadcn-profile');
+    return path.join(base, WORKSPACE_DIR);
 }
 
 function writeBaseFiles(root: string): void {

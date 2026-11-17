@@ -142,7 +142,9 @@ function createShadcnAdapter(
                 );
             }
             const activeSignal = signal ?? resolverOptions.signal;
-            let resolver = activeSignal ? resolvers.get(activeSignal) : defaultResolver ?? undefined;
+            let resolver = activeSignal
+                ? resolvers.get(activeSignal)
+                : (defaultResolver ?? undefined);
             if (!resolver) {
                 resolver = createShadcnSourceResolver({
                     ...resolverOptions,

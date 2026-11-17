@@ -1,12 +1,7 @@
 import traverse, { type NodePath } from '@babel/traverse';
 import * as t from '@babel/types';
 import { type CodeAction, CodeActionType } from '@kumite/models/actions';
-import type {
-    CodeDiffFailureReason,
-    CodeDiffRequest,
-    CodeImport,
-    ContentChange,
-} from '@kumite/models/code';
+import type { CodeDiffFailureReason, CodeDiffRequest, ContentChange } from '@kumite/models/code';
 import { applyContentChanges } from './content';
 import { groupElementsInNode, ungroupElementsInNode } from './group';
 import { getOidFromJsxElement } from './helpers';
@@ -16,6 +11,7 @@ import { moveElementInNode } from './move';
 import { removeElementFromNode } from './remove';
 import { addClassToNode, replaceNodeClasses, updateNodeProp } from './style';
 import { updateNodeTextContent } from './text';
+import { addImportsToFile } from './imports';
 import { assertNever } from '/common/helpers';
 
 export interface TransformReport {
@@ -94,94 +90,6 @@ function collectContentChanges(
         }
     }
     return changes;
-}
-
-function addImportsToFile(ast: t.File, oidToCodeDiff: Map<string, CodeDiffRequest>): void {
-    const requested = new Map<string, Required<Pick<CodeImport, 'source'>> & CodeImport>();
-    for (const request of oidToCodeDiff.values()) {
-        for (const moduleImport of request.imports ?? []) {
-            const existing = requested.get(moduleImport.source);
-            if (!existing) {
-                requested.set(moduleImport.source, {
-                    source: moduleImport.source,
-                    defaultImport: moduleImport.defaultImport,
-                    namedImports: [...(moduleImport.namedImports ?? [])],
-                });
-                continue;
-            }
-            if (!existing.defaultImport && moduleImport.defaultImport) {
-                existing.defaultImport = moduleImport.defaultImport;
-            }
-            const names = new Set(existing.namedImports ?? []);
-            for (const name of moduleImport.namedImports ?? []) {
-                names.add(name);
-            }
-            existing.namedImports = [...names];
-        }
-    }
-    if (requested.size === 0) {
-        return;
-    }
-
-    const body = ast.program.body;
-    const existingBySource = new Map<string, t.ImportDeclaration>();
-    let lastImportIndex = -1;
-    body.forEach((node, index) => {
-        if (t.isImportDeclaration(node)) {
-            lastImportIndex = index;
-            existingBySource.set(node.source.value, node);
-        }
-    });
-
-    const newDeclarations: t.ImportDeclaration[] = [];
-    for (const moduleImport of requested.values()) {
-        const existing = existingBySource.get(moduleImport.source);
-        if (existing) {
-            mergeImportDeclaration(existing, moduleImport);
-            continue;
-        }
-        const specifiers: Array<t.ImportDefaultSpecifier | t.ImportSpecifier> = [];
-        if (moduleImport.defaultImport) {
-            specifiers.push(t.importDefaultSpecifier(t.identifier(moduleImport.defaultImport)));
-        }
-        for (const name of moduleImport.namedImports ?? []) {
-            specifiers.push(t.importSpecifier(t.identifier(name), t.identifier(name)));
-        }
-        if (specifiers.length === 0) {
-            continue;
-        }
-        newDeclarations.push(t.importDeclaration(specifiers, t.stringLiteral(moduleImport.source)));
-    }
-
-    if (newDeclarations.length > 0) {
-        body.splice(lastImportIndex + 1, 0, ...newDeclarations);
-    }
-}
-
-function mergeImportDeclaration(declaration: t.ImportDeclaration, moduleImport: CodeImport): void {
-    const localNames = new Set(
-        declaration.specifiers
-            .filter((specifier) => t.isImportSpecifier(specifier))
-            .map((specifier) => specifier.local.name),
-    );
-    const hasDefault = declaration.specifiers.some(
-        (specifier) =>
-            t.isImportDefaultSpecifier(specifier) || t.isImportNamespaceSpecifier(specifier),
-    );
-    const additions: t.ImportSpecifier[] = [];
-    if (moduleImport.defaultImport && !hasDefault) {
-        declaration.specifiers.unshift(
-            t.importDefaultSpecifier(t.identifier(moduleImport.defaultImport)),
-        );
-    }
-    for (const name of moduleImport.namedImports ?? []) {
-        if (localNames.has(name)) {
-            continue;
-        }
-        additions.push(t.importSpecifier(t.identifier(name), t.identifier(name)));
-        localNames.add(name);
-    }
-    declaration.specifiers.push(...additions);
 }
 
 function applyStructureChanges(path: NodePath<t.JSXElement>, actions: CodeAction[]): void {

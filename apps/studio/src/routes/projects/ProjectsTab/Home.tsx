@@ -19,7 +19,7 @@ import { observer } from 'mobx-react-lite';
 import { useMemo, useState } from 'react';
 import type React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { ProjectCard } from './ProjectCard';
+import { ProjectCard, ProjectPreview } from './ProjectCard';
 import { LibraryView } from './LibraryView';
 import ProjectSettingsButton from './Select/ProjectSettingsButton';
 
@@ -272,11 +272,10 @@ const FilesView = observer(() => {
                                     className="flex min-w-0 flex-1 items-center gap-4 text-left"
                                     onClick={() => openProject(project)}
                                 >
-                                    <div className="flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-surface">
-                                        <span className="font-display text-[15px] text-foreground-quadranary">
-                                            {project.name.charAt(0).toUpperCase()}
-                                        </span>
-                                    </div>
+                                    <ProjectPreview
+                                        project={project}
+                                        className="h-10 w-14 shrink-0 rounded-md"
+                                    />
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-[13px] text-foreground">
                                             {project.name}

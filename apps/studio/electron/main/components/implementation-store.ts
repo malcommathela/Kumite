@@ -69,10 +69,7 @@ async function writeExclusive(file: string, contents: string): Promise<boolean> 
     }
 }
 
-async function withArtifactQueue<T>(
-    key: string,
-    work: () => Promise<T>,
-): Promise<T> {
+async function withArtifactQueue<T>(key: string, work: () => Promise<T>): Promise<T> {
     const previous = queues.get(key) ?? Promise.resolve();
     let release!: () => void;
     const current = new Promise<void>((resolve) => {
@@ -98,19 +95,50 @@ export async function storeImplementationArtifact(
     const artifactId = identity(artifact);
     const directory = artifactDirectory(root, artifactId);
     const file = path.join(directory, ARTIFACT_FILE);
-    return withArtifactQueue(file, async () => {
-        await fs.mkdir(directory, { recursive: true });
-        const serialized = serializeImplementationArtifact(artifact);
-        const created = await writeExclusive(file, serialized);
-        if (!created) {
-            const existing = deserializeImplementationArtifact(await fs.readFile(file, 'utf8'));
-            validateArtifact(existing);
-            if (existing.integrity.artifactHash !== artifactId) {
-                throw new Error('Stored artifact does not match its content-addressed identity.');
-            }
+    return withArtifactQueue(directory, () =>
+        storeArtifactUnlocked(artifact, artifactId, directory, file),
+    );
+}
+
+async function storeArtifactUnlocked(
+    artifact: ImplementationArtifact,
+    artifactId: string,
+    directory: string,
+    file: string,
+): Promise<StoredImplementationArtifact> {
+    await fs.mkdir(directory, { recursive: true });
+    const created = await writeExclusive(file, serializeImplementationArtifact(artifact));
+    if (!created) {
+        const existing = deserializeImplementationArtifact(await fs.readFile(file, 'utf8'));
+        validateArtifact(existing);
+        if (existing.integrity.artifactHash !== artifactId) {
+            throw new Error('Stored artifact does not match its content-addressed identity.');
         }
-        const snapshot = deserializeImplementationArtifact(await fs.readFile(file, 'utf8'));
-        return { artifactId, artifact: snapshot, directory, path: file };
+    }
+    const snapshot = deserializeImplementationArtifact(await fs.readFile(file, 'utf8'));
+    return { artifactId, artifact: snapshot, directory, path: file };
+}
+
+/** Store and acquire an artifact under one artifact-level lock so GC cannot win
+ * the gap between publishing the snapshot and recording its first consumer. */
+export async function storeAndReferenceImplementationArtifact(
+    artifact: ImplementationArtifact,
+    consumerId: string,
+    root: string,
+): Promise<StoredImplementationArtifact> {
+    if (!consumerId.trim()) {
+        throw new Error('Artifact reference requires a consumer identity.');
+    }
+    validateArtifact(artifact);
+    const artifactId = identity(artifact);
+    const directory = artifactDirectory(root, artifactId);
+    const file = path.join(directory, ARTIFACT_FILE);
+    return withArtifactQueue(directory, async () => {
+        const stored = await storeArtifactUnlocked(artifact, artifactId, directory, file);
+        const consumers = new Set((await readConsumers(directory)) ?? []);
+        consumers.add(consumerId);
+        await writeConsumers(directory, [...consumers]);
+        return stored;
     });
 }
 
@@ -119,6 +147,16 @@ export async function readStoredImplementationArtifact(
     root: string,
 ): Promise<StoredImplementationArtifact | null> {
     const directory = artifactDirectory(root, artifactId);
+    return withArtifactQueue(directory, () =>
+        readStoredArtifactUnlocked(artifactId, root, directory),
+    );
+}
+
+async function readStoredArtifactUnlocked(
+    artifactId: string,
+    root: string,
+    directory: string,
+): Promise<StoredImplementationArtifact | null> {
     const file = path.join(directory, ARTIFACT_FILE);
     try {
         const artifact = deserializeImplementationArtifact(await fs.readFile(file, 'utf8'));
@@ -183,8 +221,8 @@ export async function setImplementationArtifactReference(
         throw new Error('Artifact reference requires a consumer identity.');
     }
     const directory = artifactDirectory(root, artifactId);
-    return withArtifactQueue(path.join(directory, REFERENCES_FILE), async () => {
-        if (!(await readStoredImplementationArtifact(artifactId, root))) {
+    return withArtifactQueue(directory, async () => {
+        if (!(await readStoredArtifactUnlocked(artifactId, root, directory))) {
             throw new Error(`Cannot reference missing implementation artifact "${artifactId}".`);
         }
         const consumers = new Set((await readConsumers(directory)) ?? []);
@@ -219,7 +257,7 @@ export async function collectUnreferencedImplementationArtifacts(
             continue;
         }
         const artifactDir = artifactDirectory(root, entry);
-        await withArtifactQueue(path.join(artifactDir, REFERENCES_FILE), async () => {
+        await withArtifactQueue(artifactDir, async () => {
             let consumers: string[] | null;
             try {
                 consumers = await readConsumers(artifactDir);
@@ -237,7 +275,7 @@ export async function collectUnreferencedImplementationArtifacts(
                 files = await fs.readdir(artifactDir);
                 if (
                     files.some((file) => file !== ARTIFACT_FILE && file !== REFERENCES_FILE) ||
-                    !(await readStoredImplementationArtifact(entry, root))
+                    !(await readStoredArtifactUnlocked(entry, root, artifactDir))
                 ) {
                     retained.push(entry);
                     return;
@@ -246,20 +284,69 @@ export async function collectUnreferencedImplementationArtifacts(
                 retained.push(entry);
                 return;
             }
-            const artifactFile = path.join(artifactDir, ARTIFACT_FILE);
-            const referencesFile = path.join(artifactDir, REFERENCES_FILE);
-            await fs.rm(artifactFile, { force: true });
-            await fs.rm(referencesFile, { force: true });
+            const tombstone = path.join(directory, `.${entry}.${randomUUID()}.tombstone`);
             try {
-                await fs.rmdir(artifactDir);
+                // The rename is the commit point: readers either see the full
+                // artifact directory or no artifact, never a partially deleted one.
+                await fs.rename(artifactDir, tombstone);
+            } catch {
+                retained.push(entry);
+                return;
+            }
+            try {
+                await fs.rm(tombstone, { recursive: true, force: true });
                 removed.push(entry);
             } catch {
-                // Leave unknown files/directories in place; never recursively delete them.
+                // A tombstone is never visible as an artifact. A later GC pass
+                // can safely finish removing this store-owned directory.
                 retained.push(entry);
             }
         });
     }
+    // Recover GC interrupted after the atomic rename. Tombstones are named
+    // exclusively by this store and cannot contain a live artifact reference.
+    for (const entry of entries) {
+        if (!/^\.[a-f0-9]{64}\.[0-9a-f-]+\.tombstone$/.test(entry)) {
+            continue;
+        }
+        try {
+            await fs.rm(path.join(directory, entry), { recursive: true, force: true });
+        } catch {
+            retained.push(entry);
+        }
+    }
     return { removed, retained };
+}
+
+/** Drop ephemeral preview leases left by a crashed main process. Project and
+ * editor consumer identities are durable and are never removed here. */
+export async function reconcileStalePreviewArtifactReferences(root: string): Promise<void> {
+    const artifactsDirectory = path.join(root, 'artifacts');
+    let entries: string[];
+    try {
+        entries = await fs.readdir(artifactsDirectory);
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return;
+        }
+        throw error;
+    }
+    for (const entry of entries.filter((item) => /^[a-f0-9]{64}$/.test(item))) {
+        const directory = artifactDirectory(root, entry);
+        await withArtifactQueue(directory, async () => {
+            if (!(await readStoredArtifactUnlocked(entry, root, directory))) {
+                return;
+            }
+            const consumers = await readConsumers(directory);
+            if (!consumers) {
+                return;
+            }
+            const active = consumers.filter((consumer) => !consumer.startsWith('preview:'));
+            if (active.length !== consumers.length) {
+                await writeConsumers(directory, active);
+            }
+        });
+    }
 }
 
 export function implementationWorkspaceIdentity(

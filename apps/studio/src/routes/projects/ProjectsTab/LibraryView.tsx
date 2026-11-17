@@ -1,4 +1,12 @@
 import {
+    CardPreview,
+    ComponentThumbnail,
+    getCategory,
+    PreviewFrame,
+    PreviewShimmer,
+} from '@/components/ComponentPreview';
+import { useEditorEngine } from '@/components/Context';
+import {
     SHADCN_BLOCKS,
     SHADCN_COMPONENTS,
     type ShadcnBlockDefinition,
@@ -27,25 +35,33 @@ import {
     Component,
     Copy,
     Package,
+    RefreshCw,
     Search,
     Sparkles,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { LucideIcon } from 'lucide-react';
+import type { ComponentsManager } from '@/lib/components';
 import { PageHeader } from './Home';
 
 type CatalogKind = 'component' | 'block';
+type CatalogSpan = 'full' | 'half' | 'third';
 
 interface CatalogItem {
     kind: CatalogKind;
     name: string;
     title: string;
     description: string;
+    categories: string[];
     dependencies: string[];
     parts: string[];
     installCommand: string;
     agentPrompt: string;
+    previewable: boolean;
+    insertable: boolean;
+    limitation?: string;
 }
 
 const COMPONENT_ITEMS: CatalogItem[] = SHADCN_COMPONENTS.map((item: ShadcnComponentDefinition) => ({
@@ -53,10 +69,14 @@ const COMPONENT_ITEMS: CatalogItem[] = SHADCN_COMPONENTS.map((item: ShadcnCompon
     name: item.name,
     title: item.title,
     description: item.description,
+    categories: [getCategory(item.name)],
     dependencies: item.dependencies,
     parts: item.parts,
     installCommand: `npx shadcn@3.7.0 add ${item.name}`,
     agentPrompt: `Use the shadcn/ui ${item.title} (${item.name}) component. ${item.description} Insert this JSX with the project's existing tokens:\n\n${item.insertCode}`,
+    previewable: item.previewable !== false,
+    insertable: item.insertable !== false,
+    limitation: item.limitation,
 }));
 
 const BLOCK_ITEMS: CatalogItem[] = SHADCN_BLOCKS.map((item: ShadcnBlockDefinition) => ({
@@ -64,21 +84,65 @@ const BLOCK_ITEMS: CatalogItem[] = SHADCN_BLOCKS.map((item: ShadcnBlockDefinitio
     name: item.name,
     title: item.title,
     description: item.description,
+    categories: item.categories,
     dependencies: item.dependencies,
     parts: item.files,
     installCommand: `npx shadcn@3.7.0 add ${item.registryUrl}`,
     agentPrompt: `Use the shadcn/ui ${item.title} block (${item.name}). ${item.description} Install it with \`npx shadcn@3.7.0 add ${item.registryUrl}\` and adapt the copy and colors to the project.`,
+    previewable: item.previewable !== false,
+    insertable: item.insertable !== false,
+    limitation: item.limitation,
 }));
 
 const ITEMS = [...COMPONENT_ITEMS, ...BLOCK_ITEMS];
 
 type Filter = 'all' | CatalogKind;
 
-export const LibraryView = () => {
+/**
+ * Wide surfaces get the whole row; auth and calendar blocks sit two-up;
+ * primitives share a row three ways.
+ */
+function getCatalogSpan(item: CatalogItem): CatalogSpan {
+    if (item.kind === 'component') {
+        if (item.name === 'chart') {
+            return 'full';
+        }
+        if (['table', 'calendar', 'command'].includes(item.name)) {
+            return 'half';
+        }
+        return 'third';
+    }
+    return item.name.startsWith('dashboard-') ? 'full' : 'half';
+}
+
+const SPAN_CLASS: Record<CatalogSpan, string> = {
+    full: 'md:col-span-2 xl:col-span-6',
+    half: 'md:col-span-1 xl:col-span-3',
+    third: 'md:col-span-1 xl:col-span-2',
+};
+
+const PREVIEW_HEIGHT: Record<CatalogSpan, string> = {
+    full: 'h-[300px] xl:h-[380px]',
+    half: 'h-[260px] xl:h-[320px]',
+    third: 'h-[230px] xl:h-[260px]',
+};
+
+interface LibraryViewProps {
+    popup?: boolean;
+    initialSelectedName?: string | null;
+    onUse?: (name: string) => void;
+}
+
+export const LibraryView = observer((props: LibraryViewProps) => {
+    const { popup = false, initialSelectedName = null, onUse } = props;
+    const editorEngine = useEditorEngine();
+    const manager = editorEngine.components;
     const [filter, setFilter] = useState<Filter>('all');
     const [query, setQuery] = useState('');
     const [sort, setSort] = useState<'featured' | 'az'>('featured');
-    const [selected, setSelected] = useState<CatalogItem | null>(null);
+    const [selected, setSelected] = useState<CatalogItem | null>(
+        () => ITEMS.find((item) => item.name === initialSelectedName) ?? null,
+    );
 
     const items = useMemo(() => {
         const term = query.trim().toLowerCase();
@@ -95,8 +159,20 @@ export const LibraryView = () => {
         return filtered;
     }, [filter, query, sort]);
 
+    const requestPreview = useCallback(
+        (name: string) => {
+            void manager.ensureCatalogPreviews([name]);
+        },
+        [manager],
+    );
+
     return (
-        <div className="flex min-h-full flex-col px-12 pb-16 pt-14 xl:px-16">
+        <div
+            className={cn(
+                'flex min-h-full flex-col',
+                popup ? 'px-6 pb-8 pr-14 pt-6' : 'px-12 pb-16 pt-14 xl:px-16',
+            )}
+        >
             <PageHeader
                 title="Library"
                 subtitle="Components and blocks your agent can search and use."
@@ -157,12 +233,13 @@ export const LibraryView = () => {
                 </span>
             </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
-                {items.map((item, index) => (
+            <div className="mt-8 grid grid-flow-row-dense grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2 xl:grid-cols-6">
+                {items.map((item) => (
                     <LibraryCard
                         key={`${item.kind}-${item.name}`}
                         item={item}
-                        index={index}
+                        manager={manager}
+                        onVisible={requestPreview}
                         onOpen={() => setSelected(item)}
                     />
                 ))}
@@ -174,29 +251,104 @@ export const LibraryView = () => {
                 </p>
             )}
 
-            <LibraryDetail item={selected} onOpenChange={(open) => !open && setSelected(null)} />
+            <LibraryDetail
+                item={selected}
+                manager={manager}
+                canUse={Boolean(
+                    manager.projectPath &&
+                    manager.status?.supported &&
+                    editorEngine.elements.selected.length,
+                )}
+                onUse={onUse}
+                onOpenChange={(open) => !open && setSelected(null)}
+            />
         </div>
     );
-};
+});
 
-function LibraryCard({
+/**
+ * Reads the manager's preview maps, so it needs its own observer: a child of an
+ * observer does not track observables read during the parent's render pass.
+ */
+const LibraryCard = observer(function LibraryCard({
     item,
-    index,
+    manager,
+    onVisible,
     onOpen,
 }: {
     item: CatalogItem;
-    index: number;
+    manager: ComponentsManager;
+    onVisible: (name: string) => void;
     onOpen: () => void;
 }) {
+    const previewRef = useRef<HTMLDivElement | null>(null);
+    const span = getCatalogSpan(item);
+    const previewUrl = manager.catalogPreviews[item.name];
+    const previewSessionId = manager.catalogSessions[item.name];
+    const previewLoading = Boolean(manager.catalogItemLoading[item.name]);
+    const previewError = manager.catalogItemErrors[item.name];
+
+    useEffect(() => {
+        const node = previewRef.current;
+        if (!node || !item.previewable || previewUrl || previewLoading || previewError) {
+            return;
+        }
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (!entries.some((entry) => entry.isIntersecting)) {
+                    return;
+                }
+                observer.disconnect();
+                onVisible(item.name);
+            },
+            { rootMargin: '200px' },
+        );
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [item, onVisible, previewError, previewLoading, previewUrl]);
+
     return (
         <button
             onClick={onOpen}
-            className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface text-left transition-colors hover:border-border-hover"
+            className={cn(
+                'group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface text-left transition-colors hover:border-border-hover',
+                SPAN_CLASS[span],
+            )}
         >
-            <div className="relative flex min-h-[224px] flex-1 items-center justify-center overflow-hidden p-7">
-                <CatalogArt item={item} index={index} />
+            <div
+                ref={previewRef}
+                className={cn(
+                    'relative w-full overflow-hidden bg-background-secondary/40',
+                    PREVIEW_HEIGHT[span],
+                )}
+            >
+                {previewUrl ? (
+                    <CardPreview
+                        src={previewUrl}
+                        title={`${item.title} preview`}
+                        name={item.name}
+                        sessionId={previewSessionId}
+                    />
+                ) : previewLoading || (item.previewable && !previewError) ? (
+                    <PreviewShimmer name={item.name} />
+                ) : (
+                    <div className="flex h-full items-center justify-center p-6">
+                        <ComponentThumbnail name={item.name} />
+                    </div>
+                )}
+                {previewError && item.previewable && (
+                    <span
+                        className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] text-foreground-quadranary backdrop-blur"
+                        title={previewError}
+                    >
+                        Preview unavailable
+                    </span>
+                )}
                 <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 text-foreground-tertiary opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
                     <ArrowUpRight className="h-3.5 w-3.5" />
+                </span>
+                <span className="absolute left-3 top-3 rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-foreground-tertiary backdrop-blur">
+                    {item.kind === 'block' ? 'Block' : getCategory(item.name)}
                 </span>
             </div>
             <div className="flex items-start justify-between gap-3 border-t border-border px-4 py-3">
@@ -207,74 +359,34 @@ function LibraryCard({
                     </p>
                 </div>
                 <span className="mt-0.5 shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] text-foreground-tertiary">
-                    {item.kind === 'block' ? 'Block' : 'Component'}
+                    {item.previewable ? 'Live' : 'Static'}
                 </span>
             </div>
         </button>
     );
-}
+});
 
-/**
- * Static, honest artwork: the catalog does not ship screenshots, so each card
- * uses a typographic composition derived from the item's own name.
- */
-function CatalogArt({ item, index }: { item: CatalogItem; index: number }) {
-    const initials = item.title
-        .split(' ')
-        .map((word) => word.charAt(0))
-        .slice(0, 2)
-        .join('');
-
-    const tone = index % 3;
-
-    if (tone === 0) {
-        return (
-            <div className="flex items-center gap-3">
-                <span className="h-14 w-14 rounded-full bg-gradient-to-br from-[#ff6b9d] to-[#b06bff]" />
-                <span className="h-14 w-14 rounded-full bg-gradient-to-br from-[#b06bff] to-[#3b82f6]" />
-                <span className="h-14 w-14 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#34d399]" />
-                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-background-secondary font-display text-[18px] text-foreground-secondary">
-                    {initials}
-                </span>
-            </div>
-        );
-    }
-
-    if (tone === 1) {
-        return (
-            <div className="w-full max-w-[240px] rounded-xl border border-border bg-background-secondary/60 p-4">
-                <div className="flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-md bg-foreground/10" />
-                    <span className="h-1.5 w-16 rounded-full bg-foreground/15" />
-                </div>
-                <div className="mt-4 space-y-2">
-                    <div className="h-1.5 w-full rounded-full bg-foreground/[0.08]" />
-                    <div className="h-1.5 w-4/5 rounded-full bg-foreground/[0.08]" />
-                    <div className="h-1.5 w-3/5 rounded-full bg-foreground/[0.06]" />
-                </div>
-                <div className="mt-4 flex gap-2">
-                    <span className="h-7 flex-1 rounded-md border border-border bg-foreground/[0.03]" />
-                    <span className="h-7 w-16 rounded-full bg-foreground text-background" />
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <span className="select-none font-display text-[4.5rem] leading-none tracking-tight text-foreground-secondary/50">
-            {initials}
-        </span>
-    );
-}
-
-function LibraryDetail({
+const LibraryDetail = observer(function LibraryDetail({
     item,
+    manager,
+    canUse,
+    onUse,
     onOpenChange,
 }: {
     item: CatalogItem | null;
+    manager: ComponentsManager;
+    canUse: boolean;
+    onUse?: (name: string) => void;
     onOpenChange: (open: boolean) => void;
 }) {
     const [copied, setCopied] = useState<'install' | 'agent' | null>(null);
+
+    useEffect(() => {
+        if (!item?.previewable) {
+            return;
+        }
+        void manager.ensureCatalogPreviews([item.name]);
+    }, [item, manager]);
 
     const copy = async (value: string, kind: 'install' | 'agent') => {
         await navigator.clipboard.writeText(value);
@@ -282,13 +394,54 @@ function LibraryDetail({
         window.setTimeout(() => setCopied(null), 1600);
     };
 
+    const previewUrl = item ? manager.catalogPreviews[item.name] : undefined;
+    const previewSessionId = item ? manager.catalogSessions[item.name] : undefined;
+    const previewLoading = item ? Boolean(manager.catalogItemLoading[item.name]) : false;
+    const previewError = item ? manager.catalogItemErrors[item.name] : undefined;
+
     return (
         <Dialog open={!!item} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl p-0">
+            <DialogContent className="max-w-[860px] overflow-hidden rounded-2xl p-0">
                 {item && (
                     <>
-                        <div className="flex min-h-[200px] items-center justify-center border-b border-border bg-surface p-8">
-                            <CatalogArt item={item} index={item.kind === 'block' ? 1 : 0} />
+                        <div
+                            className={cn(
+                                'relative overflow-hidden border-b border-border bg-surface',
+                                item.kind === 'block' ? 'h-[420px]' : 'h-[320px]',
+                            )}
+                        >
+                            {previewUrl ? (
+                                <PreviewFrame
+                                    src={previewUrl}
+                                    title={`${item.title} preview`}
+                                    name={item.name}
+                                    sessionId={previewSessionId}
+                                    onRetry={() => manager.retryPreview(item.name)}
+                                />
+                            ) : previewError ? (
+                                <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+                                    <p className="max-w-md text-[12px] leading-5 text-foreground-tertiary">
+                                        {previewError}
+                                    </p>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => void manager.retryCatalogPreview(item.name)}
+                                    >
+                                        <RefreshCw className="h-3.5 w-3.5" />
+                                        Retry preview
+                                    </Button>
+                                </div>
+                            ) : previewLoading || item.previewable ? (
+                                <PreviewShimmer name={item.name} />
+                            ) : (
+                                <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+                                    <ComponentThumbnail name={item.name} />
+                                    <p className="max-w-sm text-[11.5px] leading-5 text-foreground-quadranary">
+                                        {item.limitation ?? 'This item cannot be previewed.'}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                         <div className="p-6">
                             <DialogHeader>
@@ -298,7 +451,9 @@ function LibraryDetail({
 
                             <div className="mt-5 flex flex-wrap gap-2">
                                 <Tag icon={item.kind === 'block' ? Blocks : Component}>
-                                    {item.kind === 'block' ? 'Block' : 'Component'}
+                                    {item.kind === 'block'
+                                        ? (item.categories[0] ?? 'Block')
+                                        : getCategory(item.name)}
                                 </Tag>
                                 {item.dependencies.slice(0, 4).map((dependency) => (
                                     <Tag key={dependency} icon={Package}>
@@ -338,18 +493,58 @@ function LibraryDetail({
                                 <p className="text-[11px] text-foreground-quadranary">
                                     Copies a prompt with the install command and JSX.
                                 </p>
-                                <Button onClick={() => copy(item.agentPrompt, 'agent')}>
-                                    <Sparkles className="h-4 w-4" />
-                                    {copied === 'agent' ? 'Copied' : 'Copy for agent'}
-                                </Button>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <Button
+                                        variant={onUse ? 'secondary' : 'default'}
+                                        onClick={() => copy(item.agentPrompt, 'agent')}
+                                    >
+                                        <Sparkles className="h-4 w-4" />
+                                        {copied === 'agent' ? 'Copied' : 'Copy for agent'}
+                                    </Button>
+                                    {onUse && item.insertable && (
+                                        <Button
+                                            disabled={
+                                                !canUse ||
+                                                manager.using === item.name ||
+                                                manager.installing === item.name
+                                            }
+                                            title={
+                                                canUse
+                                                    ? undefined
+                                                    : 'Open a supported project and select an element in a frame first'
+                                            }
+                                            onClick={() => onUse(item.name)}
+                                        >
+                                            {manager.using === item.name && (
+                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                            )}
+                                            {manager.using === item.name
+                                                ? 'Adding…'
+                                                : 'Use artifact in Kumite'}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
+                            {onUse &&
+                                manager.using === item.name &&
+                                manager.activeInsertionPlanId && (
+                                    <div className="mt-2 flex justify-end">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => void manager.cancelInsertion(item.name)}
+                                        >
+                                            Cancel insertion
+                                        </Button>
+                                    </div>
+                                )}
                         </div>
                     </>
                 )}
             </DialogContent>
         </Dialog>
     );
-}
+});
 
 function Tag({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
     return (
