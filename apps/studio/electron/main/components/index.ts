@@ -30,6 +30,7 @@ import { componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
 import { recoverArtifactInsertions } from './artifact-insertion';
+import { captureCatalogPreviewSnapshot } from './preview-snapshots';
 export {
     createShadcnSourceResolver,
     hashImplementationArtifact,
@@ -688,6 +689,7 @@ export async function startCatalogPreview(
     components?: unknown,
     projectId?: unknown,
     onProgress?: (progress: ShadcnInstallProgress) => void,
+    onSnapshotReady?: (name: string) => void,
 ): Promise<ShadcnCatalogPreview> {
     try {
         const requested = Array.isArray(components)
@@ -749,6 +751,35 @@ export async function startCatalogPreview(
             },
         );
         Object.assign(errors, result.errors);
+        // Capture snapshots off the request path. Existing cards remain
+        // responsive while Chromium renders a bounded number in the background.
+        const captures = Object.entries(result.urls).flatMap(([name, url]) => {
+            const sessionId = result.sessions?.[name];
+            return sessionId ? [{ name, url, sessionId }] : [];
+        });
+        let nextCapture = 0;
+        const workers = Array.from(
+            { length: Math.min(2, captures.length) },
+            async () => {
+                while (nextCapture < captures.length) {
+                    const capture = captures[nextCapture++]!;
+                    try {
+                        await captureCatalogPreviewSnapshot(
+                            capture.url,
+                            capture.name,
+                            capture.sessionId,
+                        );
+                        onSnapshotReady?.(capture.name);
+                    } catch (error) {
+                        console.warn(
+                            `Could not capture library preview for "${capture.name}":`,
+                            error,
+                        );
+                    }
+                }
+            },
+        );
+        void Promise.all(workers);
         const log = [base.log, result.log].filter(Boolean).join('\n\n');
         onProgress?.({
             component: requested.join(', '),
