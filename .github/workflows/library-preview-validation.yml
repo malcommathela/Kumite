@@ -10,7 +10,6 @@ on:
       - 'apps/studio/electron/main/components/**'
       - 'apps/studio/electron/main/events/components.ts'
       - 'apps/studio/electron/main/lifecycle/vite.ts'
-      - 'apps/studio/electron/main/storage/images.ts'
       - 'apps/studio/src/components/ComponentPreview/**'
       - 'apps/studio/src/lib/components/**'
       - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
