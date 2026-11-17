@@ -342,7 +342,7 @@ async function prepareDependencies(
         const reusableCachedVersion =
             !exact &&
             typeof cachedVersion === 'string' &&
-            /^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$/.test(cachedVersion)
+            /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(cachedVersion)
                 ? cachedVersion
                 : undefined;
         const keeping = !exact || installedVersion === exact;
