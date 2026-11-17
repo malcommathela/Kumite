@@ -62,6 +62,7 @@ describe('artifact preview adapter', () => {
             /import Implementation from "@\/registry\/new-york-v4\/blocks\/fixture\/page"/,
         );
         assert.match(module, /<Implementation \/>/);
+        assert.match(module, /w-full min-h-full/);
         assert.doesNotMatch(module, /previewCode|insertCode/);
     });
 
@@ -75,6 +76,7 @@ describe('artifact preview adapter', () => {
             module,
             /import \{ Button as Implementation \} from "@\/registry\/new-york-v4\/ui\/fixture"/,
         );
+        assert.match(module, /max-w-2xl items-center justify-center/);
     });
 
     it('skips type-only exports when picking a runtime component export', () => {
