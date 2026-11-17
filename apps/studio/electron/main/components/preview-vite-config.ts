@@ -9,7 +9,7 @@ import { defineConfig } from 'vite';
 const source = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
-    plugins: [react(), tailwindcss()],
+    plugins: [react()],
     // Prevent a stale optimized chunk from pairing with fresh React modules.
     server: {
         headers: { 'Cache-Control': 'no-store' },
