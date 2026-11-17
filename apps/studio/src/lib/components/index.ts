@@ -113,6 +113,7 @@ export class ComponentsManager {
     private catalogWaiters: Array<() => void> = [];
     private unsubscribeProgress: (() => void) | null = null;
     private unsubscribeSnapshot: (() => void) | null = null;
+    private unsubscribeSnapshotFailed: (() => void) | null = null;
 
     constructor(
         private editorEngine: EditorEngine,
@@ -134,7 +135,7 @@ export class ComponentsManager {
                     void this.loadCatalogSnapshot(name, true);
                 },
             );
-            window.api.on<{ name: string; message: string }>(
+            this.unsubscribeSnapshotFailed = window.api.on<{ name: string; message: string }>(
                 MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_FAILED,
                 ({ name, message }) => {
                     runInAction(() => {
@@ -786,6 +787,8 @@ export class ComponentsManager {
         this.unsubscribeProgress = null;
         this.unsubscribeSnapshot?.();
         this.unsubscribeSnapshot = null;
+        this.unsubscribeSnapshotFailed?.();
+        this.unsubscribeSnapshotFailed = null;
         void this.closePreview();
     }
 }
