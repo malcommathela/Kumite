@@ -2,7 +2,6 @@ export const GENERATED_CONFIG_MARKER = '// Kumite preview workspace config (gene
 
 export function buildArtifactPreviewViteConfig(): string {
     return `${GENERATED_CONFIG_MARKER}import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
