@@ -1,14 +1,18 @@
 import type { PackageManager } from '@kumite/models';
 import { COMPONENT_CLI_VERSION } from '@kumite/models';
-import { execFile, spawn, type ChildProcess } from 'child_process';
+import { execFile, spawn, spawnSync, type ChildProcess } from 'child_process';
 import path from 'path';
 import { promisify } from 'util';
-import { getBunExecutablePath } from '../bun';
 import { isTransientNetworkFailure, withTransientRetry } from './install-queue';
 
 const execFileAsync = promisify(execFile);
 
 const COMMAND_TIMEOUT_MS = 10 * 60 * 1000;
+
+async function bunExecutablePath(): Promise<string> {
+    const { getBunExecutablePath } = await import('../bun');
+    return getBunExecutablePath();
+}
 
 export interface ShadcnCommandResult {
     command: string;
@@ -23,33 +27,33 @@ export interface CommandProgress {
 
 export type ProgressListener = (progress: CommandProgress) => void;
 
-export function buildShadcnCommand(
+export async function buildShadcnCommand(
     packageManager: PackageManager,
     args: string[],
-): { command: string; args: string[] } {
+): Promise<{ command: string; args: string[] }> {
     const cli = `shadcn@${COMPONENT_CLI_VERSION}`;
     switch (packageManager) {
         case 'pnpm':
             return { command: 'pnpm', args: ['dlx', cli, ...args] };
         case 'bun':
             // The desktop bundle carries Bun, but a user's PATH need not.
-            return { command: getBunExecutablePath(), args: ['x', cli, ...args] };
+            return { command: await bunExecutablePath(), args: ['x', cli, ...args] };
         default:
             return { command: 'npx', args: ['--yes', cli, ...args] };
     }
 }
 
-export function buildPackageManagerCommand(
+export async function buildPackageManagerCommand(
     packageManager: PackageManager,
     packages: string[],
-): { command: string; args: string[] } {
+): Promise<{ command: string; args: string[] }> {
     switch (packageManager) {
         case 'pnpm':
             return { command: 'pnpm', args: ['add', ...packages] };
         case 'yarn':
             return { command: 'yarn', args: ['add', ...packages] };
         case 'bun':
-            return { command: getBunExecutablePath(), args: ['add', ...packages] };
+            return { command: await bunExecutablePath(), args: ['add', ...packages] };
         default:
             return { command: 'npm', args: ['install', ...packages] };
     }
@@ -61,7 +65,7 @@ export async function runShadcnCommand(
     args: string[],
     onProgress?: ProgressListener,
 ): Promise<ShadcnCommandResult> {
-    const { command, args: commandArgs } = buildShadcnCommand(packageManager, args);
+    const { command, args: commandArgs } = await buildShadcnCommand(packageManager, args);
     return runProjectCommand(command, commandArgs, projectPath, packageManager, onProgress);
 }
 
@@ -89,9 +93,10 @@ export async function runPackageManagerCommand(
     packageManager: PackageManager,
     packages: string[],
     onProgress?: ProgressListener,
+    signal?: AbortSignal,
 ): Promise<ShadcnCommandResult> {
-    const { command, args } = buildPackageManagerCommand(packageManager, packages);
-    return runProjectCommand(command, args, projectPath, packageManager, onProgress);
+    const { command, args } = await buildPackageManagerCommand(packageManager, packages);
+    return runProjectCommand(command, args, projectPath, packageManager, onProgress, signal);
 }
 
 /** Installs the dependencies already declared in the project's package.json. */
@@ -102,7 +107,7 @@ export async function runPackageManagerInstall(
     signal?: AbortSignal,
     ignoreScripts = false,
 ): Promise<ShadcnCommandResult> {
-    const command = packageManager === 'bun' ? getBunExecutablePath() : packageManager;
+    const command = packageManager === 'bun' ? await bunExecutablePath() : packageManager;
     return runProjectCommand(
         command,
         ['install', ...(ignoreScripts ? ['--ignore-scripts'] : [])],
@@ -113,7 +118,7 @@ export async function runPackageManagerInstall(
     );
 }
 
-function commandEnvironment(packageManager: PackageManager): NodeJS.ProcessEnv {
+async function commandEnvironment(packageManager: PackageManager): Promise<NodeJS.ProcessEnv> {
     return {
         ...process.env,
         // The desktop app runs with NODE_ENV=production. npm would otherwise omit
@@ -123,7 +128,7 @@ function commandEnvironment(packageManager: PackageManager): NodeJS.ProcessEnv {
         npm_config_omit: '',
         ...(packageManager === 'bun'
             ? {
-                  PATH: `${path.dirname(getBunExecutablePath())}${path.delimiter}${process.env.PATH ?? ''}`,
+                  PATH: `${path.dirname(await bunExecutablePath())}${path.delimiter}${process.env.PATH ?? ''}`,
               }
             : {}),
         CI: '1',
@@ -143,14 +148,15 @@ async function runProjectCommand(
 ): Promise<ShadcnCommandResult> {
     const printable = `${command} ${commandArgs.join(' ')}`;
     const useShell = process.platform === 'win32' && packageManager !== 'bun';
+    const env = await commandEnvironment(packageManager);
 
-    if (onProgress) {
+    if (onProgress || signal) {
         return runStreamingCommand(command, commandArgs, {
             cwd: projectPath,
             shell: useShell,
             printable,
-            onProgress,
-            env: commandEnvironment(packageManager),
+            onProgress: onProgress ?? (() => undefined),
+            env,
             signal,
         });
     }
@@ -162,7 +168,7 @@ async function runProjectCommand(
             windowsHide: true,
             timeout: COMMAND_TIMEOUT_MS,
             maxBuffer: 20 * 1024 * 1024,
-            env: commandEnvironment(packageManager),
+            env,
             signal,
         });
         return { command: printable, success: true, output: stripAnsi(`${stdout}\n${stderr}`) };
@@ -220,6 +226,7 @@ function runStreamingCommand(
             child = spawn(command, commandArgs, {
                 cwd: options.cwd,
                 shell: options.shell,
+                detached: process.platform !== 'win32',
                 windowsHide: true,
                 env: options.env,
                 stdio: ['ignore', 'pipe', 'pipe'],
@@ -262,13 +269,17 @@ function killProcess(child: ChildProcess): void {
         return;
     }
     if (process.platform === 'win32') {
-        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
+        spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
             windowsHide: true,
             stdio: 'ignore',
         });
         return;
     }
-    child.kill('SIGTERM');
+    try {
+        process.kill(-child.pid, 'SIGTERM');
+    } catch {
+        child.kill('SIGTERM');
+    }
 }
 
 function stripAnsi(value: string): string {

@@ -202,8 +202,9 @@ deleting or restoring a file that may contain user work. Operations that reached
 `awaiting-editor` are preserved because the editor write may already have
 succeeded; the user is warned to inspect before retrying. Direct artifact
 dependencies and exact selected versions appear in the approval plan;
-transitive resolution is captured by the project's lockfile. Package lifecycle
-scripts are not run.
+transitive resolution is captured by the project's lockfile. Direct lifecycle
+scripts are identified where metadata is available and are disabled for both
+installation and rollback.
 
 Explicit shadcn CLI installation uses block direct JSON URLs at the pinned commit, not by mutable
 registry name. The CLI was exercised in a throwaway Vite fixture: the pinned
@@ -331,8 +332,9 @@ port manager, with per-consumer session ids and reference-counted runtime
 cleanup. Active preview owners hold persistent artifact references; releasing an
 owner aborts pending resolution/materialization and releases its sessions. The
 shared Vite process and port stop when the final runtime session closes.
-Materialized source remains cached in the shared workspace; age-bounded cleanup
-of merged source files is not implemented.
+Hash-verified merged source/assets and materializations are removed when the
+final consumer releases; startup repeats cleanup after stale leases are
+reconciled. Modified or unmanifested workspace files are preserved.
 `catalog.ts` prepares only the React/Vite/Tailwind workspace; it no longer runs
 `shadcn add` for catalog cards. The active project is not used or modified.
 
@@ -404,16 +406,23 @@ break the project's build. It also collapses duplicated `@apply` declarations.
 - `toast` has no installable item in the pinned v4 registry snapshot.
 - `21st-dev` and `magic-ui` remain unsupported; no catalog, source resolver,
   provenance, or artifact workflow is implemented for them.
-- Automated insertion integration uses a disposable Vite project and verifies
-  actual published-source rendering, AST import generation, and `data-oid`.
-  It does not yet automate the Electron native approval dialog, a real package
-  installation failure, or browser interaction in the Kumite canvas. The
-  pinned `chart-bar-demo` was resolved from upstream during implementation, but
-  it is not yet a repeatable network-backed preview-runtime test.
-- Package-manager rollback and ambiguous crash states are journaled; ambiguous
-  package/lockfile mutations are deliberately preserved for manual recovery.
-  Operation cancellation and age-based cleanup of merged preview source are not
-  implemented.
+- Fixture integration verifies published-source rendering, AST import generation,
+  `data-oid`, cancellation, and rollback. The opt-in network test
+  `KUMITE_UPSTREAM_ARTIFACT_TEST=1 bun test ./electron/main/components/upstream-chart-parity.integration.test.ts`
+  resolves/materializes pinned `chart-bar-demo`, serves its preview wrapper,
+  renders preview and published source through Vite SSR, checks markup parity
+  and lockfile versions, and exercises direct dependency rollback. It does not
+  automate the Electron native approval dialog or visual selection/editing in
+  the Kumite canvas.
+- Approval enumerates direct dependencies and known direct lifecycle scripts.
+  The full transitive diff is not enumerated before installation, although the
+  package manager records the exact resolved tree in its lockfile. If a package
+  manager partially mutates metadata and fails while ownership is ambiguous,
+  the journal preserves the content and reports `recovery-required` for manual
+  recovery rather than overwriting possible concurrent user edits.
+- Active insertion cancellation and hash-verified workspace cleanup are
+  implemented; cleanup runs when the final preview consumer releases and during
+  startup reconciliation.
 
 ### Known limitation: library-internal nodes
 

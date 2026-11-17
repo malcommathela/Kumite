@@ -3,6 +3,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { runPackageManagerInstall } from './cli';
+import { GENERATED_CONFIG_MARKER } from './preview-vite-config';
 
 /**
  * Private Vite runtime shared by artifact-backed catalog previews. Upstream
@@ -52,8 +53,6 @@ const TSCONFIG = {
  * Both generated configs carry this marker, so a newer build may replace an
  * older generated config while a hand-written file is still never touched.
  */
-export const GENERATED_CONFIG_MARKER = '// Kumite preview workspace config (generated).\n';
-
 export const CATALOG_PREVIEW_VITE_CONFIG = `${GENERATED_CONFIG_MARKER}import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';

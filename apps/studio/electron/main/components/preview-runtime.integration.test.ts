@@ -14,7 +14,10 @@ after(async () => {
 });
 
 describe('shared catalog preview runtime lifecycle', () => {
-    it('cleans entries when a multi-entry batch collides before startup', async () => {
+    it(
+        'cleans entries when a multi-entry batch collides before startup',
+        { timeout: 60_000 },
+        async () => {
         const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-preview-partial-'));
         roots.push(root);
         const manager = new PreviewRuntimeManager();
@@ -53,9 +56,13 @@ describe('shared catalog preview runtime lifecycle', () => {
             '<!-- user-owned preview -->',
         );
         assert.equal(manager.size, 0);
-    });
+        },
+    );
 
-    it('cleans session files when Vite fails to start', async () => {
+    it(
+        'cleans session files when Vite fails to start',
+        { timeout: 60_000 },
+        async () => {
         const root = await fs.promises.mkdtemp(
             path.join(os.tmpdir(), 'kumite-preview-start-failure-'),
         );
@@ -80,9 +87,13 @@ describe('shared catalog preview runtime lifecycle', () => {
         assert.ok(result.error);
         assert.equal(fs.existsSync(path.join(root, '__kumite_preview', 'failed')), false);
         assert.equal(manager.size, 0);
-    });
+        },
+    );
 
-    it('serves two concurrent consumers and stops the process after the final release', async () => {
+    it(
+        'serves two concurrent consumers and stops the process after the final release',
+        { timeout: 60_000 },
+        async () => {
         const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-preview-runtime-'));
         roots.push(root);
         await fs.promises.symlink(
@@ -124,8 +135,20 @@ describe('shared catalog preview runtime lifecycle', () => {
         assert.equal(fs.existsSync(path.join(root, '__kumite_preview', 'session-one')), false);
         assert.equal(fs.existsSync(path.join(root, '__kumite_preview', 'session-two')), true);
 
-        await manager.releaseOwner('consumer-two');
-        assert.equal(manager.size, 0);
-        assert.equal(fs.existsSync(path.join(root, '__kumite_preview', 'session-two')), false);
-    });
+            await manager.releaseOwner('consumer-two');
+            assert.equal(manager.size, 0);
+            assert.equal(fs.existsSync(path.join(root, '__kumite_preview', 'session-two')), false);
+
+            for (const cycle of [1, 2]) {
+                const ownerId = `repeat-consumer-${cycle}`;
+                const sessionId = `repeat-session-${cycle}`;
+                const reopened = await manager.ensure(spec(sessionId, ownerId));
+                assert.equal(reopened.error, null);
+                assert.equal((await fetch(reopened.urls[sessionId])).status, 200);
+                await manager.releaseOwner(ownerId);
+                assert.equal(manager.size, 0);
+                assert.equal(fs.existsSync(path.join(root, '__kumite_preview', sessionId)), false);
+            }
+        },
+    );
 });

@@ -94,5 +94,27 @@ describe('artifact insertion crash recovery', () => {
         };
         assert.equal(recovered.state, 'recovery-required');
         assert.match(recovered.error, /ownership is uncertain/);
+        const followUp = await recoverArtifactInsertions(operation.root);
+        assert.match(followUp[0], /requires manual recovery/);
+    });
+
+    it('reconciles an interrupted install attempt idempotently', async () => {
+        const operation = await fixture();
+        const journal = JSON.parse(await fs.readFile(operation.journalPath, 'utf8')) as {
+            state: string;
+            dependencyInstallAttempted: boolean;
+        };
+        journal.state = 'installing';
+        journal.dependencyInstallAttempted = true;
+        await fs.writeFile(operation.journalPath, JSON.stringify(journal));
+
+        const result = await recoverArtifactInsertions(operation.root);
+
+        assert.deepEqual(result, [`Rolled back interrupted operation ${operation.id}.`]);
+        const recovered = JSON.parse(await fs.readFile(operation.journalPath, 'utf8')) as {
+            state: string;
+        };
+        assert.equal(recovered.state, 'rolled-back');
+        assert.deepEqual(await recoverArtifactInsertions(operation.root), []);
     });
 });

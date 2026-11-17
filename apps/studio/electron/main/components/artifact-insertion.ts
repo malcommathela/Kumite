@@ -17,10 +17,12 @@ const plans = new Map<
         preparation: ReturnType<typeof prepareImplementationInsertion>;
         dependencyVersions: Record<string, string>;
         dependencyProvenance: Record<string, string>;
+        dependencyLifecycleScripts: Record<string, string[] | null>;
         editorTarget?: { oid: string; domId: string; webviewId: string };
         planHash: string;
     }
 >();
+const activeInsertions = new Map<string, AbortController>();
 
 function hash(value: string | Buffer): string {
     return createHash('sha256').update(value).digest('hex');
@@ -50,6 +52,38 @@ function packageManager(root: string): PackageManager {
     return managers[0];
 }
 
+function lockfilesForApproval(
+    root: string,
+    manager: PackageManager | null,
+    hasInstall: boolean,
+): string[] {
+    if (!hasInstall || !manager) {return [];}
+    const lockfile = manager === 'npm'
+        ? 'package-lock.json'
+        : manager === 'pnpm'
+          ? 'pnpm-lock.yaml'
+          : manager === 'yarn'
+            ? 'yarn.lock'
+            : fs.existsSync(path.join(root, 'bun.lockb')) && !fs.existsSync(path.join(root, 'bun.lock'))
+              ? 'bun.lockb'
+              : 'bun.lock';
+    return ['package.json', lockfile];
+}
+
+function installedPackageVersion(root: string, name: string): string | undefined {
+    try {
+        const manifest = JSON.parse(
+            fs.readFileSync(
+                path.join(root, 'node_modules', ...name.split('/'), 'package.json'),
+                'utf8',
+            ),
+        ) as { version?: string };
+        return manifest.version;
+    } catch {
+        return undefined;
+    }
+}
+
 async function resolveExactVersion(name: string): Promise<string> {
     const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}`);
     if (!response.ok) {
@@ -63,6 +97,40 @@ async function resolveExactVersion(name: string): Promise<string> {
         throw new Error(`npm returned no exact version for "${name}".`);
     }
     return version;
+}
+
+async function packageLifecycleScripts(
+    projectRoot: string,
+    name: string,
+    version: string,
+): Promise<string[] | null> {
+    try {
+        const installed = JSON.parse(
+            fs.readFileSync(
+                path.join(projectRoot, 'node_modules', ...name.split('/'), 'package.json'),
+                'utf8',
+            ),
+        ) as { version?: string; scripts?: Record<string, string> };
+        if (installed.version === version) {
+            return ['preinstall', 'install', 'postinstall', 'prepare'].filter(
+                (script) => Boolean(installed.scripts?.[script]),
+            );
+        }
+    } catch {
+        // Query the exact upstream manifest for a package not currently installed.
+    }
+    try {
+        const response = await fetch(
+            `https://registry.npmjs.org/${encodeURIComponent(name)}/${version}`,
+        );
+        if (!response.ok) {return null;}
+        const metadata = (await response.json()) as { scripts?: Record<string, string> };
+        return ['preinstall', 'install', 'postinstall', 'prepare'].filter(
+            (script) => Boolean(metadata.scripts?.[script]),
+        );
+    } catch {
+        return null;
+    }
 }
 
 function writeJsonAtomic(file: string, value: unknown): void {
@@ -103,12 +171,20 @@ function safePackageName(name: string): boolean {
     return /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/i.test(name);
 }
 
-async function prepareProjectSnapshot(artifact: ImplementationArtifact, projectRoot: string) {
+async function prepareProjectSnapshot(
+    artifact: ImplementationArtifact,
+    projectRoot: string,
+    signal?: AbortSignal,
+) {
     const preparation = prepareImplementationInsertion(artifact, projectRoot);
     const assetPreflightRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-insertion-assets-'));
     const assetPreflight = path.join(assetPreflightRoot, 'materialization');
     try {
-        const materialized = await materializeImplementationArtifact(artifact, assetPreflight);
+        const materialized = await materializeImplementationArtifact(
+            artifact,
+            assetPreflight,
+            { signal },
+        );
         for (const asset of preparation.assetPaths) {
             if (asset.external || !asset.destinationPath) {
                 continue;
@@ -149,12 +225,28 @@ async function prepareProjectSnapshot(artifact: ImplementationArtifact, projectR
     return preparation;
 }
 
+function abortIfCancelled(signal: AbortSignal): void {
+    if (signal.aborted) {
+        throw new Error('Artifact insertion was cancelled.');
+    }
+}
+
+export function cancelArtifactInsertion(planId: string): boolean {
+    const active = activeInsertions.get(planId);
+    if (active) {
+        active.abort('Insertion cancelled by the user.');
+        return true;
+    }
+    return plans.delete(planId);
+}
+
 function planIdentity(
     artifactHash: string,
     root: string,
     preparation: ReturnType<typeof prepareImplementationInsertion>,
     dependencyVersions: Record<string, string>,
     dependencyProvenance: Record<string, string>,
+    dependencyLifecycleScripts: Record<string, string[] | null>,
     editorTarget?: { oid: string; domId: string; webviewId: string },
 ): string {
     return hash(
@@ -176,6 +268,7 @@ function planIdentity(
             dependencies: preparation.dependencies,
             selectedVersions: dependencyVersions,
             dependencyProvenance,
+            dependencyLifecycleScripts,
             providers: preparation.requiredProviders,
             configuration: preparation.configurationChanges,
             unsupported: preparation.unsupportedRequirements,
@@ -252,6 +345,26 @@ export async function prepareArtifactValueInsertion(
         }
     }
     resolvePlanWarnings(preparation);
+    const dependencyLifecycleScripts: Record<string, string[] | null> = {};
+    for (const [name, version] of Object.entries(exactVersions)) {
+        dependencyLifecycleScripts[name] = await packageLifecycleScripts(
+            projectRoot,
+            name,
+            version,
+        );
+    }
+    for (const dependency of preparation.dependencies.filter((item) => item.action === 'install')) {
+        const scripts = dependencyLifecycleScripts[dependency.name];
+        if (scripts === null) {
+            preparation.unsupportedRequirements.push(
+                `Could not verify lifecycle scripts for ${dependency.name}@${exactVersions[dependency.name]}; installation is blocked.`,
+            );
+        } else if (scripts.length > 0) {
+            preparation.unsupportedRequirements.push(
+                `${dependency.name}@${exactVersions[dependency.name]} declares lifecycle scripts (${scripts.join(', ')}). Kumite disables package scripts; this dependency cannot be installed safely yet.`,
+            );
+        }
+    }
     const id = randomUUID();
     const planHash = planIdentity(
         artifact.integrity.artifactHash,
@@ -259,6 +372,7 @@ export async function prepareArtifactValueInsertion(
         preparation,
         exactVersions,
         dependencyProvenance,
+        dependencyLifecycleScripts,
         editorTarget,
     );
     plans.set(id, {
@@ -268,6 +382,7 @@ export async function prepareArtifactValueInsertion(
         preparation,
         dependencyVersions: exactVersions,
         dependencyProvenance,
+        dependencyLifecycleScripts,
         editorTarget,
         planHash,
     });
@@ -307,7 +422,17 @@ export async function prepareArtifactValueInsertion(
             version: exactVersions[dependency.name],
             action: dependency.action,
             provenance: dependencyProvenance[dependency.name],
+            lifecycleScripts: dependencyLifecycleScripts[dependency.name],
         })),
+        lockfilesToChange: lockfilesForApproval(
+            projectRoot,
+            preparation.project.packageManager,
+            preparation.dependencies.some((dependency) => dependency.action === 'install'),
+        ),
+        transitiveDependencyNote:
+            preparation.dependencies.some((dependency) => dependency.action === 'install')
+                ? 'The package manager will resolve transitive dependencies and pin their exact versions in the listed lockfile; the transitive diff is not enumerated before installation.'
+                : 'No package installation is planned.',
         assets: preparation.assetPaths,
         providers: preparation.requiredProviders,
         configurationChanges: preparation.configurationChanges,
@@ -352,7 +477,17 @@ export function getArtifactInsertionApprovalDetails(planId: string, planHash: st
             version,
             action: prepared.preparation.dependencies.find((item) => item.name === name)?.action,
             provenance: prepared.dependencyProvenance[name],
+            lifecycleScripts: prepared.dependencyLifecycleScripts[name],
         })),
+        lockfilesToChange: lockfilesForApproval(
+            prepared.projectRoot,
+            prepared.preparation.project.packageManager,
+            prepared.preparation.dependencies.some((dependency) => dependency.action === 'install'),
+        ),
+        transitiveDependencyNote:
+            prepared.preparation.dependencies.some((dependency) => dependency.action === 'install')
+                ? 'The package manager will resolve transitive dependencies and pin their exact versions in the listed lockfile; the transitive diff is not enumerated before installation.'
+                : 'No package installation is planned.',
         providers: prepared.preparation.requiredProviders,
         configurationChanges: prepared.preparation.configurationChanges,
         conflicts: prepared.preparation.conflicts,
@@ -387,8 +522,9 @@ interface OperationJournal {
     installedPackageFiles: Record<string, string>;
     dependencyVersions: Record<string, string>;
     dependencyProvenance: Record<string, string>;
+    dependencyLifecycleScripts: Record<string, string[] | null>;
     packageManager: PackageManager;
-    dependenciesInstalled: boolean;
+    dependencyInstallAttempted: boolean;
     error?: string;
 }
 
@@ -470,7 +606,7 @@ async function rollbackOperation(journal: OperationJournal, filePath: string): P
             );
         }
     }
-    if (recovery.length === 0 && journal.dependenciesInstalled) {
+    if (recovery.length === 0 && journal.dependencyInstallAttempted) {
         const { runPackageManagerInstall } = await import('./cli');
         const restore = await runPackageManagerInstall(
             root,
@@ -499,12 +635,22 @@ export async function applyArtifactInsertion(planId: string, approvedPlanHash: s
     if (approvedPlanHash !== prepared.planHash) {
         throw new Error('The approved plan hash does not match the prepared plan.');
     }
-    const { projectRoot, artifact, preparation, dependencyVersions, dependencyProvenance } =
-        prepared;
+    const controller = new AbortController();
+    activeInsertions.set(planId, controller);
+    try {
+    const {
+        projectRoot,
+        artifact,
+        preparation,
+        dependencyVersions,
+        dependencyProvenance,
+        dependencyLifecycleScripts,
+    } = prepared;
     if (fs.realpathSync(projectRoot) !== projectRoot) {
         throw new Error('The target project identity changed after approval.');
     }
-    const fresh = await prepareProjectSnapshot(artifact, projectRoot);
+    const fresh = await prepareProjectSnapshot(artifact, projectRoot, controller.signal);
+    abortIfCancelled(controller.signal);
     resolvePlanWarnings(fresh);
     if (
         planIdentity(
@@ -513,6 +659,7 @@ export async function applyArtifactInsertion(planId: string, approvedPlanHash: s
             fresh,
             dependencyVersions,
             dependencyProvenance,
+            dependencyLifecycleScripts,
             prepared.editorTarget,
         ) !== prepared.planHash
     ) {
@@ -573,8 +720,9 @@ export async function applyArtifactInsertion(planId: string, approvedPlanHash: s
         installedPackageFiles: {},
         dependencyVersions,
         dependencyProvenance,
+        dependencyLifecycleScripts,
         packageManager: preparation.project.packageManager!,
-        dependenciesInstalled: false,
+        dependencyInstallAttempted: false,
     };
     writeJsonAtomic(journalFile, journal);
 
@@ -585,17 +733,47 @@ export async function applyArtifactInsertion(planId: string, approvedPlanHash: s
             .filter((dependency) => dependency.action === 'install')
             .map((dependency) => `${dependency.name}@${dependencyVersions[dependency.name]}`);
         if (install.length) {
+            journal.dependencyInstallAttempted = true;
+            writeJsonAtomic(journalFile, journal);
             const { runPackageManagerCommand } = await import('./cli');
+            const exactFlag =
+                preparation.project.packageManager === 'npm' ||
+                preparation.project.packageManager === 'pnpm'
+                    ? '--save-exact'
+                    : '--exact';
             const result = await runPackageManagerCommand(
                 projectRoot,
                 preparation.project.packageManager!,
-                [...install, '--ignore-scripts'],
+                [...install, exactFlag, '--ignore-scripts'],
+                undefined,
+                controller.signal,
             );
             if (!result.success) {
                 throw new Error(`Approved dependency installation failed: ${result.output}`);
             }
-            journal.dependenciesInstalled = true;
-            writeJsonAtomic(journalFile, journal);
+            const manifest = JSON.parse(
+                fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'),
+            ) as {
+                dependencies?: Record<string, string>;
+                devDependencies?: Record<string, string>;
+            };
+            for (const dependency of preparation.dependencies.filter(
+                (item) => item.action === 'install',
+            )) {
+                const selectedVersion = dependencyVersions[dependency.name];
+                const installedVersion = installedPackageVersion(projectRoot, dependency.name);
+                const declaredVersion =
+                    manifest.dependencies?.[dependency.name] ??
+                    manifest.devDependencies?.[dependency.name];
+                if (installedVersion !== selectedVersion || declaredVersion !== selectedVersion) {
+                    throw new Error(
+                        `Package-manager verification failed for ${dependency.name}: requested ${selectedVersion}, installed ${installedVersion ?? 'missing'}, declared ${declaredVersion ?? 'missing'}.`,
+                    );
+                }
+            }
+            if (packageManager(projectRoot) !== preparation.project.packageManager) {
+                throw new Error('Package-manager lockfile changed during approved installation.');
+            }
         }
         for (const relative of lockfiles) {
             const file = path.join(projectRoot, relative);
@@ -607,7 +785,11 @@ export async function applyArtifactInsertion(planId: string, approvedPlanHash: s
         writeJsonAtomic(journalFile, journal);
 
         const materialized = path.join(staging, 'materialized');
-        const materialization = await materializeImplementationArtifact(artifact, materialized);
+        const materialization = await materializeImplementationArtifact(
+            artifact,
+            materialized,
+            { signal: controller.signal },
+        );
         const stagedFiles: Array<{ staged: string; destination: string; hash: string }> = [];
         for (const file of preparation.files.filter((item) => item.action === 'add')) {
             const staged = path.join(staging, 'files', String(stagedFiles.length));
@@ -644,6 +826,7 @@ export async function applyArtifactInsertion(planId: string, approvedPlanHash: s
             writeJsonAtomic(journalFile, journal);
         }
         for (const file of stagedFiles) {
+            abortIfCancelled(controller.signal);
             validateDestination(projectRoot, file.destination);
             commitStagedFile(projectRoot, file.staged, file.destination, file.hash);
             journal.createdFiles.push({ path: file.destination, hash: file.hash });
@@ -667,6 +850,9 @@ export async function applyArtifactInsertion(planId: string, approvedPlanHash: s
         throw error;
     } finally {
         fs.rmSync(staging, { recursive: true, force: true });
+    }
+    } finally {
+        activeInsertions.delete(planId);
         plans.delete(planId);
     }
 }
@@ -718,9 +904,14 @@ export async function recoverArtifactInsertions(projectPath: string): Promise<st
         if (
             journal.projectRoot !== root ||
             journal.state === 'committed' ||
-            journal.state === 'rolled-back' ||
-            journal.state === 'recovery-required'
+            journal.state === 'rolled-back'
         ) {
+            continue;
+        }
+        if (journal.state === 'recovery-required') {
+            recovered.push(
+                `Operation ${journal.operationId} requires manual recovery: ${journal.error ?? 'state is ambiguous.'}`,
+            );
             continue;
         }
         if (journal.state === 'awaiting-editor') {

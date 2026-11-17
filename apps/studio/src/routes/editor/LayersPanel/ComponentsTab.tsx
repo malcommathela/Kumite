@@ -286,10 +286,10 @@ const ComponentsTab = observer(() => {
                 .join('\n') || '  • No new source files';
         const dependencies =
             review.dependencies
-                .map(
-                    (dependency) =>
-                        `  • ${dependency.action === 'install' ? 'Install' : 'Reuse'} ${dependency.name}@${dependency.version}`,
-                )
+                    .map(
+                        (dependency) =>
+                            `  • ${dependency.action === 'install' ? 'Install' : 'Reuse'} ${dependency.name}@${dependency.version} — ${dependency.provenance}; lifecycle scripts: ${dependency.lifecycleScripts === null ? 'unknown (disabled)' : dependency.lifecycleScripts.length ? `${dependency.lifecycleScripts.join(', ')} (disabled)` : 'none'}`,
+                    )
                 .join('\n') || '  • None';
         const assets =
             review.assets
@@ -311,6 +311,8 @@ const ComponentsTab = observer(() => {
             '',
             'Dependencies (exact versions; lifecycle scripts disabled):',
             dependencies,
+            `Manifests/lockfiles to change: ${review.lockfilesToChange.join(', ') || 'none'}`,
+            review.transitiveDependencyNote,
             '',
             'Local assets:',
             assets,
@@ -506,6 +508,16 @@ const ComponentsTab = observer(() => {
                                             <Icons.Shadow className="mr-1.5 h-3 w-3 animate-spin" />
                                         )}
                                         {isBusy(definition) ? 'Adding…' : 'Use'}
+                                    </Button>
+                                )}
+                                {manager.using === definition.name && manager.activeInsertionPlanId && (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 px-2 text-[11px]"
+                                        onClick={() => void manager.cancelInsertion(definition.name)}
+                                    >
+                                        Cancel
                                     </Button>
                                 )}
                             </div>
@@ -853,6 +865,17 @@ const ComponentsTab = observer(() => {
                                             {insertLabel(selectedDefinition)}
                                         </Button>
                                     )}
+                                    {manager.using === selectedDefinition.name &&
+                                        manager.activeInsertionPlanId && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    void manager.cancelInsertion(selectedDefinition.name)
+                                                }
+                                            >
+                                                Cancel insertion
+                                            </Button>
+                                        )}
                                     <Button
                                         variant="ghost"
                                         onClick={() => void copyForAgent(selectedDefinition)}

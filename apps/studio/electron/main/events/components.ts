@@ -4,6 +4,7 @@ import { dialog, ipcMain, type WebContents } from 'electron';
 import {
     cancelComponentInstall,
     applyArtifactInsertion,
+    cancelArtifactInsertion,
     finishArtifactInsertion,
     getArtifactInsertionApprovalDetails,
     getComponentStatus,
@@ -46,7 +47,13 @@ export function listenForComponentMessages() {
             );
         }
         const recovery = await reconcileArtifactInsertions(args.projectPath);
-        if (recovery.some((message) => message.includes('awaiting editor recovery'))) {
+        if (
+            recovery.some(
+                (message) =>
+                    message.includes('awaiting editor recovery') ||
+                    message.includes('requires manual recovery'),
+            )
+        ) {
             throw new Error(recovery.join('\n'));
         }
         return {
@@ -78,7 +85,9 @@ export function listenForComponentMessages() {
                 `Files: ${approval.files.map((file) => `${file.path} [${file.sourceHash} → ${file.publishedHash}]`).join(', ') || 'none'}`,
                 `AST transformations: ${approval.files.flatMap((file) => file.transformations.map((item) => `${item.from} → ${item.to}`)).join(', ') || 'none'}`,
                 `Assets: ${approval.assets.map((asset) => `${asset.path} [${asset.sha256 ?? 'external/unhashed'}]`).join(', ') || 'none'}`,
-                `Dependencies: ${approval.dependencies.map((dependency) => `${dependency.name}@${dependency.version} (${dependency.action}; ${dependency.provenance})`).join(', ') || 'none'}`,
+                `Dependencies: ${approval.dependencies.map((dependency) => `${dependency.name}@${dependency.version} (${dependency.action}; ${dependency.provenance}; scripts=${dependency.lifecycleScripts === null ? 'unknown (disabled)' : dependency.lifecycleScripts.length ? dependency.lifecycleScripts.join(',') + ' (disabled)' : 'none'})`).join(', ') || 'none'}`,
+                `Lockfiles/manifests to change: ${approval.lockfilesToChange.join(', ') || 'none'}`,
+                approval.transitiveDependencyNote,
                 `Providers: ${approval.providers.join(', ') || 'none'}`,
                 `Configuration: ${approval.configurationChanges.join(', ') || 'none'}`,
                 `Conflicts: ${approval.conflicts.join(', ') || 'none'}`,
@@ -94,6 +103,13 @@ export function listenForComponentMessages() {
             throw new Error('Artifact insertion was not approved.');
         }
         return applyArtifactInsertion(args.planId, args.planHash);
+    });
+
+    ipcMain.handle(MainChannels.COMPONENTS_ARTIFACT_CANCEL, (_event, args) => {
+        if (!args || typeof args.planId !== 'string') {
+            throw new Error('Artifact insertion cancellation is invalid.');
+        }
+        return cancelArtifactInsertion(args.planId);
     });
 
     ipcMain.handle(MainChannels.COMPONENTS_ARTIFACT_COMMIT, async (_event, args) => {

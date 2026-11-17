@@ -200,6 +200,7 @@ export enum MainChannels {
     COMPONENTS_ARTIFACT_APPLY = 'components-artifact-apply',
     COMPONENTS_ARTIFACT_COMMIT = 'components-artifact-commit',
     COMPONENTS_ARTIFACT_ROLLBACK = 'components-artifact-rollback',
+    COMPONENTS_ARTIFACT_CANCEL = 'components-artifact-cancel',
 }
 
 export enum GitChannels {

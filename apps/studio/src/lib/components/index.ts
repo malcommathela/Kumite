@@ -55,7 +55,15 @@ export interface ArtifactInsertionReview {
     }>;
     reusedFiles: string[];
     conflicts: string[];
-    dependencies: Array<{ name: string; version: string; action: string; provenance: string }>;
+    dependencies: Array<{
+        name: string;
+        version: string;
+        action: string;
+        provenance: string;
+        lifecycleScripts: string[] | null;
+    }>;
+    lockfilesToChange: string[];
+    transitiveDependencyNote: string;
     assets: Array<{
         sourcePath: string;
         destinationPath: string | null;
@@ -80,6 +88,7 @@ export class ComponentsManager {
     installing: string | null = null;
     installProgress: ShadcnInstallProgress | null = null;
     using: string | null = null;
+    activeInsertionPlanId: string | null = null;
     lastLog: string | null = null;
     insertError: string | null = null;
     previewComponent: string | null = null;
@@ -571,6 +580,7 @@ export class ComponentsManager {
 
         this.insertError = null;
         this.using = componentName;
+        this.activeInsertionPlanId = approval.planId;
         const projectPath = this.projectPath;
         let operationId: string | null = null;
         let editorWritten = false;
@@ -671,8 +681,16 @@ export class ComponentsManager {
         } finally {
             runInAction(() => {
                 this.using = null;
+                this.activeInsertionPlanId = null;
             });
         }
+    }
+
+    async cancelInsertion(componentName: string): Promise<boolean> {
+        if (this.using !== componentName || !this.activeInsertionPlanId) {return false;}
+        return Boolean(await invokeMainChannel(MainChannels.COMPONENTS_ARTIFACT_CANCEL, {
+            planId: this.activeInsertionPlanId,
+        }));
     }
 
     /**

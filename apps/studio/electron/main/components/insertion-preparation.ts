@@ -433,7 +433,11 @@ export function prepareImplementationInsertion(
         .filter((file) => file.action === 'reuse')
         .map((file) => file.destinationPath);
     const configurationChanges = artifact.requirements.configuration.filter(
-        (requirement) => requirement !== 'upstream-example',
+        (requirement) =>
+            requirement !== 'upstream-example' &&
+            // React/Vite ignores the Next.js client-boundary directive; no project
+            // compiler configuration is needed to publish an upstream example.
+            requirement !== 'react-client-components',
     );
     const unsupportedRequirements: string[] = [];
     const warnings: string[] = [];

@@ -94,6 +94,7 @@ export { ArtifactCatalogPreviewServer, artifactCatalogPreviewServer } from './ar
 export type { ArtifactCatalogPreviewResult } from './artifact-preview';
 export {
     applyArtifactInsertion,
+    cancelArtifactInsertion,
     finishArtifactInsertion,
     getArtifactInsertionApprovalDetails,
     prepareArtifactInsertion,

@@ -8,7 +8,7 @@ import type {
 } from '@kumite/models';
 import { runPackageManagerInstall } from './cli';
 import { projectLifecycle } from '../lifecycle/state';
-import { GENERATED_CONFIG_MARKER } from './catalog';
+import { GENERATED_CONFIG_MARKER, buildArtifactPreviewViteConfig } from './preview-vite-config';
 import { implementationResolutionService } from './implementation-service';
 import {
     ImplementationMaterializationError,
@@ -24,6 +24,7 @@ import {
 import { PreviewRuntimeManager, safeEntryId, stableSessionId } from './preview-runtime';
 import { buildCatalogHtml } from './preview';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
+import { cleanupArtifactPreviewWorkspace } from './preview-workspace-cleanup';
 
 const MATERIALIZATIONS_DIRECTORY = '.kumite-materializations';
 const SOURCE_ROOT = 'src';
@@ -189,42 +190,7 @@ function mergeMaterialization(
     }
 }
 
-export function buildArtifactPreviewViteConfig(): string {
-    return `${GENERATED_CONFIG_MARKER}import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
-
-const source = (path: string) => fileURLToPath(new URL(path, import.meta.url));
-
-export default defineConfig({
-    plugins: [react(), tailwindcss()],
-    // Previews mount in parallel and outlive dependency re-optimization, so a
-    // cached optimized chunk can pair with a fresh one and duplicate React.
-    server: {
-        headers: { 'Cache-Control': 'no-store' },
-    },
-    resolve: {
-        alias: [
-            { find: /^@\\/registry\\/new-york-v4\\//, replacement: source('./src/registry/new-york-v4/') },
-            { find: /^@\\/components\\/ui\\//, replacement: source('./src/registry/new-york-v4/ui/') },
-            { find: /^@\\/components\\//, replacement: source('./src/registry/new-york-v4/components/') },
-            { find: /^@\\/assets\\//, replacement: source('./src/registry/new-york-v4/assets/') },
-            { find: /^@\\/hooks\\//, replacement: source('./src/registry/new-york-v4/hooks/') },
-            { find: /^@\\/lib\\//, replacement: source('./src/registry/new-york-v4/lib/') },
-            { find: /^~\\/registry\\/new-york-v4\\//, replacement: source('./src/registry/new-york-v4/') },
-            { find: /^~\\/components\\/ui\\//, replacement: source('./src/registry/new-york-v4/ui/') },
-            { find: /^~\\/components\\//, replacement: source('./src/registry/new-york-v4/components/') },
-            { find: /^~\\/assets\\//, replacement: source('./src/registry/new-york-v4/assets/') },
-            { find: /^~\\/hooks\\//, replacement: source('./src/registry/new-york-v4/hooks/') },
-            { find: /^~\\/lib\\//, replacement: source('./src/registry/new-york-v4/lib/') },
-            { find: '@', replacement: source('./src/') },
-            { find: '~', replacement: source('./src/') },
-        ],
-    },
-});
-`;
-}
+export { buildArtifactPreviewViteConfig } from './preview-vite-config';
 
 /**
  * Configs written by earlier builds start with the plugin import and carry no
@@ -539,6 +505,9 @@ export class ArtifactCatalogPreviewServer {
         }
         try {
             await this.startupReconciliation;
+            if (this.runtime.size === 0) {
+                cleanupArtifactPreviewWorkspace(workspaceRoot);
+            }
         } catch (error) {
             this.startupReconciliation = null;
             return {
@@ -726,11 +695,14 @@ export class ArtifactCatalogPreviewServer {
         await Promise.allSettled([...(this.ownerTasks.get(ownerId) ?? [])]);
         await this.runtime.releaseOwner(ownerId);
         const artifacts = this.ownerArtifacts.get(ownerId);
+        const storeRoot = this.ownerStores.get(ownerId);
         if (!artifacts) {
             this.ownerStores.delete(ownerId);
+            if (storeRoot && this.ownerArtifacts.size === 0 && this.runtime.size === 0) {
+                cleanupArtifactPreviewWorkspace(path.dirname(storeRoot));
+            }
             return;
         }
-        const storeRoot = this.ownerStores.get(ownerId);
         if (!storeRoot) {
             throw new Error(`Artifact store root is missing for preview owner "${ownerId}".`);
         }
@@ -744,6 +716,9 @@ export class ArtifactCatalogPreviewServer {
         }
         this.ownerArtifacts.delete(ownerId);
         this.ownerStores.delete(ownerId);
+        if (this.ownerArtifacts.size === 0 && this.runtime.size === 0) {
+            cleanupArtifactPreviewWorkspace(path.dirname(storeRoot));
+        }
     }
 
     async stop(): Promise<void> {
