@@ -284,6 +284,7 @@ const LibraryCard = observer(function LibraryCard({
     const previewRef = useRef<HTMLDivElement | null>(null);
     const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
     const span = getCatalogSpan(item);
+    const snapshot = manager.catalogSnapshots[item.name];
     const previewUrl = manager.catalogPreviews[item.name];
     const previewSessionId = manager.catalogSessions[item.name];
     const previewLoading = Boolean(manager.catalogItemLoading[item.name]);
@@ -301,7 +302,12 @@ const LibraryCard = observer(function LibraryCard({
                 }
                 setHasEnteredViewport(true);
                 observer.disconnect();
-                onVisible(item.name);
+                void manager.loadCatalogSnapshot(item.name).then((snapshot) => {
+                    // A saved snapshot is enough for the library grid. Only
+                    // start the preview runtime when this item has never been
+                    // captured on this device.
+                    if (!snapshot) onVisible(item.name);
+                });
             },
             { rootMargin: '100px' },
         );
@@ -324,10 +330,17 @@ const LibraryCard = observer(function LibraryCard({
                     PREVIEW_HEIGHT[span],
                 )}
             >
-                {previewUrl && hasEnteredViewport ? (
+                {snapshot ? (
+                    <img
+                        src={snapshot}
+                        alt={`${item.title} preview snapshot`}
+                        className="h-full w-full object-contain"
+                        draggable={false}
+                    />
+                ) : previewUrl && hasEnteredViewport ? (
                     <CardPreview
                         src={previewUrl}
-                        title={`${item.title} preview`}
+                        title={`${item.title} live preview`}
                         name={item.name}
                         sessionId={previewSessionId}
                     />
