@@ -24,6 +24,7 @@ import {
 import { PreviewRuntimeManager, safeEntryId, stableSessionId } from './preview-runtime';
 import { buildCatalogHtml } from './preview';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
+import { generateArtifactPreviewRegistry } from './preview-registry';
 import { cleanupArtifactPreviewWorkspace } from './preview-workspace-cleanup';
 
 const MATERIALIZATIONS_DIRECTORY = '.kumite-materializations';
@@ -599,33 +600,40 @@ export class ArtifactCatalogPreviewServer {
             return { urls, sessions, sources, errors, error: message, log: null };
         }
 
-        const entries = readyArtifacts.flatMap((artifact) => {
+        const previewModules: Array<{
+            key: string; artifactHash: string; kind: string; name: string; source: string;
+            sessionId: string; entryId: string; html: string;
+        }> = [];
+        for (const artifact of readyArtifacts) {
+            const displayName = previewNames.get(artifact) ?? artifact.metadata.name;
             try {
-                const displayName = previewNames.get(artifact) ?? artifact.metadata.name;
                 const sessionId = stableSessionId(
                     workspaceRoot,
                     `${ownerId}:${displayName}:${artifact.id}:${artifact.integrity.artifactHash}`,
                     'implementation-catalog',
                 );
                 const entryId = safeEntryId(displayName);
-                return [
-                    {
-                        sessionId,
-                        entryId,
-                        html: buildCatalogHtml(displayName, sessionId, entryId),
-                        source: buildArtifactPreviewModule(
-                            artifact,
-                            sessionId,
-                            options.preferredExports?.[displayName],
-                        ),
-                    },
-                ];
+                previewModules.push({
+                    key: `${artifact.provider}:${artifact.metadata.kind}:${artifact.id}:${sessionId}`,
+                    artifactHash: artifact.integrity.artifactHash,
+                    kind: artifact.metadata.kind,
+                    name: displayName,
+                    source: buildArtifactPreviewModule(artifact, sessionId, options.preferredExports?.[displayName]),
+                    sessionId,
+                    entryId,
+                    html: buildCatalogHtml(displayName, sessionId, entryId),
+                });
             } catch (error) {
-                errors[previewNames.get(artifact) ?? artifact.metadata.name] =
-                    error instanceof Error ? error.message : String(error);
-                return [];
+                errors[displayName] = error instanceof Error ? error.message : String(error);
             }
-        });
+        }
+        const registry = await generateArtifactPreviewRegistry(workspaceRoot, previewModules);
+        const entries = previewModules.map((module) => ({
+            sessionId: module.sessionId,
+            entryId: module.entryId,
+            html: module.html,
+            source: registry.entrySources[module.key]!,
+        }));
         if (entries.length === 0) {
             const firstError =
                 Object.values(errors)[0] ?? 'No artifact entry points were renderable.';

@@ -13,6 +13,33 @@ import {
 const MANIFEST_FILENAME = '.kumite-implementation.json';
 const INTERNAL_ASSET_CACHE = '.kumite-asset-cache';
 
+const materializationFlights = new Map<string, { artifactHash: string; promise: Promise<ImplementationMaterializationResult> }>();
+const activeMaterializationDirectories = new Set<string>();
+
+export function isImplementationMaterializationActive(destinationDirectory: string): boolean {
+    return activeMaterializationDirectories.has(path.resolve(destinationDirectory));
+}
+
+async function publishStageDirectory(stageDirectory: string, destinationDirectory: string): Promise<void> {
+    const transientCodes = new Set(['EPERM', 'EBUSY', 'EACCES']);
+    const maxAttempts = process.platform === 'win32' ? 6 : 1;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+            if (fs.existsSync(destinationDirectory)) {
+                throw new ImplementationMaterializationError('destination-exists', `Materialization destination appeared while resolving: ${destinationDirectory}`);
+            }
+            fs.renameSync(stageDirectory, destinationDirectory);
+            return;
+        } catch (error) {
+            if (error instanceof ImplementationMaterializationError) throw error;
+            const code = (error as NodeJS.ErrnoException).code;
+            if (!transientCodes.has(code ?? '') || attempt === maxAttempts - 1) throw error;
+            if (!fs.existsSync(stageDirectory) || fs.existsSync(destinationDirectory)) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 40 * (attempt + 1)));
+        }
+    }
+}
+
 type FileRole = ImplementationArtifact['files'][number]['role'];
 
 export interface ImplementationMaterializationOptions {
@@ -814,13 +841,7 @@ export async function materializeImplementationArtifact(
             flag: 'wx',
         });
         abortIfRequested(options.signal);
-        if (fs.existsSync(directory)) {
-            throw new ImplementationMaterializationError(
-                'destination-exists',
-                `Materialization destination appeared while resolving: ${directory}`,
-            );
-        }
-        fs.renameSync(stageDirectory, directory);
+        await publishStageDirectory(stageDirectory, directory);
         stageDirectory = null;
 
         return {
@@ -855,4 +876,31 @@ export async function materializeImplementationArtifact(
             }
         }
     }
+}
+
+
+export function materializeImplementationArtifact(
+    artifactValue: ImplementationArtifact,
+    destinationDirectory: string,
+    options: ImplementationMaterializationOptions = {},
+): Promise<ImplementationMaterializationResult> {
+    const directory = path.resolve(destinationDirectory);
+    const artifactHash = artifactValue?.integrity?.artifactHash ?? '';
+    const pending = materializationFlights.get(directory);
+    if (pending?.artifactHash === artifactHash) return pending.promise;
+    const task = (async () => {
+        if (pending) await pending.promise.catch(() => undefined);
+        activeMaterializationDirectories.add(directory);
+        try {
+            return await materializeImplementationArtifactUnlocked(artifactValue, destinationDirectory, options);
+        } finally {
+            activeMaterializationDirectories.delete(directory);
+        }
+    })();
+    materializationFlights.set(directory, { artifactHash, promise: task });
+    const clear = () => {
+        if (materializationFlights.get(directory)?.promise === task) materializationFlights.delete(directory);
+    };
+    void task.then(clear, clear);
+    return task;
 }

@@ -59,4 +59,13 @@ describe('artifact preview workspace cleanup', () => {
         assert.equal(fs.existsSync(materializedAsset), false);
         assert.equal(fs.existsSync(materialization), false);
     });
+    it('preserves incomplete materialization directories instead of treating them as owned cleanup records', () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-preview-incomplete-'));
+        roots.push(root);
+        const destination = path.join(root, '.kumite-materializations', 'partial');
+        fs.mkdirSync(destination, { recursive: true });
+        fs.writeFileSync(path.join(destination, '.kumite-implementation.json'), '{"schemaVersion":1}');
+        cleanupArtifactPreviewWorkspace(root);
+        assert.equal(fs.existsSync(destination), true);
+    });
 });

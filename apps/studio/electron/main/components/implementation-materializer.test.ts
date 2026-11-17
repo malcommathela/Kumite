@@ -668,4 +668,18 @@ describe('implementation artifact materializer', () => {
                 error.code === 'path-conflict',
         );
     });
+    it('shares one in-flight publication for concurrent requests targeting the same artifact', async () => {
+        const artifact = await resolveFixture('component', 'button');
+        const root = temporaryDirectory();
+        const destination = path.join(root, 'concurrent');
+        const [first, second] = await Promise.all([
+            materializeImplementationArtifact(artifact, destination),
+            materializeImplementationArtifact(artifact, destination),
+        ]);
+        assert.equal(first.materializationDirectory, destination);
+        assert.equal(second.materializationDirectory, destination);
+        assert.equal(first.manifest.artifact.integrity.artifactHash, artifact.integrity.artifactHash);
+        assert.equal(second.manifest.artifact.integrity.artifactHash, artifact.integrity.artifactHash);
+        assert.deepEqual(fs.readdirSync(root), ['concurrent']);
+    });
 });

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isImplementationMaterializationActive } from './implementation-materializer';
 
 function sha256(file: string): string {
     return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -57,6 +58,7 @@ export function cleanupArtifactPreviewWorkspace(workspaceRoot: string): void {
     for (const entry of fs.readdirSync(materializationsRoot, { withFileTypes: true })) {
         if (!entry.isDirectory() || entry.isSymbolicLink()) {continue;}
         const directory = path.join(materializationsRoot, entry.name);
+        if (isImplementationMaterializationActive(directory)) continue;
         try {
             const manifest = JSON.parse(
                 fs.readFileSync(path.join(directory, '.kumite-implementation.json'), 'utf8'),
