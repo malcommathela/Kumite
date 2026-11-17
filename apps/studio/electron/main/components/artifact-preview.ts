@@ -255,11 +255,7 @@ async function prepareDependencies(
     const requested = new Map<
         string,
         { version?: string; artifacts: string[]; versionSource: string }
-    >([
-        ['tailwindcss', { version: '3.4.19', artifacts: ['kumite-preview-runtime'], versionSource: 'runtime' }],
-        ['postcss', { version: '8.5.32', artifacts: ['kumite-preview-runtime'], versionSource: 'runtime' }],
-        ['autoprefixer', { version: '10.6.2', artifacts: ['kumite-preview-runtime'], versionSource: 'runtime' }],
-    ]);
+    >();
     for (const artifact of artifacts) {
         for (const dependency of artifact.dependencies) {
             const previous = requested.get(dependency.name);
