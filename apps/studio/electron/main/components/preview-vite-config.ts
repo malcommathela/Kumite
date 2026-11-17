@@ -2,14 +2,13 @@ export const GENERATED_CONFIG_MARKER = '// Kumite preview workspace config (gene
 
 export function buildArtifactPreviewViteConfig(): string {
     return GENERATED_CONFIG_MARKER + String.raw`import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
 const source = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
-    plugins: [react(), tailwindcss()],
+    plugins: [react()],
     server: { headers: { 'Cache-Control': 'no-store' } },
     resolve: {
         alias: [
