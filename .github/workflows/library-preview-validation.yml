@@ -4,17 +4,27 @@ on:
   push:
     branches:
       - feat/library-previews
+      - fix/library-preview-rendering
     paths:
       - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/electron/main/lifecycle/vite.ts'
+      - 'apps/studio/src/components/ComponentPreview/**'
+      - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
+      - 'apps/studio/tests/preview-handshake.test.ts'
       - 'apps/studio/package.json'
       - 'package.json'
       - 'bun.lock'
       - '.github/workflows/library-preview-validation.yml'
   pull_request:
     branches:
+      - master
       - feat/library-previews
     paths:
       - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/electron/main/lifecycle/vite.ts'
+      - 'apps/studio/src/components/ComponentPreview/**'
+      - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
+      - 'apps/studio/tests/preview-handshake.test.ts'
       - 'apps/studio/package.json'
       - 'package.json'
       - 'bun.lock'
@@ -55,6 +65,9 @@ jobs:
           electron/main/components/preview-workspace-cleanup.test.ts
           electron/main/components/preview-registry.test.ts
           electron/main/components/artifact-preview.test.ts
+          electron/main/components/source-resolver.test.ts
+          electron/main/components/preview-stylesheet.test.ts
+          tests/preview-handshake.test.ts
       - name: Run preview unit and browser integration tests (Ubuntu)
         if: runner.os == 'Linux'
         working-directory: apps/studio
@@ -64,7 +77,13 @@ jobs:
           electron/main/components/preview-workspace-cleanup.test.ts
           electron/main/components/preview-registry.test.ts
           electron/main/components/artifact-preview.test.ts
+          electron/main/components/source-resolver.test.ts
+          electron/main/components/preview-stylesheet.test.ts
+          tests/preview-handshake.test.ts
           electron/main/components/preview-registry.integration.test.ts
       - name: Typecheck Studio
         working-directory: apps/studio
         run: bun run typecheck
+      - name: Build Studio
+        working-directory: apps/studio
+        run: bun run build

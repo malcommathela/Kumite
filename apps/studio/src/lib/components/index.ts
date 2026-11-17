@@ -412,12 +412,17 @@ export class ComponentsManager {
                 projectId: this.projectsManager.project?.id ?? null,
             })) as ShadcnCatalogPreview;
             runInAction(() => {
-                this.catalogPreviews = { ...this.catalogPreviews, ...(result.urls ?? {}) };
-                this.catalogSessions = { ...this.catalogSessions, ...(result.sessions ?? {}) };
-                this.catalogPreviewSources = {
-                    ...this.catalogPreviewSources,
-                    ...(result.sources ?? {}),
-                };
+                // Keep the observable record identities stable. Library cards observe
+                // individual keys, so preparing one preview must not invalidate every card.
+                for (const [name, url] of Object.entries(result.urls ?? {})) {
+                    this.catalogPreviews[name] = url;
+                }
+                for (const [name, sessionId] of Object.entries(result.sessions ?? {})) {
+                    this.catalogSessions[name] = sessionId;
+                }
+                for (const [name, source] of Object.entries(result.sources ?? {})) {
+                    this.catalogPreviewSources[name] = source;
+                }
                 for (const name of batch) {
                     this.catalogItemLoading[name] = false;
                     if (this.catalogPreviews[name]) {

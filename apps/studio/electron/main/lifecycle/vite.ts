@@ -80,8 +80,13 @@ export async function startVitePreview(options: StartViteOptions): Promise<Start
 
     let child: ReturnType<typeof spawn>;
     try {
+        // The desktop runtime is Electron (Node-compatible), but Bun's test
+        // runner also exposes process.execPath as the Bun executable. Run Vite
+        // under Node in tests so its config loader and native plugins use the
+        // same runtime they use in the packaged Electron app.
+        const executable = process.versions.bun ? 'node' : process.execPath;
         child = spawn(
-            process.execPath,
+            executable,
             [options.viteBin, '--port', String(options.preferredPort), '--host', '127.0.0.1'],
             {
                 // Vite resolves modules to their real paths; a project reached

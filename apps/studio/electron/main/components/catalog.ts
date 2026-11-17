@@ -78,20 +78,68 @@ function workspaceRoot(): string {
     return path.join(base, WORKSPACE_DIR);
 }
 
+function writeFileIfChanged(file: string, contents: string): void {
+    if (fs.existsSync(file) && fs.readFileSync(file, 'utf8') === contents) {
+        return;
+    }
+    fs.writeFileSync(file, contents, 'utf8');
+}
+
 function writeBaseFiles(root: string): void {
     fs.mkdirSync(path.join(root, 'src'), { recursive: true });
-    fs.writeFileSync(
-        path.join(root, 'package.json'),
-        `${JSON.stringify(PACKAGE_JSON, null, 4)}\n`,
-        'utf8',
-    );
-    fs.writeFileSync(
+
+    // Keep artifact-specific dependencies, but always reconcile the packages
+    // owned by this isolated preview runtime.
+    const packagePath = path.join(root, 'package.json');
+    let existing: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> } = {};
+    try {
+        existing = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as typeof existing;
+    } catch {
+        existing = {};
+    }
+    const packageJson = {
+        ...PACKAGE_JSON,
+        dependencies: {
+            ...(existing.dependencies ?? {}),
+            ...PACKAGE_JSON.dependencies,
+        },
+        devDependencies: {
+            ...(existing.devDependencies ?? {}),
+            ...PACKAGE_JSON.devDependencies,
+        },
+    };
+    writeFileIfChanged(packagePath, `${JSON.stringify(packageJson, null, 4)}\n`);
+    writeFileIfChanged(
         path.join(root, 'tsconfig.json'),
         `${JSON.stringify(TSCONFIG, null, 4)}\n`,
-        'utf8',
     );
-    fs.writeFileSync(path.join(root, 'vite.config.ts'), CATALOG_PREVIEW_VITE_CONFIG, 'utf8');
-    fs.writeFileSync(path.join(root, 'src', 'index.css'), INDEX_CSS, 'utf8');
+    writeFileIfChanged(path.join(root, 'vite.config.ts'), CATALOG_PREVIEW_VITE_CONFIG);
+    writeFileIfChanged(path.join(root, 'src', 'index.css'), INDEX_CSS);
+}
+
+const RUNTIME_PACKAGES = {
+    react: 19,
+    'react-dom': 19,
+    '@tailwindcss/vite': 4,
+    '@vitejs/plugin-react': 4,
+    tailwindcss: 4,
+    vite: 6,
+} as const;
+
+/** Vite alone is not enough: every runtime-owned package must be present. */
+export function isCatalogRuntimeInstalled(root: string): boolean {
+    for (const [name, expectedMajor] of Object.entries(RUNTIME_PACKAGES)) {
+        const packagePath = path.join(root, 'node_modules', ...name.split('/'), 'package.json');
+        try {
+            const installed = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as { version?: string };
+            if (!installed.version || Number(installed.version.split('.')[0]) !== expectedMajor) {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+    }
+    return true;
 }
 
 export interface CatalogWorkspace {
@@ -120,11 +168,9 @@ async function prepareBase(): Promise<CatalogWorkspace> {
     fs.mkdirSync(root, { recursive: true });
     let log = '';
 
-    if (!fs.existsSync(path.join(root, 'package.json'))) {
-        writeBaseFiles(root);
-    }
+    writeBaseFiles(root);
 
-    if (!fs.existsSync(path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'))) {
+    if (!isCatalogRuntimeInstalled(root)) {
         const install = await runPackageManagerInstall(root, 'bun');
         log += `${install.command}\n${install.output}\n\n`;
         if (!install.success) {

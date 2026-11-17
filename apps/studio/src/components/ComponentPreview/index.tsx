@@ -6,7 +6,7 @@ import {
 import { Button } from '@kumite/ui/button';
 import { Skeleton } from '@kumite/ui/skeleton';
 import { cn } from '@kumite/ui/utils';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export const CATEGORIES: Record<string, string[]> = {
     Forms: [
@@ -190,8 +190,6 @@ export function PreviewShimmer({ name }: { name?: string }) {
     );
 }
 
-const PREVIEW_HANDSHAKE_TIMEOUT_MS = 15_000;
-
 /**
  * Waits for the preview page's handshake instead of trusting `load`: a Vite
  * iframe fires `load` on the empty shell before React commits, which left the
@@ -204,25 +202,15 @@ export function usePreviewHandshake(sessionId: string | null) {
     const [detail, setDetail] = useState<string | null>(null);
     const [attempt, setAttempt] = useState(0);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         setState('idle');
         setDetail(null);
         if (!sessionId) {
             return;
         }
-        // The timer is cleared when the page reports mounted or error, so firing
-        // here always means the handshake never arrived.
-        let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
-            setDetail('The preview did not finish loading. Vite may still be compiling it.');
-            setState('error');
-        }, PREVIEW_HANDSHAKE_TIMEOUT_MS);
-
-        const stopTimer = () => {
-            if (timer) {
-                clearTimeout(timer);
-                timer = null;
-            }
-        };
+        // A missing handshake is not a render failure. Iframes may be queued by
+        // the browser or take a long time to load Vite and its dependencies.
+        // Keep the frame mounted until it reports an actual runtime error.
         const listener = (event: MessageEvent) => {
             if (event.source !== frameRef.current?.contentWindow) {
                 return;
@@ -232,13 +220,11 @@ export function usePreviewHandshake(sessionId: string | null) {
                 return;
             }
             if (message.state === 'error') {
-                stopTimer();
                 setState('error');
                 setDetail(message.detail ?? 'The preview crashed while rendering.');
                 return;
             }
             if (message.state === 'mounted') {
-                stopTimer();
                 setState('mounted');
                 setDetail(null);
                 return;
@@ -247,7 +233,6 @@ export function usePreviewHandshake(sessionId: string | null) {
         };
         window.addEventListener('message', listener);
         return () => {
-            stopTimer();
             window.removeEventListener('message', listener);
         };
     }, [sessionId, attempt]);
@@ -522,7 +507,7 @@ export function CardPreview({
                 key={`${src}#${frameKey}`}
                 title={title}
                 src={src}
-                loading="lazy"
+                loading="eager"
                 tabIndex={-1}
                 onLoad={() => setLoaded(true)}
                 className={cn(

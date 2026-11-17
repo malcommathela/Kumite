@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { after, describe, it } from 'node:test';
+import { afterAll, describe, it } from 'bun:test';
 import { deserializeImplementationArtifact, serializeImplementationArtifact } from '@kumite/models';
 import {
     createShadcnSourceResolver,
@@ -17,7 +17,7 @@ const FIXTURE_PATH = path.join(import.meta.dirname, 'fixtures', 'dashboard-01-re
 const PINNED_COMMIT = '1e9e337923aaede7db55b6091cb56a72a661b959';
 const ASSET_CACHE = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-source-assets-'));
 
-after(() => {
+afterAll(() => {
     fs.rmSync(ASSET_CACHE, { recursive: true, force: true });
 });
 
@@ -71,6 +71,34 @@ const rootRegistryUrl =
     `${PINNED_COMMIT}/apps/v4/public/r/styles/new-york-v4`;
 
 describe('shadcn source resolver', () => {
+    it('retries transient fetch failures and persists immutable pinned responses across resolver instances', async () => {
+        const cacheDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-registry-cache-'));
+        const calls = new Map<string, number>();
+        const fetcher = async (url: string): Promise<Response> => {
+            const count = (calls.get(url) ?? 0) + 1;
+            calls.set(url, count);
+            if (url === `${rootRegistryUrl}/button.json` && count === 1) {
+                throw new TypeError('fetch failed');
+            }
+            return fixtureFetcher()(url);
+        };
+        try {
+            const first = await createShadcnSourceResolver({
+                fetcher, registryCacheDirectory: cacheDirectory, assetDirectory: ASSET_CACHE,
+            }).resolve({ provider: 'shadcn', kind: 'component', name: 'button' });
+            assert.equal(first.metadata.name, 'button');
+            assert.ok((calls.get(`${rootRegistryUrl}/button.json`) ?? 0) >= 2);
+
+            const second = await createShadcnSourceResolver({
+                fetcher: async () => { throw new TypeError('network should not be used for cached pinned sources'); },
+                registryCacheDirectory: cacheDirectory, assetDirectory: ASSET_CACHE,
+            }).resolve({ provider: 'shadcn', kind: 'component', name: 'button' });
+            assert.equal(second.integrity.artifactHash, first.integrity.artifactHash);
+        } finally {
+            fs.rmSync(cacheDirectory, { recursive: true, force: true });
+        }
+    });
+
     it('resolves a real registry component and preserves upstream provenance', async () => {
         const artifact = await createFixtureResolver({
             fetcher: fixtureFetcher(),

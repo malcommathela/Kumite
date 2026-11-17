@@ -2,12 +2,19 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { afterAll, describe, it } from 'bun:test';
 import { chromium, type Browser } from '@playwright/test';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 import { buildCatalogHtml } from './preview';
 import { PreviewRuntimeManager, stableSessionId } from './preview-runtime';
+import { buildArtifactPreviewViteConfig } from './preview-vite-config';
+import { ensureArtifactPreviewStylesheet } from './preview-stylesheet';
+import { buildArtifactPreviewModule } from './artifact-preview-module';
+import type { ImplementationArtifact } from '@kumite/models';
 
+const execFileAsync = promisify(execFile);
 const roots: string[] = [];
 const managers: PreviewRuntimeManager[] = [];
 const browsers: Browser[] = [];
@@ -20,29 +27,76 @@ afterAll(async () => {
 
 describe('artifact preview registry Vite integration', () => {
     it('loads the generated lazy module through Vite and mounts its React component', async () => {
+        // The Studio workspace intentionally owns Tailwind v3. Provision the
+        // same isolated React 19 + Tailwind v4 runtime used by catalog previews
+        // instead of resolving plugins from the monorepo's node_modules.
+        const runtimeRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-vite-runtime-'));
+        roots.push(runtimeRoot);
+        await fs.promises.writeFile(
+            path.join(runtimeRoot, 'package.json'),
+            JSON.stringify({
+                private: true,
+                type: 'module',
+                dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' },
+                devDependencies: {
+                    '@tailwindcss/vite': '^4.1.0',
+                    '@vitejs/plugin-react': '^4.3.4',
+                    tailwindcss: '^4.1.0',
+                    vite: '^6.0.0',
+                },
+            }, null, 4),
+        );
+        await execFileAsync(process.execPath, ['install'], {
+            cwd: runtimeRoot,
+            timeout: 120_000,
+            maxBuffer: 10 * 1024 * 1024,
+        });
+
         const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-registry-vite-'));
         roots.push(root);
-        await fs.promises.symlink(path.resolve(process.cwd(), '../../node_modules'), path.join(root, 'node_modules'), 'junction');
+        await fs.promises.symlink(path.join(runtimeRoot, 'node_modules'), path.join(root, 'node_modules'), 'junction');
         await fs.promises.mkdir(path.join(root, 'src'), { recursive: true });
         await fs.promises.writeFile(path.join(root, 'package.json'), '{"type":"module"}\n');
-        await fs.promises.writeFile(path.join(root, 'src', 'index.css'), 'html,body,#root{min-height:100%;margin:0}\n');
-        await fs.promises.writeFile(path.join(root, 'vite.config.ts'), `
-import react from '@vitejs/plugin-react';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
-const root = path.dirname(fileURLToPath(import.meta.url));
-export default defineConfig({ plugins: [react()], resolve: { alias: { '@': path.join(root, 'src') } } });
-`);
+        ensureArtifactPreviewStylesheet(root);
+        await fs.promises.writeFile(path.join(root, 'vite.config.ts'), buildArtifactPreviewViteConfig());
         const key = 'shadcn:component:registry-vite-fixture:session';
-        const moduleSource = `
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-function RegistryFixture() {
-    return <main data-testid="registry-preview-mounted">Generated registry preview mounted</main>;
-}
-createRoot(document.getElementById('root')!).render(<RegistryFixture />);
-`;
+        const entryPoint = 'registry/new-york-v4/ui/fixture.tsx';
+        const componentSource = `export default function RegistryFixture() {
+    return <main data-testid="registry-preview-mounted" className="flex min-h-24 items-center justify-center gap-4 rounded-lg bg-background p-6 text-foreground">
+        <span className="rounded-md bg-primary px-4 py-2 text-primary-foreground">Styled shadcn preview</span>
+    </main>;
+}`;
+        const artifact: ImplementationArtifact = {
+            schemaVersion: 1,
+            id: 'registry-vite-fixture',
+            provider: 'shadcn',
+            source: {
+                name: 'registry-vite-fixture',
+                registryUrl: 'https://example.test/registry.json',
+                sourceUrl: 'https://example.test/fixture',
+                retrievedAt: '2026-11-17T00:00:00.000Z',
+                provenance: 'official',
+                registryItems: [],
+            },
+            metadata: { name: 'Registry fixture', type: 'component', tags: [] },
+            entryPoint,
+            files: [{
+                path: entryPoint,
+                content: componentSource,
+                role: 'entry',
+                sourceUrl: 'https://example.test/fixture.tsx',
+                sha256: 'a'.repeat(64),
+            }],
+            dependencies: [],
+            assets: [],
+            graph: { edges: [], cycles: [] },
+            requirements: { providers: [], configuration: [] },
+            demo: { available: false, preserved: false, files: [], editable: false },
+            integrity: { sourceHash: 'b'.repeat(64), artifactHash: 'a'.repeat(64) },
+        };
+        await fs.promises.mkdir(path.dirname(path.join(root, 'src', entryPoint)), { recursive: true });
+        await fs.promises.writeFile(path.join(root, 'src', entryPoint), componentSource);
+        const moduleSource = buildArtifactPreviewModule(artifact, 'registry-preview-session');
         const registry = await generateArtifactPreviewRegistry(root, [{
             key, artifactHash: 'a'.repeat(64), kind: 'component', name: 'Registry fixture', source: moduleSource,
         }]);
@@ -52,7 +106,7 @@ createRoot(document.getElementById('root')!).render(<RegistryFixture />);
         console.info('[preview-integration] starting Vite runtime');
         const result = await manager.ensure({
             projectPath: root, kind: 'registry-integration',
-            viteBin: path.resolve(process.cwd(), '../../node_modules/vite/bin/vite.js'),
+            viteBin: path.join(runtimeRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
             basePort: 38941, ownerId: 'registry-integration-test',
             entries: [{ sessionId, entryId: 'registry-fixture', html: buildCatalogHtml('Registry fixture', sessionId, 'registry-fixture'), source: registry.entrySources[key]! }],
         });
@@ -78,7 +132,29 @@ createRoot(document.getElementById('root')!).render(<RegistryFixture />);
         assert.equal(response?.status(), 200);
         console.info('[preview-integration] waiting for React mount');
         await page.getByTestId('registry-preview-mounted').waitFor({ state: 'visible', timeout: 30_000 });
-        assert.equal(await page.getByTestId('registry-preview-mounted').textContent(), 'Generated registry preview mounted');
+        const preview = page.getByTestId('registry-preview-mounted');
+        assert.match(await preview.textContent() ?? '', /Styled shadcn preview/);
+        const computed = await preview.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return {
+                display: style.display,
+                alignItems: style.alignItems,
+                justifyContent: style.justifyContent,
+                padding: style.padding,
+                backgroundColor: style.backgroundColor,
+                color: style.color,
+                borderRadius: style.borderRadius,
+                minHeight: style.minHeight,
+            };
+        });
+        assert.equal(computed.display, 'flex');
+        assert.equal(computed.alignItems, 'center');
+        assert.equal(computed.justifyContent, 'center');
+        assert.equal(computed.padding, '24px');
+        assert.notEqual(computed.backgroundColor, 'rgba(0, 0, 0, 0)');
+        assert.notEqual(computed.color, 'rgba(0, 0, 0, 0)');
+        assert.equal(computed.borderRadius, '10px');
+        assert.equal(computed.minHeight, '96px');
         assert.deepEqual(pageErrors, []);
     }, 90_000);
 });

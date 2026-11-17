@@ -26,6 +26,7 @@ import { buildCatalogHtml } from './preview';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 import { cleanupArtifactPreviewWorkspace } from './preview-workspace-cleanup';
+import { ensureArtifactPreviewStylesheet } from './preview-stylesheet';
 
 const MATERIALIZATIONS_DIRECTORY = '.kumite-materializations';
 const SOURCE_ROOT = 'src';
@@ -53,6 +54,22 @@ function abortIfRequested(signal?: AbortSignal): void {
             { cause: signal.reason },
         );
     }
+}
+
+/** Keep registry resolution and filesystem work responsive under scroll bursts. */
+async function forEachWithConcurrency<T>(
+    items: T[],
+    limit: number,
+    task: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+    let next = 0;
+    const workers = Array.from({ length: Math.min(Math.max(1, limit), items.length) }, async () => {
+        while (next < items.length) {
+            const index = next++;
+            await task(items[index]!, index);
+        }
+    });
+    await Promise.all(workers);
 }
 
 function safePath(root: string, relativePath: string): string {
@@ -321,9 +338,16 @@ async function prepareDependencies(
             requirement.version && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(requirement.version)
                 ? requirement.version
                 : undefined;
+        const cachedVersion = existingDependencyManifest.packages?.[name]?.version;
+        const reusableCachedVersion =
+            !exact &&
+            typeof cachedVersion === 'string' &&
+            /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(cachedVersion)
+                ? cachedVersion
+                : undefined;
         const keeping = !exact || installedVersion === exact;
         const version = keeping
-            ? (installedVersion ?? exact ?? (await resolveLatestVersion(name, signal)))
+            ? (installedVersion ?? exact ?? reusableCachedVersion ?? (await resolveLatestVersion(name, signal)))
             : exact!;
         selected[name] = {
             version,
@@ -520,8 +544,7 @@ export class ArtifactCatalogPreviewServer {
                 log: null,
             };
         }
-        await Promise.all(
-            requests.map(async (request) => {
+        await forEachWithConcurrency(requests, 4, async (request) => {
                 if (options.signal?.aborted) {
                     errors[request.name] = 'Artifact preview was cancelled.';
                     return;
@@ -545,15 +568,14 @@ export class ArtifactCatalogPreviewServer {
                     const displayName = options.previewNames?.[request.name] ?? request.name;
                     errors[displayName] = error instanceof Error ? error.message : String(error);
                 }
-            }),
-        );
+        });
         const manifests = new Map<
             string,
             { directory: string; manifest: ImplementationMaterializationManifest }
         >();
         let log = '';
 
-        for (const artifact of artifacts) {
+        await forEachWithConcurrency(artifacts, 4, async (artifact) => {
             const key = `${artifact.provider}:${artifact.metadata.name}`;
             const displayName = previewNames.get(artifact) ?? artifact.metadata.name;
             try {
@@ -572,7 +594,7 @@ export class ArtifactCatalogPreviewServer {
             } catch (error) {
                 errors[displayName] = error instanceof Error ? error.message : String(error);
             }
-        }
+        });
 
         const readyArtifacts = artifacts.filter((artifact) =>
             manifests.has(`${artifact.provider}:${artifact.metadata.name}`),
@@ -585,6 +607,7 @@ export class ArtifactCatalogPreviewServer {
 
         try {
             writeViteAliases(workspaceRoot);
+            ensureArtifactPreviewStylesheet(workspaceRoot);
             const dependencyLog = await this.prepareDependencies(
                 workspaceRoot,
                 readyArtifacts,

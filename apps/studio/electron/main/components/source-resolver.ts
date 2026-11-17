@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -53,6 +53,8 @@ export interface ShadcnSourceResolverOptions {
     signal?: AbortSignal;
     now?: () => Date;
     assetDirectory?: string;
+    /** Persistent cache for immutable, commit-pinned registry JSON responses. */
+    registryCacheDirectory?: string;
 }
 
 export interface ImplementationAssetMaterializationOptions {
@@ -610,25 +612,99 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
     const fetcher: SourceFetcher = options.fetcher ?? ((url, signal) => fetch(url, { signal }));
     const now = options.now ?? (() => new Date());
     const assetDirectory = options.assetDirectory ?? defaultAssetDirectory();
+    const registryCacheDirectory =
+        options.registryCacheDirectory ?? path.join(defaultAssetDirectory(), 'registry-responses');
     const responseCache = new Map<string, Promise<CachedResponse>>();
+
+    function readPersistentResponse(url: string): CachedResponse | undefined {
+        const cachePath = path.join(registryCacheDirectory, `${sha256(url)}.json`);
+        try {
+            const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8')) as {
+                schemaVersion?: number; url?: string; contentType?: string; body?: string; digest?: string;
+            };
+            if (cached.schemaVersion !== 1 || cached.url !== url || typeof cached.body !== 'string' || typeof cached.digest !== 'string') {
+                return undefined;
+            }
+            const bytes = new Uint8Array(Buffer.from(cached.body, 'base64'));
+            if (sha256(bytes) !== cached.digest) return undefined;
+            return { bytes, contentType: cached.contentType ?? '' };
+        } catch {
+            try { fs.rmSync(cachePath, { force: true }); } catch { /* best-effort corrupt cache eviction */ }
+            return undefined;
+        }
+    }
+
+    function writePersistentResponse(url: string, response: CachedResponse): void {
+        fs.mkdirSync(registryCacheDirectory, { recursive: true });
+        const cachePath = path.join(registryCacheDirectory, `${sha256(url)}.json`);
+        const temporary = `${cachePath}.${randomUUID()}.tmp`;
+        fs.writeFileSync(temporary, JSON.stringify({
+            schemaVersion: 1, url, contentType: response.contentType,
+            digest: sha256(response.bytes),
+            body: Buffer.from(response.bytes).toString('base64'),
+        }), { encoding: 'utf8', flag: 'wx' });
+        try {
+            fs.renameSync(temporary, cachePath);
+        } catch (error) {
+            if (!fs.existsSync(cachePath)) throw error;
+            fs.rmSync(temporary, { force: true });
+        }
+    }
+
+    async function fetchPinnedResponse(url: string): Promise<CachedResponse> {
+        const cached = readPersistentResponse(url);
+        if (cached) return cached;
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            const controller = new AbortController();
+            const abortFromCaller = () => controller.abort(options.signal?.reason);
+            if (options.signal?.aborted) abortFromCaller();
+            else options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+            const timeout = setTimeout(() => controller.abort(new Error('Request timed out after 20 seconds.')), 20_000);
+            try {
+                const response = await fetcher(url, controller.signal);
+                if (!response.ok) {
+                    if (response.status >= 500 && attempt < 2) {
+                        lastError = new Error(`Upstream returned HTTP ${response.status}.`);
+                    } else {
+                        throw new SourceResolutionError({
+                            kind: 'registry', source: url,
+                            message: `Upstream returned HTTP ${response.status} for ${url}`,
+                        });
+                    }
+                } else {
+                    const value = {
+                        bytes: new Uint8Array(await response.arrayBuffer()),
+                        contentType: response.headers.get('content-type') ?? '',
+                    };
+                    writePersistentResponse(url, value);
+                    return value;
+                }
+            } catch (error) {
+                if (error instanceof SourceResolutionError) throw error;
+                if (options.signal?.aborted) throw error;
+                lastError = error;
+            } finally {
+                clearTimeout(timeout);
+                options.signal?.removeEventListener('abort', abortFromCaller);
+            }
+            if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+        }
+        // A failed network request must not hide an already cached, immutable
+        // response. Re-read in case another resolver process populated it.
+        const stale = readPersistentResponse(url);
+        if (stale) return stale;
+        const detail = lastError instanceof Error ? lastError.message : String(lastError ?? 'unknown network error');
+        throw new SourceResolutionError({
+            kind: 'registry', source: url,
+            message: `Could not fetch pinned registry metadata after 3 attempts: ${detail}`,
+        });
+    }
 
     async function getResponse(url: string): Promise<CachedResponse> {
         let cached = responseCache.get(url);
         if (!cached) {
-            cached = (async () => {
-                const response = await fetcher(url, options.signal);
-                if (!response.ok) {
-                    throw new SourceResolutionError({
-                        kind: 'registry',
-                        source: url,
-                        message: `Upstream returned HTTP ${response.status} for ${url}`,
-                    });
-                }
-                return {
-                    bytes: new Uint8Array(await response.arrayBuffer()),
-                    contentType: response.headers.get('content-type') ?? '',
-                };
-            })();
+            cached = fetchPinnedResponse(url);
             responseCache.set(url, cached);
             cached.catch(() => responseCache.delete(url));
         }

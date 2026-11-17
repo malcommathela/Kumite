@@ -74,7 +74,7 @@ export async function generateArtifactPreviewRegistry(
         await writeGeneratedFile(path.join(root, module), item.source);
         const entry = { key: item.key, artifactHash: item.artifactHash, kind: item.kind, name: item.name, module, moduleHash };
         entriesByKey.set(item.key, entry);
-        entrySources[item.key] = `import { loadPreview } from '@/.kumite-preview-registry/index';\nvoid loadPreview(${JSON.stringify(item.key)});\n`;
+        entrySources[item.key] = `import '@/.kumite-preview-registry/${module}';\n`;
     }
     entries.push(...entriesByKey.values());
     entries.sort((a, b) => a.key.localeCompare(b.key));
