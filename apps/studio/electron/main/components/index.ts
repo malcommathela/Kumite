@@ -31,6 +31,8 @@ import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
 import { recoverArtifactInsertions } from './artifact-insertion';
 import { captureCatalogPreviewSnapshot } from './preview-snapshots';
+
+let catalogSnapshotChain: Promise<void> = Promise.resolve();
 export {
     createShadcnSourceResolver,
     hashImplementationArtifact,
@@ -706,6 +708,10 @@ export async function startCatalogPreview(
         if (requested.length === 0) {
             return { urls: {}, sources: {}, errors: {}, missing: [], error: null, log: null };
         }
+        // Do not mutate the shared Vite workspace while hidden windows are
+        // capturing the previous batch, but return this batch's live URLs
+        // without waiting for its snapshots to finish.
+        await catalogSnapshotChain.catch(() => undefined);
         const base = await ensureCatalogBase();
         const errors: Record<string, string> = {};
         const requests: ImplementationRequest[] = [];
@@ -788,7 +794,14 @@ export async function startCatalogPreview(
                 }
             },
         );
-        await Promise.all(workers);
+        const captureTask = Promise.all(workers).then(() => undefined);
+        catalogSnapshotChain = captureTask.then(
+            () => undefined,
+            () => undefined,
+        );
+        void captureTask.catch((error) => {
+            console.warn('Library preview snapshot batch failed:', error);
+        });
         const log = [base.log, result.log].filter(Boolean).join('\n\n');
         onProgress?.({
             component: requested.join(', '),
