@@ -86,6 +86,7 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
     });
 
     try {
+        window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
         await window.loadURL(url);
         await window.webContents.executeJavaScript(`
             new Promise((resolve, reject) => {
