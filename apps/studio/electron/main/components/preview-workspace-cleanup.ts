@@ -49,6 +49,21 @@ function removeEmptyParents(root: string, file: string): void {
 export function cleanupArtifactPreviewWorkspace(workspaceRoot: string): void {
     const materializationsRoot = path.join(workspaceRoot, '.kumite-materializations');
     if (!fs.existsSync(materializationsRoot)) {return;}
+    const staleStageCutoff = Date.now() - 24 * 60 * 60 * 1000;
+    for (const entry of fs.readdirSync(materializationsRoot, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith('.kumite-implementation-stage-')) continue;
+        const stageDirectory = path.join(materializationsRoot, entry.name);
+        if (isImplementationMaterializationActive(stageDirectory)) continue;
+        try {
+            const stat = fs.lstatSync(stageDirectory);
+            if (stat.isDirectory() && stat.mtimeMs < staleStageCutoff) {
+                fs.rmSync(stageDirectory, { recursive: true, force: false });
+            }
+        } catch {
+            // A locked, changed, or otherwise unowned staging directory is preserved.
+        }
+    }
+
     const records: Array<{
         directory: string;
         files: Array<{ path: string; sha256: string }>;

@@ -68,4 +68,22 @@ describe('artifact preview workspace cleanup', () => {
         cleanupArtifactPreviewWorkspace(root);
         assert.equal(fs.existsSync(destination), true);
     });
+    it('removes only abandoned staging directories older than the recovery window', () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-preview-stale-stage-'));
+        roots.push(root);
+        const materializationsRoot = path.join(root, '.kumite-materializations');
+        const stale = path.join(materializationsRoot, '.kumite-implementation-stage-stale');
+        const fresh = path.join(materializationsRoot, '.kumite-implementation-stage-fresh');
+        fs.mkdirSync(stale, { recursive: true });
+        fs.mkdirSync(fresh, { recursive: true });
+        fs.writeFileSync(path.join(stale, 'partial.tsx'), 'partial');
+        fs.writeFileSync(path.join(fresh, 'partial.tsx'), 'partial');
+        const old = new Date(Date.now() - 48 * 60 * 60 * 1000);
+        fs.utimesSync(stale, old, old);
+
+        cleanupArtifactPreviewWorkspace(root);
+
+        assert.equal(fs.existsSync(stale), false);
+        assert.equal(fs.existsSync(fresh), true);
+    });
 });

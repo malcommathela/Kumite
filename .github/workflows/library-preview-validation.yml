@@ -1,0 +1,59 @@
+name: Library preview validation
+
+on:
+  push:
+    branches:
+      - feat/library-previews
+    paths:
+      - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/package.json'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/library-preview-validation.yml'
+  pull_request:
+    branches:
+      - feat/library-previews
+    paths:
+      - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/package.json'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/library-preview-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview-tests:
+    name: Preview tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.8
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: bunx playwright install chromium
+      - name: Build foundation packages
+        run: bun run build:foundation
+      - name: Run materializer, cleanup, registry and Vite browser integration tests
+        working-directory: apps/studio
+        run: >-
+          bun test
+          electron/main/components/implementation-materializer.test.ts
+          electron/main/components/preview-workspace-cleanup.test.ts
+          electron/main/components/preview-registry.test.ts
+          electron/main/components/artifact-preview.test.ts
+          electron/main/components/preview-registry.integration.test.ts
+      - name: Typecheck Studio
+        working-directory: apps/studio
+        run: bun run typecheck

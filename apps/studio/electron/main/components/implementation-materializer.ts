@@ -15,9 +15,11 @@ const INTERNAL_ASSET_CACHE = '.kumite-asset-cache';
 
 const materializationFlights = new Map<string, { artifactHash: string; promise: Promise<ImplementationMaterializationResult> }>();
 const activeMaterializationDirectories = new Map<string, number>();
+const activeMaterializationStages = new Set<string>();
 
 export function isImplementationMaterializationActive(destinationDirectory: string): boolean {
-    return (activeMaterializationDirectories.get(path.resolve(destinationDirectory)) ?? 0) > 0;
+    const resolved = path.resolve(destinationDirectory);
+    return (activeMaterializationDirectories.get(resolved) ?? 0) > 0 || activeMaterializationStages.has(resolved);
 }
 
 async function publishStageDirectory(stageDirectory: string, destinationDirectory: string): Promise<void> {
@@ -698,6 +700,7 @@ export async function materializeImplementationArtifact(
         }
         const parent = path.dirname(directory);
         stageDirectory = fs.mkdtempSync(path.join(parent, '.kumite-implementation-stage-'));
+        activeMaterializationStages.add(path.resolve(stageDirectory));
         for (const plan of filePlans) {
             abortIfRequested(options.signal);
             const output = path.resolve(stageDirectory, ...plan.relativePath.split('/'));
@@ -868,6 +871,7 @@ export async function materializeImplementationArtifact(
     } catch (error) {
         throw wrapError(error, 'io', 'Implementation materialization failed');
     } finally {
+        if (stageDirectory) activeMaterializationStages.delete(path.resolve(stageDirectory));
         if (stageDirectory && fs.existsSync(stageDirectory)) {
             try {
                 fs.rmSync(stageDirectory, { recursive: true, force: true });
