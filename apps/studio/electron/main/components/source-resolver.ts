@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -620,7 +620,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
         const cachePath = path.join(registryCacheDirectory, `${sha256(url)}.json`);
         try {
             const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8')) as {
-                schemaVersion?: number; url?: string; contentType?: string; body?: string;
+                schemaVersion?: number; url?: string; contentType?: string; body?: string; digest?: string;
             };
             if (cached.schemaVersion !== 1 || cached.url !== url || typeof cached.body !== 'string') {
                 return undefined;
@@ -634,7 +634,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
     function writePersistentResponse(url: string, response: CachedResponse): void {
         fs.mkdirSync(registryCacheDirectory, { recursive: true });
         const cachePath = path.join(registryCacheDirectory, `${sha256(url)}.json`);
-        const temporary = `${cachePath}.${process.pid}.${Date.now()}.tmp`;
+        const temporary = `${cachePath}.${randomUUID()}.tmp`;
         fs.writeFileSync(temporary, JSON.stringify({
             schemaVersion: 1, url, contentType: response.contentType,
             body: Buffer.from(response.bytes).toString('base64'),
