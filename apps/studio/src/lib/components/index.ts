@@ -178,7 +178,7 @@ export class ComponentsManager {
             console.warn(`Could not load the saved preview for "${name}":`, error);
             return null;
         } finally {
-            this.catalogSnapshotRequests.delete(name);
+            runInAction(() => this.catalogSnapshotRequests.delete(name));
         }
     }
 
