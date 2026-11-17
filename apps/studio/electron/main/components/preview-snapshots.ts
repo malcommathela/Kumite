@@ -2,7 +2,6 @@ import { app, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { PREVIEW_MESSAGE_SOURCE } from '@kumite/models';
-import { imageStorage } from '../storage/images';
 
 const SNAPSHOT_VERSION = 1;
 const VIEWPORT = { width: 1280, height: 800 };
@@ -17,8 +16,16 @@ export function catalogSnapshotFileName(name: string): string {
     return `library-preview-${safeName(name)}.png`;
 }
 
+function snapshotDirectory(): string {
+    return path.join(app.getPath('userData'), 'library-previews');
+}
+
+function snapshotPath(name: string): string {
+    return path.join(snapshotDirectory(), catalogSnapshotFileName(name));
+}
+
 function metadataPath(name: string): string {
-    return path.join(app.getPath('userData'), 'library-preview-metadata', `${safeName(name)}.json`);
+    return path.join(snapshotDirectory(), `${safeName(name)}.json`);
 }
 
 function readSnapshotMetadata(name: string): {
@@ -35,12 +42,16 @@ function readSnapshotMetadata(name: string): {
 }
 
 function readSnapshotImage(name: string): string | null {
-    const image = imageStorage.readImage(catalogSnapshotFileName(name));
-    if (!image) return null;
-    const base64 = image.replace(/^data:image\/png;base64,/, '');
-    const bytes = Buffer.from(base64, 'base64');
-    const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-    return bytes.length >= 1024 && bytes.subarray(0, 8).equals(pngSignature) ? image : null;
+    try {
+        const base64 = fs.readFileSync(snapshotPath(name), 'base64');
+        const bytes = Buffer.from(base64, 'base64');
+        const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+        return bytes.length >= 1024 && bytes.subarray(0, 8).equals(pngSignature)
+            ? `data:image/png;base64,${base64}`
+            : null;
+    } catch {
+        return null;
+    }
 }
 
 /** Returns only complete snapshots written by the current renderer version. */
@@ -162,17 +173,13 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
 
         // Publish the new image only after a complete, validated capture. A
         // failed render never destroys the last known-good snapshot.
-        const fileName = catalogSnapshotFileName(name);
-        const saved = imageStorage.writeImage(
-            fileName,
-            `data:image/png;base64,${png.toString('base64')}`,
-        );
-        if (!saved) {
-            throw new Error('Could not persist the component preview snapshot.');
-        }
+        const imageFile = snapshotPath(name);
+        fs.mkdirSync(path.dirname(imageFile), { recursive: true });
+        const imageTemporary = `${imageFile}.${process.pid}.tmp`;
+        fs.writeFileSync(imageTemporary, png);
+        fs.renameSync(imageTemporary, imageFile);
 
         const metadataFile = metadataPath(name);
-        fs.mkdirSync(path.dirname(metadataFile), { recursive: true });
         const temporary = `${metadataFile}.${process.pid}.tmp`;
         fs.writeFileSync(
             temporary,
@@ -189,7 +196,7 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
             ),
         );
         fs.renameSync(temporary, metadataFile);
-        return fileName;
+        return catalogSnapshotFileName(name);
     } finally {
         if (!window.isDestroyed()) {
             window.destroy();
