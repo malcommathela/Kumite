@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { after, describe, it } from 'node:test';
+import { after, describe, it } from 'bun:test';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 const roots: string[] = [];
-after(() => { for (const root of roots) fs.rmSync(root, { recursive: true, force: true }); });
+afterAll(() => { for (const root of roots) fs.rmSync(root, { recursive: true, force: true }); });
 describe('generated artifact preview registry', () => {
     it('writes lazy module loaders and integrity metadata in the isolated workspace', async () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-preview-registry-'));

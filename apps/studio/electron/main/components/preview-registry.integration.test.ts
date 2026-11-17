@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { after, describe, it } from 'node:test';
+import { after, describe, it } from 'bun:test';
 import { chromium, type Browser } from '@playwright/test';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 import { buildCatalogHtml } from './preview';
@@ -12,7 +12,7 @@ const roots: string[] = [];
 const managers: PreviewRuntimeManager[] = [];
 const browsers: Browser[] = [];
 
-after(async () => {
+afterAll(async () => {
     await Promise.all(managers.map((manager) => manager.stopAll()));
     await Promise.all(browsers.map((browser) => browser.close()));
     await Promise.all(roots.map((root) => fs.promises.rm(root, { recursive: true, force: true })));

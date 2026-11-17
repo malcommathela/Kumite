@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { after, describe, it } from 'node:test';
+import { after, describe, it } from 'bun:test';
 import { type ImplementationArtifact, type ImplementationKind } from '@kumite/models';
 import {
     createShadcnSourceResolver,
@@ -25,7 +25,7 @@ const REGISTRY_ROOT =
     '/apps/v4/public/r/styles/new-york-v4';
 const roots: string[] = [];
 
-after(() => {
+afterAll(() => {
     for (const root of roots) {
         fs.rmSync(root, { recursive: true, force: true });
     }
