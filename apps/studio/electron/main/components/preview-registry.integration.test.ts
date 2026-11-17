@@ -132,6 +132,10 @@ describe('artifact preview registry Vite integration', () => {
         assert.equal(response?.status(), 200);
         console.info('[preview-integration] waiting for React mount');
         await page.getByTestId('registry-preview-mounted').waitFor({ state: 'visible', timeout: 30_000 });
+        const handshakeState = await page.evaluate(
+            () => (window as typeof window & { __kumitePreview?: { state?: string } }).__kumitePreview?.state,
+        );
+        assert.equal(handshakeState, 'mounted', 'preview handshake must retain its mounted state for late snapshot listeners');
         const preview = page.getByTestId('registry-preview-mounted');
         assert.match(await preview.textContent() ?? '', /Styled shadcn preview/);
         const computed = await preview.evaluate((element) => {
