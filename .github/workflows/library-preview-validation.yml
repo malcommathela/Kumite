@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/library-previews
+      - fix/library-preview-rendering
     paths:
       - 'apps/studio/electron/main/components/**'
       - 'apps/studio/package.json'
@@ -12,6 +13,7 @@ on:
       - '.github/workflows/library-preview-validation.yml'
   pull_request:
     branches:
+      - master
       - feat/library-previews
     paths:
       - 'apps/studio/electron/main/components/**'
@@ -55,6 +57,8 @@ jobs:
           electron/main/components/preview-workspace-cleanup.test.ts
           electron/main/components/preview-registry.test.ts
           electron/main/components/artifact-preview.test.ts
+          electron/main/components/source-resolver.test.ts
+          electron/main/components/preview-stylesheet.test.ts
       - name: Run preview unit and browser integration tests (Ubuntu)
         if: runner.os == 'Linux'
         working-directory: apps/studio
@@ -64,7 +68,12 @@ jobs:
           electron/main/components/preview-workspace-cleanup.test.ts
           electron/main/components/preview-registry.test.ts
           electron/main/components/artifact-preview.test.ts
+          electron/main/components/source-resolver.test.ts
+          electron/main/components/preview-stylesheet.test.ts
           electron/main/components/preview-registry.integration.test.ts
       - name: Typecheck Studio
         working-directory: apps/studio
         run: bun run typecheck
+      - name: Build Studio
+        working-directory: apps/studio
+        run: bun run build
