@@ -99,10 +99,21 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
                     finished = true;
                     clearTimeout(timeout);
                     window.removeEventListener('message', onMessage);
+                    const imagesReady = Promise.all(
+                        Array.from(document.images).map((image) =>
+                            image.complete ? Promise.resolve() : image.decode().catch(() => undefined),
+                        ),
+                    );
                     Promise.race([
-                        Promise.resolve(document.fonts?.ready),
-                        new Promise((settle) => setTimeout(settle, 2000)),
+                        Promise.all([Promise.resolve(document.fonts?.ready), imagesReady]),
+                        new Promise((settle) => setTimeout(settle, 2500)),
                     ])
+                        .then(() => {
+                            const style = document.createElement('style');
+                            style.textContent =
+                                '*, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }';
+                            document.head.appendChild(style);
+                        })
                         .then(() => new Promise(requestAnimationFrame))
                         .then(() => new Promise(requestAnimationFrame))
                         .then(() => resolve(true), reject);
