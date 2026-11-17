@@ -17,13 +17,13 @@ describe('artifact preview stylesheet', () => {
         const file = ensureArtifactPreviewStylesheet(root);
         const css = fs.readFileSync(file, 'utf8');
         assert.equal(css, buildArtifactPreviewStylesheet());
-        assert.match(css, /@import "tailwindcss"/);
-        assert.match(css, /@source "\.\/registry\/new-york-v4/);
-        assert.match(css, /@source "\.\/\.kumite-preview-registry/);
-        assert.match(css, /--color-background: hsl\(var\(--background\)\)/);
-        assert.match(css, /--color-foreground: hsl\(var\(--foreground\)\)/);
+        assert.match(css, /@tailwind base;/);
+        assert.match(css, /@tailwind utilities;/);
         assert.match(css, /\.dark\s*\{/);
         assert.match(css, /html, body, #root/);
+        assert.ok(fs.existsSync(path.join(root, "tailwind.config.cjs")));
+        assert.ok(fs.existsSync(path.join(root, "postcss.config.cjs")));
+        assert.match(fs.readFileSync(path.join(root, "tailwind.config.cjs"), "utf8"), /\.\/src\/\*\*/);
     });
 
     it('preserves an existing project stylesheet instead of overwriting it', () => {
