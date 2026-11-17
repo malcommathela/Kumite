@@ -63,7 +63,11 @@ createRoot(document.getElementById('root')!).render(<RegistryFixture />);
         const browser = await chromium.launch({
             headless: true,
             timeout: 60_000,
-            ...(process.platform === 'win32' ? { channel: 'msedge' as const } : {}),
+            // Use Playwright's bundled full Chromium in its modern headless mode.
+            // The Windows hosted runner's Edge desktop channel can hang during
+            // startup on Server SKU images; channel "chromium" avoids Edge and
+            // avoids the separate chromium-headless-shell executable.
+            ...(process.platform === 'win32' ? { channel: 'chromium' as const } : {}),
         });
         browsers.push(browser);
         const page = await browser.newPage();
