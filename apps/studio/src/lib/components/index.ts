@@ -151,8 +151,10 @@ export class ComponentsManager {
         }
         this.catalogSnapshotRequests.add(name);
         try {
-            const fileName = `library-preview-${name.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80) || 'preview'}.png`;
-            const image = (await invokeMainChannel(MainChannels.GET_IMAGE, fileName)) as string | null;
+            const image = (await invokeMainChannel(
+                MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_GET,
+                { name },
+            )) as string | null;
             runInAction(() => {
                 if (image) this.catalogSnapshots[name] = image;
                 else delete this.catalogSnapshots[name];
