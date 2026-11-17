@@ -754,10 +754,15 @@ export async function startCatalogPreview(
         Object.assign(errors, result.errors);
         // Capture snapshots off the request path. Existing cards remain
         // responsive while Chromium renders a bounded number in the background.
-        const captures = Object.entries(result.urls).flatMap(([name, url]) => {
+        const captures: Array<{ name: string; url: string; sessionId: string }> = [];
+        for (const [name, url] of Object.entries(result.urls)) {
             const sessionId = result.sessions?.[name];
-            return sessionId ? [{ name, url, sessionId }] : [];
-        });
+            if (!sessionId) {
+                onSnapshotFailed?.(name, 'The preview runtime did not return a snapshot session id.');
+                continue;
+            }
+            captures.push({ name, url, sessionId });
+        }
         let nextCapture = 0;
         const workers = Array.from(
             { length: Math.min(2, captures.length) },
