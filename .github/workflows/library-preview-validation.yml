@@ -5,7 +5,16 @@ on:
     branches:
       - feat/library-previews
       - fix/library-preview-rendering
+      - feat/library-preview-snapshots
     paths:
+      - 'apps/studio/electron/main/events/components.ts'
+      - 'apps/studio/electron/main/storage/images.ts'
+      - 'apps/studio/src/lib/components/**'
+      - 'packages/models/src/constants/ipc.ts'
+      - 'apps/studio/electron/main/events/components.ts'
+      - 'apps/studio/electron/main/storage/images.ts'
+      - 'apps/studio/src/lib/components/**'
+      - 'packages/models/src/constants/ipc.ts'
       - 'apps/studio/electron/main/components/**'
       - 'apps/studio/electron/main/lifecycle/vite.ts'
       - 'apps/studio/src/components/ComponentPreview/**'
