@@ -11,27 +11,35 @@ afterAll(() => {
 });
 
 describe('artifact preview stylesheet', () => {
-    it('creates a Tailwind v3 stylesheet with shadcn semantic tokens and artifact scan paths', () => {
+    it('uses the shared Tailwind v4 theme and scans materialized artifact source', () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-preview-css-'));
         roots.push(root);
         const file = ensureArtifactPreviewStylesheet(root);
         const css = fs.readFileSync(file, 'utf8');
         assert.equal(css, buildArtifactPreviewStylesheet());
-        assert.match(css, /@tailwind base;/);
-        assert.match(css, /@tailwind utilities;/);
+        assert.match(css, /@import "tailwindcss"/);
+        assert.match(css, /@source "\.\/\*\*\//);
+        assert.match(css, /@source "\.\/\.kumite-preview-registry/);
+        assert.match(css, /@theme inline/);
+        assert.match(css, /--color-background: var\(--background\)/);
         assert.match(css, /\.dark\s*\{/);
         assert.match(css, /html, body, #root/);
-        assert.ok(fs.existsSync(path.join(root, "tailwind.config.cjs")));
-        assert.ok(fs.existsSync(path.join(root, "postcss.config.cjs")));
-        assert.match(fs.readFileSync(path.join(root, "tailwind.config.cjs"), "utf8"), /\.\/src\/\*\*/);
+        assert.equal(fs.existsSync(path.join(root, 'tailwind.config.cjs')), false);
+        assert.equal(fs.existsSync(path.join(root, 'postcss.config.cjs')), false);
     });
 
-    it('preserves an existing project stylesheet instead of overwriting it', () => {
+    it('preserves existing workspace CSS while adding the preview theme once', () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-preview-css-existing-'));
         roots.push(root);
         fs.mkdirSync(path.join(root, 'src'), { recursive: true });
-        fs.writeFileSync(path.join(root, 'src', 'index.css'), '/* user-owned */\nbody { color: red; }');
+        const existing = '@import "tailwindcss";\n/* workspace custom style */\nbody { color: red; }';
+        fs.writeFileSync(path.join(root, 'src', 'index.css'), existing);
+        const file = ensureArtifactPreviewStylesheet(root);
+        const first = fs.readFileSync(file, 'utf8');
+        assert.match(first, /@import "tailwindcss"/);
+        assert.match(first, /workspace custom style/);
+        assert.match(first, /body \{ color: red; \}/);
         ensureArtifactPreviewStylesheet(root);
-        assert.equal(fs.readFileSync(path.join(root, 'src', 'index.css'), 'utf8'), '/* user-owned */\nbody { color: red; }');
+        assert.equal(fs.readFileSync(file, 'utf8'), first);
     });
 });
