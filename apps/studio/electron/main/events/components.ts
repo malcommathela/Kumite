@@ -175,6 +175,11 @@ export function listenForComponentMessages() {
                 args?.components,
                 args?.projectId,
                 progressReporter(event.sender),
+                (name) => {
+                    if (!event.sender.isDestroyed()) {
+                        event.sender.send(MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_READY, { name });
+                    }
+                },
             );
         },
     );
