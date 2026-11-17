@@ -4,7 +4,7 @@ import path from 'node:path';
 import { PREVIEW_MESSAGE_SOURCE } from '@kumite/models';
 
 const SNAPSHOT_VERSION = 1;
-const VIEWPORT = { width: 1280, height: 800 };
+const VIEWPORT = { width: 420, height: 280 };
 const READY_TIMEOUT_MS = 30_000;
 const inFlight = new Map<string, Promise<string>>();
 
