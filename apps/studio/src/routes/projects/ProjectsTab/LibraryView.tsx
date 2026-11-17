@@ -286,6 +286,7 @@ const LibraryCard = observer(function LibraryCard({
     const snapshot = manager.catalogSnapshots[item.name];
     const previewLoading = Boolean(manager.catalogItemLoading[item.name]);
     const previewError = manager.catalogItemErrors[item.name];
+    const snapshotError = manager.catalogSnapshotErrors[item.name];
 
     useEffect(() => {
         const node = previewRef.current;
@@ -334,17 +335,17 @@ const LibraryCard = observer(function LibraryCard({
                         className="h-full w-full object-contain"
                         draggable={false}
                     />
-                ) : previewLoading || (item.previewable && !previewError) ? (
+                ) : previewLoading || (item.previewable && !previewError && !snapshotError) ? (
                     <PreviewShimmer name={item.name} />
                 ) : (
                     <div className="flex h-full items-center justify-center p-6">
                         <ComponentThumbnail name={item.name} />
                     </div>
                 )}
-                {previewError && item.previewable && !snapshot && (
+                {(previewError || snapshotError) && item.previewable && !snapshot && (
                     <span
                         className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] text-foreground-quadranary backdrop-blur"
-                        title={previewError}
+                        title={previewError ?? snapshotError}
                     >
                         Preview unavailable
                     </span>
@@ -364,7 +365,7 @@ const LibraryCard = observer(function LibraryCard({
                     </p>
                 </div>
                 <span className="mt-0.5 shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] text-foreground-tertiary">
-                    {snapshot ? 'Saved' : item.previewable ? 'Preview' : 'Static'}
+                    {snapshot ? 'Saved' : previewError || snapshotError ? 'Unavailable' : item.previewable ? 'Preview' : 'Static'}
                 </span>
             </div>
         </button>
