@@ -7,6 +7,8 @@ import { chromium, type Browser } from '@playwright/test';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 import { buildCatalogHtml } from './preview';
 import { PreviewRuntimeManager, stableSessionId } from './preview-runtime';
+import { buildArtifactPreviewViteConfig } from './preview-vite-config';
+import { ensureArtifactPreviewStylesheet } from './preview-stylesheet';
 
 const roots: string[] = [];
 const managers: PreviewRuntimeManager[] = [];
@@ -39,7 +41,9 @@ export default defineConfig({ plugins: [react()], resolve: { alias: { '@': path.
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 function RegistryFixture() {
-    return <main data-testid="registry-preview-mounted">Generated registry preview mounted</main>;
+    return <main data-testid="registry-preview-mounted" className="flex min-h-24 items-center justify-center gap-4 rounded-lg bg-background p-6 text-foreground">
+        <span className="rounded-md bg-primary px-4 py-2 text-primary-foreground">Styled shadcn preview</span>
+    </main>;
 }
 createRoot(document.getElementById('root')!).render(<RegistryFixture />);
 `;
@@ -78,7 +82,29 @@ createRoot(document.getElementById('root')!).render(<RegistryFixture />);
         assert.equal(response?.status(), 200);
         console.info('[preview-integration] waiting for React mount');
         await page.getByTestId('registry-preview-mounted').waitFor({ state: 'visible', timeout: 30_000 });
-        assert.equal(await page.getByTestId('registry-preview-mounted').textContent(), 'Generated registry preview mounted');
+        const preview = page.getByTestId('registry-preview-mounted');
+        assert.match(await preview.textContent() ?? '', /Styled shadcn preview/);
+        const computed = await preview.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return {
+                display: style.display,
+                alignItems: style.alignItems,
+                justifyContent: style.justifyContent,
+                padding: style.padding,
+                backgroundColor: style.backgroundColor,
+                color: style.color,
+                borderRadius: style.borderRadius,
+                minHeight: style.minHeight,
+            };
+        });
+        assert.equal(computed.display, 'flex');
+        assert.equal(computed.alignItems, 'center');
+        assert.equal(computed.justifyContent, 'center');
+        assert.equal(computed.padding, '24px');
+        assert.notEqual(computed.backgroundColor, 'rgba(0, 0, 0, 0)');
+        assert.notEqual(computed.color, 'rgba(0, 0, 0, 0)');
+        assert.equal(computed.borderRadius, '8px');
+        assert.equal(computed.minHeight, '96px');
         assert.deepEqual(pageErrors, []);
     }, 90_000);
 });
