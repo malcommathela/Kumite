@@ -195,6 +195,7 @@ export enum MainChannels {
     COMPONENTS_PREVIEW_STOP = 'components-preview-stop',
     COMPONENTS_PREVIEW_RELEASE = 'components-preview-release',
     COMPONENTS_PREVIEW_SNAPSHOT_READY = 'components-preview-snapshot-ready',
+    COMPONENTS_PREVIEW_SNAPSHOT_GET = 'components-preview-snapshot-get',
     COMPONENTS_INSTALL_PROGRESS = 'components-install-progress',
     COMPONENTS_INSTALL_CANCEL = 'components-install-cancel',
     COMPONENTS_ARTIFACT_PREPARE = 'components-artifact-prepare',
