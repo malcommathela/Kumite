@@ -614,9 +614,9 @@ export class ArtifactCatalogPreviewServer {
                 );
                 const entryId = safeEntryId(displayName);
                 previewModules.push({
-                    key: `${artifact.provider}:${artifact.metadata.kind}:${artifact.id}:${sessionId}`,
+                    key: `${artifact.provider}:${artifact.metadata.type}:${artifact.id}:${sessionId}`,
                     artifactHash: artifact.integrity.artifactHash,
-                    kind: artifact.metadata.kind,
+                    kind: artifact.metadata.type,
                     name: displayName,
                     source: buildArtifactPreviewModule(artifact, sessionId, options.preferredExports?.[displayName]),
                     sessionId,
