@@ -14,10 +14,10 @@ const MANIFEST_FILENAME = '.kumite-implementation.json';
 const INTERNAL_ASSET_CACHE = '.kumite-asset-cache';
 
 const materializationFlights = new Map<string, { artifactHash: string; promise: Promise<ImplementationMaterializationResult> }>();
-const activeMaterializationDirectories = new Set<string>();
+const activeMaterializationDirectories = new Map<string, number>();
 
 export function isImplementationMaterializationActive(destinationDirectory: string): boolean {
-    return activeMaterializationDirectories.has(path.resolve(destinationDirectory));
+    return (activeMaterializationDirectories.get(path.resolve(destinationDirectory)) ?? 0) > 0;
 }
 
 async function publishStageDirectory(stageDirectory: string, destinationDirectory: string): Promise<void> {
@@ -889,12 +889,14 @@ export function materializeImplementationArtifact(
     const pending = materializationFlights.get(directory);
     if (pending?.artifactHash === artifactHash) return pending.promise;
     const task = (async () => {
-        if (pending) await pending.promise.catch(() => undefined);
-        activeMaterializationDirectories.add(directory);
+        activeMaterializationDirectories.set(directory, (activeMaterializationDirectories.get(directory) ?? 0) + 1);
         try {
+            if (pending) await pending.promise.catch(() => undefined);
             return await materializeImplementationArtifactUnlocked(artifactValue, destinationDirectory, options);
         } finally {
-            activeMaterializationDirectories.delete(directory);
+            const remaining = (activeMaterializationDirectories.get(directory) ?? 1) - 1;
+            if (remaining > 0) activeMaterializationDirectories.set(directory, remaining);
+            else activeMaterializationDirectories.delete(directory);
         }
     })();
     materializationFlights.set(directory, { artifactHash, promise: task });

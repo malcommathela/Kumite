@@ -15,6 +15,7 @@ import {
 import {
     ImplementationMaterializationError,
     materializeImplementationArtifact,
+    isImplementationMaterializationActive,
 } from './implementation-materializer';
 
 const FIXTURE_PATH = path.join(import.meta.dirname, 'fixtures', 'dashboard-01-responses.json.gz');
@@ -681,5 +682,26 @@ describe('implementation artifact materializer', () => {
         assert.equal(first.manifest.artifact.integrity.artifactHash, artifact.integrity.artifactHash);
         assert.equal(second.manifest.artifact.integrity.artifactHash, artifact.integrity.artifactHash);
         assert.deepEqual(fs.readdirSync(root), ['concurrent']);
+    });
+    it('tracks queued materialization ownership until all same-destination callers finish', async () => {
+        const artifact = await resolveFixture('block', 'dashboard-01');
+        const root = temporaryDirectory();
+        const destination = path.join(root, 'active');
+        let release!: () => void;
+        let markStarted!: () => void;
+        const started = new Promise<void>((resolve) => { markStarted = resolve; });
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        const pending = materializeImplementationArtifact(artifact, destination, {
+            assetFetcher: async (url, signal) => {
+                markStarted();
+                await gate;
+                return fixtureFetcher()(url, signal);
+            },
+        });
+        await started;
+        assert.equal(isImplementationMaterializationActive(destination), true);
+        release();
+        await pending;
+        assert.equal(isImplementationMaterializationActive(destination), false);
     });
 });
