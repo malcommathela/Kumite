@@ -60,6 +60,7 @@ interface CatalogItem {
     installCommand: string;
     agentPrompt: string;
     previewable: boolean;
+    insertable: boolean;
     limitation?: string;
 }
 
@@ -74,6 +75,7 @@ const COMPONENT_ITEMS: CatalogItem[] = SHADCN_COMPONENTS.map((item: ShadcnCompon
     installCommand: `npx shadcn@3.7.0 add ${item.name}`,
     agentPrompt: `Use the shadcn/ui ${item.title} (${item.name}) component. ${item.description} Insert this JSX with the project's existing tokens:\n\n${item.insertCode}`,
     previewable: item.previewable !== false,
+    insertable: item.insertable !== false,
     limitation: item.limitation,
 }));
 
@@ -88,6 +90,7 @@ const BLOCK_ITEMS: CatalogItem[] = SHADCN_BLOCKS.map((item: ShadcnBlockDefinitio
     installCommand: `npx shadcn@3.7.0 add ${item.registryUrl}`,
     agentPrompt: `Use the shadcn/ui ${item.title} block (${item.name}). ${item.description} Install it with \`npx shadcn@3.7.0 add ${item.registryUrl}\` and adapt the copy and colors to the project.`,
     previewable: item.previewable !== false,
+    insertable: item.insertable !== false,
     limitation: item.limitation,
 }));
 
@@ -124,12 +127,22 @@ const PREVIEW_HEIGHT: Record<CatalogSpan, string> = {
     third: 'h-[230px] xl:h-[260px]',
 };
 
-export const LibraryView = observer(() => {
-    const manager = useEditorEngine().components;
+interface LibraryViewProps {
+    popup?: boolean;
+    initialSelectedName?: string | null;
+    onUse?: (name: string) => void;
+}
+
+export const LibraryView = observer((props: LibraryViewProps) => {
+    const { popup = false, initialSelectedName = null, onUse } = props;
+    const editorEngine = useEditorEngine();
+    const manager = editorEngine.components;
     const [filter, setFilter] = useState<Filter>('all');
     const [query, setQuery] = useState('');
     const [sort, setSort] = useState<'featured' | 'az'>('featured');
-    const [selected, setSelected] = useState<CatalogItem | null>(null);
+    const [selected, setSelected] = useState<CatalogItem | null>(
+        () => ITEMS.find((item) => item.name === initialSelectedName) ?? null,
+    );
 
     const items = useMemo(() => {
         const term = query.trim().toLowerCase();
@@ -154,7 +167,12 @@ export const LibraryView = observer(() => {
     );
 
     return (
-        <div className="flex min-h-full flex-col px-12 pb-16 pt-14 xl:px-16">
+        <div
+            className={cn(
+                'flex min-h-full flex-col',
+                popup ? 'px-6 pb-8 pr-14 pt-6' : 'px-12 pb-16 pt-14 xl:px-16',
+            )}
+        >
             <PageHeader
                 title="Library"
                 subtitle="Components and blocks your agent can search and use."
@@ -236,6 +254,12 @@ export const LibraryView = observer(() => {
             <LibraryDetail
                 item={selected}
                 manager={manager}
+                canUse={Boolean(
+                    manager.projectPath &&
+                    manager.status?.supported &&
+                    editorEngine.elements.selected.length,
+                )}
+                onUse={onUse}
                 onOpenChange={(open) => !open && setSelected(null)}
             />
         </div>
@@ -345,10 +369,14 @@ const LibraryCard = observer(function LibraryCard({
 const LibraryDetail = observer(function LibraryDetail({
     item,
     manager,
+    canUse,
+    onUse,
     onOpenChange,
 }: {
     item: CatalogItem | null;
     manager: ComponentsManager;
+    canUse: boolean;
+    onUse?: (name: string) => void;
     onOpenChange: (open: boolean) => void;
 }) {
     const [copied, setCopied] = useState<'install' | 'agent' | null>(null);
@@ -465,11 +493,51 @@ const LibraryDetail = observer(function LibraryDetail({
                                 <p className="text-[11px] text-foreground-quadranary">
                                     Copies a prompt with the install command and JSX.
                                 </p>
-                                <Button onClick={() => copy(item.agentPrompt, 'agent')}>
-                                    <Sparkles className="h-4 w-4" />
-                                    {copied === 'agent' ? 'Copied' : 'Copy for agent'}
-                                </Button>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <Button
+                                        variant={onUse ? 'secondary' : 'default'}
+                                        onClick={() => copy(item.agentPrompt, 'agent')}
+                                    >
+                                        <Sparkles className="h-4 w-4" />
+                                        {copied === 'agent' ? 'Copied' : 'Copy for agent'}
+                                    </Button>
+                                    {onUse && item.insertable && (
+                                        <Button
+                                            disabled={
+                                                !canUse ||
+                                                manager.using === item.name ||
+                                                manager.installing === item.name
+                                            }
+                                            title={
+                                                canUse
+                                                    ? undefined
+                                                    : 'Open a supported project and select an element in a frame first'
+                                            }
+                                            onClick={() => onUse(item.name)}
+                                        >
+                                            {manager.using === item.name && (
+                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                            )}
+                                            {manager.using === item.name
+                                                ? 'Adding…'
+                                                : 'Use artifact in Kumite'}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
+                            {onUse &&
+                                manager.using === item.name &&
+                                manager.activeInsertionPlanId && (
+                                    <div className="mt-2 flex justify-end">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => void manager.cancelInsertion(item.name)}
+                                        >
+                                            Cancel insertion
+                                        </Button>
+                                    </div>
+                                )}
                         </div>
                     </>
                 )}
