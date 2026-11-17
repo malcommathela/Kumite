@@ -7,6 +7,7 @@ on:
       - fix/library-preview-rendering
     paths:
       - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/electron/main/lifecycle/vite.ts'
       - 'apps/studio/src/components/ComponentPreview/**'
       - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
       - 'apps/studio/tests/preview-handshake.test.ts'
@@ -20,6 +21,7 @@ on:
       - feat/library-previews
     paths:
       - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/electron/main/lifecycle/vite.ts'
       - 'apps/studio/src/components/ComponentPreview/**'
       - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
       - 'apps/studio/tests/preview-handshake.test.ts'
