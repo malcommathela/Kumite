@@ -20,7 +20,8 @@ describe('generated artifact preview registry', () => {
         assert.equal(fs.readFileSync(modulePath, 'utf8'), source);
         assert.match(index, /import\('\.\/modules\//);
         assert.match(index, /export function loadPreview/);
-        assert.match(first.entrySources[item.key]!, /loadPreview/);
+        assert.match(first.entrySources[item.key]!, /import '@\/\.kumite-preview-registry\/modules\//);
+        assert.doesNotMatch(first.entrySources[item.key]!, /loadPreview|registry\/index/);
         assert.equal(manifest.entries[0].artifactHash, item.artifactHash);
     });
     it('rejects malformed artifact hashes before writing registry output', async () => {
