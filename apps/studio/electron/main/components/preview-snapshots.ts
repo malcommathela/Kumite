@@ -67,10 +67,15 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
             new Promise((resolve, reject) => {
                 const expectedSession = ${JSON.stringify(sessionId)};
                 const expectedSource = ${JSON.stringify(PREVIEW_MESSAGE_SOURCE)};
-                const timeout = setTimeout(() => {
+                let timeout;
+                const finish = () => {
+                    clearTimeout(timeout);
                     window.removeEventListener('message', onMessage);
-                    reject(new Error('Preview did not finish rendering before the snapshot timeout.'));
-                }, ${READY_TIMEOUT_MS});
+                    Promise.resolve(document.fonts?.ready)
+                        .then(() => new Promise(requestAnimationFrame))
+                        .then(() => new Promise(requestAnimationFrame))
+                        .then(() => resolve(true), reject);
+                };
                 function onMessage(event) {
                     const message = event.data;
                     if (event.source !== window || !message ||
@@ -81,14 +86,22 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
                         window.removeEventListener('message', onMessage);
                         reject(new Error(message.detail || 'Preview failed while rendering.'));
                     } else if (message.state === 'mounted') {
-                        clearTimeout(timeout);
-                        window.removeEventListener('message', onMessage);
-                        Promise.resolve(document.fonts?.ready)
-                            .then(() => new Promise(requestAnimationFrame))
-                            .then(() => new Promise(requestAnimationFrame))
-                            .then(() => resolve(true), reject);
+                        finish();
                     }
                 }
+                const current = window.__kumitePreview;
+                if (current?.sessionId === expectedSession && current.state === 'mounted') {
+                    finish();
+                    return;
+                }
+                if (current?.sessionId === expectedSession && current.state === 'error') {
+                    reject(new Error(current.detail || 'Preview failed while rendering.'));
+                    return;
+                }
+                timeout = setTimeout(() => {
+                    window.removeEventListener('message', onMessage);
+                    reject(new Error('Preview did not finish rendering before the snapshot timeout.'));
+                }, ${READY_TIMEOUT_MS});
                 window.addEventListener('message', onMessage);
             })
         `, true);
