@@ -1,7 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 import { PREVIEW_MESSAGE_SOURCE } from '@kumite/models';
 import { imageStorage } from '../storage/images';
 
@@ -137,7 +136,10 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
         // Publish the new image only after a complete, validated capture. A
         // failed render never destroys the last known-good snapshot.
         const fileName = catalogSnapshotFileName(name);
-        const saved = imageStorage.writeImage(fileName, `data:image/png;base64,${png.toString('base64')}`);
+        const saved = imageStorage.writeImage(
+            fileName,
+            `data:image/png;base64,${png.toString('base64')}`,
+        );
         if (!saved) {
             throw new Error('Could not persist the component preview snapshot.');
         }
@@ -145,13 +147,20 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
         const metadataFile = metadataPath(name);
         fs.mkdirSync(path.dirname(metadataFile), { recursive: true });
         const temporary = `${metadataFile}.${process.pid}.tmp`;
-        fs.writeFileSync(temporary, JSON.stringify({
-            version: SNAPSHOT_VERSION,
-            sessionId,
-            width: VIEWPORT.width,
-            height: VIEWPORT.height,
-            capturedAt: new Date().toISOString(),
-        }, null, 2));
+        fs.writeFileSync(
+            temporary,
+            JSON.stringify(
+                {
+                    version: SNAPSHOT_VERSION,
+                    sessionId,
+                    width: VIEWPORT.width,
+                    height: VIEWPORT.height,
+                    capturedAt: new Date().toISOString(),
+                },
+                null,
+                2,
+            ),
+        );
         fs.renameSync(temporary, metadataFile);
         return fileName;
     } finally {
