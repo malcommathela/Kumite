@@ -98,6 +98,7 @@ export class ComponentsManager {
     previewError: string | null = null;
     catalogPreviews: Record<string, string> = {};
     catalogSnapshots: Record<string, string> = {};
+    catalogSnapshotErrors: Record<string, string> = {};
     private catalogSnapshotRequests = new Set<string>();
     catalogSessions: Record<string, string> = {};
     catalogPreviewSources: Record<string, 'artifact'> = {};
@@ -133,6 +134,14 @@ export class ComponentsManager {
                     void this.loadCatalogSnapshot(name, true);
                 },
             );
+            window.api.on<{ name: string; message: string }>(
+                MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_FAILED,
+                ({ name, message }) => {
+                    runInAction(() => {
+                        this.catalogSnapshotErrors[name] = message;
+                    });
+                },
+            );
         }
     }
 
@@ -156,8 +165,12 @@ export class ComponentsManager {
                 { name },
             )) as string | null;
             runInAction(() => {
-                if (image) this.catalogSnapshots[name] = image;
-                else delete this.catalogSnapshots[name];
+                if (image) {
+                    this.catalogSnapshots[name] = image;
+                    delete this.catalogSnapshotErrors[name];
+                } else {
+                    delete this.catalogSnapshots[name];
+                }
             });
             return image;
         } catch (error) {
@@ -510,6 +523,7 @@ export class ComponentsManager {
         runInAction(() => {
             this.catalogPreviews = {};
             this.catalogSnapshots = {};
+            this.catalogSnapshotErrors = {};
             this.catalogSessions = {};
             this.catalogPreviewSources = {};
             this.catalogItemErrors = {};
