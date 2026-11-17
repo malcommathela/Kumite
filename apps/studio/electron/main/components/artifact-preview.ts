@@ -322,9 +322,16 @@ async function prepareDependencies(
             requirement.version && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(requirement.version)
                 ? requirement.version
                 : undefined;
+        const cachedVersion = existingDependencyManifest.packages?.[name]?.version;
+        const reusableCachedVersion =
+            !exact &&
+            typeof cachedVersion === 'string' &&
+            /^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$/.test(cachedVersion)
+                ? cachedVersion
+                : undefined;
         const keeping = !exact || installedVersion === exact;
         const version = keeping
-            ? (installedVersion ?? exact ?? (await resolveLatestVersion(name, signal)))
+            ? (installedVersion ?? exact ?? reusableCachedVersion ?? (await resolveLatestVersion(name, signal)))
             : exact!;
         selected[name] = {
             version,
