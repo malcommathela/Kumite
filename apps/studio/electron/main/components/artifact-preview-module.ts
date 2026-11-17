@@ -46,6 +46,9 @@ export function buildArtifactPreviewModule(
         entry.kind === 'default'
             ? `import Implementation from ${JSON.stringify(source)};`
             : `import { ${entry.name} as Implementation } from ${JSON.stringify(source)};`;
+    const previewLayout = artifact.metadata.type === 'block'
+        ? 'w-full min-h-full'
+        : 'mx-auto flex min-h-full w-full max-w-2xl items-center justify-center p-6';
     return `/* kumite artifact preview */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -66,7 +69,7 @@ class Boundary extends React.Component {
     }
 }
 function Preview() {
-    return <React.StrictMode><Boundary><Handshake /><Implementation /></Boundary></React.StrictMode>;
+    return <React.StrictMode><Boundary><Handshake /><div className={${JSON.stringify(previewLayout)}}><Implementation /></div></Boundary></React.StrictMode>;
 }
 createRoot(document.getElementById('root')!).render(<Preview />);
 void ${JSON.stringify(sessionId)};
