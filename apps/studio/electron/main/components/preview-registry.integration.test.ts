@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { afterAll, describe, it } from 'bun:test';
 import { chromium, type Browser } from '@playwright/test';
 import { generateArtifactPreviewRegistry } from './preview-registry';
@@ -9,10 +11,10 @@ import { buildCatalogHtml } from './preview';
 import { PreviewRuntimeManager, stableSessionId } from './preview-runtime';
 import { buildArtifactPreviewViteConfig } from './preview-vite-config';
 import { ensureArtifactPreviewStylesheet } from './preview-stylesheet';
-import { ensureCatalogBase } from './catalog';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
 import type { ImplementationArtifact } from '@kumite/models';
 
+const execFileAsync = promisify(execFile);
 const roots: string[] = [];
 const managers: PreviewRuntimeManager[] = [];
 const browsers: Browser[] = [];
@@ -25,13 +27,34 @@ afterAll(async () => {
 
 describe('artifact preview registry Vite integration', () => {
     it('loads the generated lazy module through Vite and mounts its React component', async () => {
+        // The Studio workspace intentionally owns Tailwind v3. Provision the
+        // same isolated React 19 + Tailwind v4 runtime used by catalog previews
+        // instead of resolving plugins from the monorepo's node_modules.
+        const runtimeRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-vite-runtime-'));
+        roots.push(runtimeRoot);
+        await fs.promises.writeFile(
+            path.join(runtimeRoot, 'package.json'),
+            JSON.stringify({
+                private: true,
+                type: 'module',
+                dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' },
+                devDependencies: {
+                    '@tailwindcss/vite': '^4.1.0',
+                    '@vitejs/plugin-react': '^4.3.4',
+                    tailwindcss: '^4.1.0',
+                    vite: '^6.0.0',
+                },
+            }, null, 4),
+        );
+        await execFileAsync(process.execPath, ['install'], {
+            cwd: runtimeRoot,
+            timeout: 120_000,
+            maxBuffer: 10 * 1024 * 1024,
+        });
+
         const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-registry-vite-'));
         roots.push(root);
-        // Use the same isolated React 19 + Tailwind v4 runtime as catalog
-        // previews. The Studio workspace intentionally owns Tailwind v3 and
-        // does not install the v4 Vite plugin into the monorepo node_modules.
-        const runtime = await ensureCatalogBase();
-        await fs.promises.symlink(path.join(runtime.root, 'node_modules'), path.join(root, 'node_modules'), 'junction');
+        await fs.promises.symlink(path.join(runtimeRoot, 'node_modules'), path.join(root, 'node_modules'), 'junction');
         await fs.promises.mkdir(path.join(root, 'src'), { recursive: true });
         await fs.promises.writeFile(path.join(root, 'package.json'), '{"type":"module"}\n');
         ensureArtifactPreviewStylesheet(root);
@@ -83,7 +106,7 @@ describe('artifact preview registry Vite integration', () => {
         console.info('[preview-integration] starting Vite runtime');
         const result = await manager.ensure({
             projectPath: root, kind: 'registry-integration',
-            viteBin: path.join(runtime.root, 'node_modules', 'vite', 'bin', 'vite.js'),
+            viteBin: path.join(runtimeRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
             basePort: 38941, ownerId: 'registry-integration-test',
             entries: [{ sessionId, entryId: 'registry-fixture', html: buildCatalogHtml('Registry fixture', sessionId, 'registry-fixture'), source: registry.entrySources[key]! }],
         });
