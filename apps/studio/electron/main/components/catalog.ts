@@ -108,10 +108,10 @@ function writeBaseFiles(root: string): void {
             ...PACKAGE_JSON.devDependencies,
         },
     };
-    writeFileIfChanged(packagePath, `${JSON.stringify(packageJson, null, 4)}\\n`);
+    writeFileIfChanged(packagePath, `${JSON.stringify(packageJson, null, 4)}\n`);
     writeFileIfChanged(
         path.join(root, 'tsconfig.json'),
-        `${JSON.stringify(TSCONFIG, null, 4)}\\n`,
+        `${JSON.stringify(TSCONFIG, null, 4)}\n`,
     );
     writeFileIfChanged(path.join(root, 'vite.config.ts'), CATALOG_PREVIEW_VITE_CONFIG);
     writeFileIfChanged(path.join(root, 'src', 'index.css'), INDEX_CSS);
