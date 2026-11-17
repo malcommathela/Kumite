@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { ensureLegacyUserDataMigrated } from './migrate';
 
@@ -35,6 +35,7 @@ class ImageStorage {
                 const processedBase64Img = `data:image/png;base64,${base64Img}`;
                 return processedBase64Img;
             }
+            console.error(`Image not found: ${filePath}`);
             return null;
         } catch (error) {
             console.error(`Error reading image ${fileName}:`, error);
@@ -47,9 +48,7 @@ class ImageStorage {
         const imageData = Buffer.from(data, 'base64');
         const filePath = join(this.IMAGES_FOLDER, fileName);
         try {
-            const temporaryPath = `${filePath}.${process.pid}.tmp`;
-            writeFileSync(temporaryPath, new Uint8Array(imageData));
-            renameSync(temporaryPath, filePath);
+            writeFileSync(filePath, new Uint8Array(imageData));
             return filePath;
         } catch (error) {
             console.error(`Error saving image ${fileName}:`, error);
