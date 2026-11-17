@@ -1,4 +1,4 @@
-import { SetupStage, type SetupCallback } from '..';
+import { SetupStage, type SetupCallback } from '@kumite/models';
 import {
     BUILD_TOOL_NAME,
     CONFIG_FILE_PATTERN,
