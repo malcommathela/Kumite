@@ -19,7 +19,7 @@ afterAll(async () => {
 });
 
 describe('artifact preview registry Vite integration', () => {
-    it('loads the generated lazy module through Vite and mounts its React component', { timeout: 90_000 }, async () => {
+    it('loads the generated lazy module through Vite and mounts its React component', async () => {
         const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-registry-vite-'));
         roots.push(root);
         await fs.promises.symlink(path.resolve(process.cwd(), '../../node_modules'), path.join(root, 'node_modules'), 'junction');
