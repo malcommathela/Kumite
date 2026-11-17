@@ -282,6 +282,7 @@ const LibraryCard = observer(function LibraryCard({
     onOpen: () => void;
 }) {
     const previewRef = useRef<HTMLDivElement | null>(null);
+    const [nearViewport, setNearViewport] = useState(false);
     const span = getCatalogSpan(item);
     const previewUrl = manager.catalogPreviews[item.name];
     const previewSessionId = manager.catalogSessions[item.name];
@@ -290,18 +291,18 @@ const LibraryCard = observer(function LibraryCard({
 
     useEffect(() => {
         const node = previewRef.current;
-        if (!node || !item.previewable || previewUrl || previewLoading || previewError) {
+        if (!node || !item.previewable) {
             return;
         }
         const observer = new IntersectionObserver(
-            (entries) => {
-                if (!entries.some((entry) => entry.isIntersecting)) {
-                    return;
+            ([entry]) => {
+                const visible = Boolean(entry?.isIntersecting);
+                setNearViewport(visible);
+                if (visible && !previewUrl && !previewLoading && !previewError) {
+                    onVisible(item.name);
                 }
-                observer.disconnect();
-                onVisible(item.name);
             },
-            { rootMargin: '200px' },
+            { rootMargin: '100px' },
         );
         observer.observe(node);
         return () => observer.disconnect();
@@ -322,14 +323,14 @@ const LibraryCard = observer(function LibraryCard({
                     PREVIEW_HEIGHT[span],
                 )}
             >
-                {previewUrl ? (
+                {previewUrl && nearViewport ? (
                     <CardPreview
                         src={previewUrl}
                         title={`${item.title} preview`}
                         name={item.name}
                         sessionId={previewSessionId}
                     />
-                ) : previewLoading || (item.previewable && !previewError) ? (
+                ) : previewLoading || (item.previewable && !previewError && !previewUrl) ? (
                     <PreviewShimmer name={item.name} />
                 ) : (
                     <div className="flex h-full items-center justify-center p-6">
