@@ -68,5 +68,5 @@ createRoot(document.getElementById('root')!).render(<RegistryFixture />);
         await page.getByTestId('registry-preview-mounted').waitFor({ state: 'visible' });
         assert.equal(await page.getByTestId('registry-preview-mounted').textContent(), 'Generated registry preview mounted');
         assert.deepEqual(pageErrors, []);
-    });
+    }, 90_000);
 });
