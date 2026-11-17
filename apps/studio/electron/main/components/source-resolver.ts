@@ -629,6 +629,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             if (sha256(bytes) !== cached.digest) return undefined;
             return { bytes, contentType: cached.contentType ?? '' };
         } catch {
+            try { fs.rmSync(cachePath, { force: true }); } catch { /* best-effort corrupt cache eviction */ }
             return undefined;
         }
     }
