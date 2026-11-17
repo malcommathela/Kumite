@@ -27,15 +27,8 @@ describe('artifact preview registry Vite integration', () => {
         await fs.promises.symlink(path.resolve(process.cwd(), '../../node_modules'), path.join(root, 'node_modules'), 'junction');
         await fs.promises.mkdir(path.join(root, 'src'), { recursive: true });
         await fs.promises.writeFile(path.join(root, 'package.json'), '{"type":"module"}\n');
-        await fs.promises.writeFile(path.join(root, 'src', 'index.css'), 'html,body,#root{min-height:100%;margin:0}\n');
-        await fs.promises.writeFile(path.join(root, 'vite.config.ts'), `
-import react from '@vitejs/plugin-react';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
-const root = path.dirname(fileURLToPath(import.meta.url));
-export default defineConfig({ plugins: [react()], resolve: { alias: { '@': path.join(root, 'src') } } });
-`);
+        ensureArtifactPreviewStylesheet(root);
+        await fs.promises.writeFile(path.join(root, 'vite.config.ts'), buildArtifactPreviewViteConfig());
         const key = 'shadcn:component:registry-vite-fixture:session';
         const moduleSource = `
 import React from 'react';
