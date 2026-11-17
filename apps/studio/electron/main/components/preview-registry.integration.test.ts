@@ -9,6 +9,8 @@ import { buildCatalogHtml } from './preview';
 import { PreviewRuntimeManager, stableSessionId } from './preview-runtime';
 import { buildArtifactPreviewViteConfig } from './preview-vite-config';
 import { ensureArtifactPreviewStylesheet } from './preview-stylesheet';
+import { buildArtifactPreviewModule } from './artifact-preview-module';
+import type { ImplementationArtifact } from '@kumite/models';
 
 const roots: string[] = [];
 const managers: PreviewRuntimeManager[] = [];
@@ -30,16 +32,43 @@ describe('artifact preview registry Vite integration', () => {
         ensureArtifactPreviewStylesheet(root);
         await fs.promises.writeFile(path.join(root, 'vite.config.ts'), buildArtifactPreviewViteConfig());
         const key = 'shadcn:component:registry-vite-fixture:session';
-        const moduleSource = `
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-function RegistryFixture() {
+        const entryPoint = 'registry/new-york-v4/ui/fixture.tsx';
+        const componentSource = `export default function RegistryFixture() {
     return <main data-testid="registry-preview-mounted" className="flex min-h-24 items-center justify-center gap-4 rounded-lg bg-background p-6 text-foreground">
         <span className="rounded-md bg-primary px-4 py-2 text-primary-foreground">Styled shadcn preview</span>
     </main>;
-}
-createRoot(document.getElementById('root')!).render(<RegistryFixture />);
-`;
+}`;
+        const artifact: ImplementationArtifact = {
+            schemaVersion: 1,
+            id: 'registry-vite-fixture',
+            provider: 'shadcn',
+            source: {
+                name: 'registry-vite-fixture',
+                registryUrl: 'https://example.test/registry.json',
+                sourceUrl: 'https://example.test/fixture',
+                retrievedAt: '2026-11-17T00:00:00.000Z',
+                provenance: 'official',
+                registryItems: [],
+            },
+            metadata: { name: 'Registry fixture', type: 'component', tags: [] },
+            entryPoint,
+            files: [{
+                path: entryPoint,
+                content: componentSource,
+                role: 'entry',
+                sourceUrl: 'https://example.test/fixture.tsx',
+                sha256: 'a'.repeat(64),
+            }],
+            dependencies: [],
+            assets: [],
+            graph: { edges: [], cycles: [] },
+            requirements: { providers: [], configuration: [] },
+            demo: { available: false, preserved: false, files: [], editable: false },
+            integrity: { sourceHash: 'b'.repeat(64), artifactHash: 'a'.repeat(64) },
+        };
+        await fs.promises.mkdir(path.dirname(path.join(root, 'src', entryPoint)), { recursive: true });
+        await fs.promises.writeFile(path.join(root, 'src', entryPoint), componentSource);
+        const moduleSource = buildArtifactPreviewModule(artifact, 'registry-preview-session');
         const registry = await generateArtifactPreviewRegistry(root, [{
             key, artifactHash: 'a'.repeat(64), kind: 'component', name: 'Registry fixture', source: moduleSource,
         }]);
