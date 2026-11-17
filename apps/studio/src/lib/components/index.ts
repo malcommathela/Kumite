@@ -97,6 +97,8 @@ export class ComponentsManager {
     previewLoading = false;
     previewError: string | null = null;
     catalogPreviews: Record<string, string> = {};
+    catalogSnapshots: Record<string, string> = {};
+    private catalogSnapshotRequests = new Set<string>();
     catalogSessions: Record<string, string> = {};
     catalogPreviewSources: Record<string, 'artifact'> = {};
     catalogBaseLoading = false;
@@ -109,6 +111,7 @@ export class ComponentsManager {
     private catalogChain: Promise<void> = Promise.resolve();
     private catalogWaiters: Array<() => void> = [];
     private unsubscribeProgress: (() => void) | null = null;
+    private unsubscribeSnapshot: (() => void) | null = null;
 
     constructor(
         private editorEngine: EditorEngine,
@@ -124,11 +127,43 @@ export class ComponentsManager {
                     });
                 },
             );
+            this.unsubscribeSnapshot = window.api.on<{ name: string }>(
+                MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_READY,
+                ({ name }) => {
+                    void this.loadCatalogSnapshot(name, true);
+                },
+            );
         }
     }
 
     get catalog(): ShadcnLibraryItem[] {
         return [...SHADCN_COMPONENTS, ...SHADCN_BLOCKS];
+    }
+
+    /** Loads a persisted library preview without starting Vite or resolving an artifact. */
+    async loadCatalogSnapshot(name: string, refresh = false): Promise<string | null> {
+        if (!name) return null;
+        if (!refresh && this.catalogSnapshots[name]) {
+            return this.catalogSnapshots[name]!;
+        }
+        if (this.catalogSnapshotRequests.has(name)) {
+            return this.catalogSnapshots[name] ?? null;
+        }
+        this.catalogSnapshotRequests.add(name);
+        try {
+            const fileName = `library-preview-${name.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80) || 'preview'}.png`;
+            const image = (await invokeMainChannel(MainChannels.GET_IMAGE, fileName)) as string | null;
+            runInAction(() => {
+                if (image) this.catalogSnapshots[name] = image;
+                else delete this.catalogSnapshots[name];
+            });
+            return image;
+        } catch (error) {
+            console.warn(`Could not load the saved preview for "${name}":`, error);
+            return null;
+        } finally {
+            this.catalogSnapshotRequests.delete(name);
+        }
     }
 
     get projectPath(): string | null {
@@ -472,6 +507,7 @@ export class ComponentsManager {
         const projectId = this.projectsManager.project?.id ?? null;
         runInAction(() => {
             this.catalogPreviews = {};
+            this.catalogSnapshots = {};
             this.catalogSessions = {};
             this.catalogPreviewSources = {};
             this.catalogItemErrors = {};
@@ -732,6 +768,8 @@ export class ComponentsManager {
     dispose(): void {
         this.unsubscribeProgress?.();
         this.unsubscribeProgress = null;
+        this.unsubscribeSnapshot?.();
+        this.unsubscribeSnapshot = null;
         void this.closePreview();
     }
 }
