@@ -4,48 +4,21 @@ import path from 'node:path';
 export const ARTIFACT_PREVIEW_STYLESHEET_MARKER = '/* kumite-artifact-preview-base */';
 
 export function buildArtifactPreviewStylesheet(): string {
-    return "/* kumite-artifact-preview-base */\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n:root {\n  --background: 0 0% 100%;\n  --foreground: 222.2 84% 4.9%;\n  --card: 0 0% 100%;\n  --card-foreground: 222.2 84% 4.9%;\n  --popover: 0 0% 100%;\n  --popover-foreground: 222.2 84% 4.9%;\n  --primary: 222.2 47.4% 11.2%;\n  --primary-foreground: 210 40% 98%;\n  --secondary: 210 40% 96.1%;\n  --secondary-foreground: 222.2 47.4% 11.2%;\n  --muted: 210 40% 96.1%;\n  --muted-foreground: 215.4 16.3% 46.9%;\n  --accent: 210 40% 96.1%;\n  --accent-foreground: 222.2 47.4% 11.2%;\n  --destructive: 0 84.2% 60.2%;\n  --destructive-foreground: 210 40% 98%;\n  --border: 214.3 31.8% 91.4%;\n  --input: 214.3 31.8% 91.4%;\n  --ring: 222.2 84% 4.9%;\n  --radius: 0.5rem;\n}\n.dark {\n  --background: 222.2 84% 4.9%;\n  --foreground: 210 40% 98%;\n  --card: 222.2 84% 4.9%;\n  --card-foreground: 210 40% 98%;\n  --popover: 222.2 84% 4.9%;\n  --popover-foreground: 210 40% 98%;\n  --primary: 210 40% 98%;\n  --primary-foreground: 222.2 47.4% 11.2%;\n  --secondary: 217.2 32.6% 17.5%;\n  --secondary-foreground: 210 40% 98%;\n  --muted: 217.2 32.6% 17.5%;\n  --muted-foreground: 215 20.2% 65.1%;\n  --accent: 217.2 32.6% 17.5%;\n  --accent-foreground: 210 40% 98%;\n  --destructive: 0 62.8% 30.6%;\n  --destructive-foreground: 210 40% 98%;\n  --border: 217.2 32.6% 17.5%;\n  --input: 217.2 32.6% 17.5%;\n  --ring: 212.7 26.8% 83.9%;\n}\n@layer base {\n  * { @apply border-border; }\n  html, body, #root { min-height: 100%; margin: 0; }\n  body { @apply bg-background text-foreground; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }\n}\n";
+    return "/* kumite-artifact-preview-base */\n@import \"tailwindcss\";\n@source \"./src/**/*.{js,jsx,ts,tsx}\";\n@source \"./src/.kumite-preview-registry/**/*.{js,jsx,ts,tsx}\";\n\n:root {\n  --background: oklch(1 0 0);\n  --foreground: oklch(0.145 0 0);\n  --card: oklch(1 0 0);\n  --card-foreground: oklch(0.145 0 0);\n  --popover: oklch(1 0 0);\n  --popover-foreground: oklch(0.145 0 0);\n  --primary: oklch(0.205 0 0);\n  --primary-foreground: oklch(0.985 0 0);\n  --secondary: oklch(0.97 0 0);\n  --secondary-foreground: oklch(0.205 0 0);\n  --muted: oklch(0.97 0 0);\n  --muted-foreground: oklch(0.556 0 0);\n  --accent: oklch(0.97 0 0);\n  --accent-foreground: oklch(0.205 0 0);\n  --destructive: oklch(0.577 0.245 27.325);\n  --destructive-foreground: oklch(0.985 0 0);\n  --border: oklch(0.922 0 0);\n  --input: oklch(0.922 0 0);\n  --ring: oklch(0.708 0 0);\n  --radius: 0.625rem;\n}\n.dark {\n  --background: oklch(0.145 0 0);\n  --foreground: oklch(0.985 0 0);\n  --card: oklch(0.205 0 0);\n  --card-foreground: oklch(0.985 0 0);\n  --popover: oklch(0.205 0 0);\n  --popover-foreground: oklch(0.985 0 0);\n  --primary: oklch(0.922 0 0);\n  --primary-foreground: oklch(0.205 0 0);\n  --secondary: oklch(0.269 0 0);\n  --secondary-foreground: oklch(0.985 0 0);\n  --muted: oklch(0.269 0 0);\n  --muted-foreground: oklch(0.708 0 0);\n  --accent: oklch(0.269 0 0);\n  --accent-foreground: oklch(0.985 0 0);\n  --destructive: oklch(0.704 0.191 22.216);\n  --destructive-foreground: oklch(0.985 0 0);\n  --border: oklch(1 0 0 / 10%);\n  --input: oklch(1 0 0 / 15%);\n  --ring: oklch(0.556 0 0);\n}\n@theme inline {\n  --color-background: var(--background);\n  --color-foreground: var(--foreground);\n  --color-card: var(--card);\n  --color-card-foreground: var(--card-foreground);\n  --color-popover: var(--popover);\n  --color-popover-foreground: var(--popover-foreground);\n  --color-primary: var(--primary);\n  --color-primary-foreground: var(--primary-foreground);\n  --color-secondary: var(--secondary);\n  --color-secondary-foreground: var(--secondary-foreground);\n  --color-muted: var(--muted);\n  --color-muted-foreground: var(--muted-foreground);\n  --color-accent: var(--accent);\n  --color-accent-foreground: var(--accent-foreground);\n  --color-destructive: var(--destructive);\n  --color-destructive-foreground: var(--destructive-foreground);\n  --color-border: var(--border);\n  --color-input: var(--input);\n  --color-ring: var(--ring);\n  --radius-lg: var(--radius);\n  --radius-md: calc(var(--radius) - 2px);\n  --radius-sm: calc(var(--radius) - 4px);\n}\n* { border-color: var(--border); }\nhtml, body, #root { min-height: 100%; margin: 0; }\nbody { background: var(--background); color: var(--foreground); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }\n";
 }
 
-/** Create a self-contained shadcn/Tailwind v3 theme entry only when one is absent. */
+/** Add the shared Tailwind v4 theme to the private catalog workspace. */
 export function ensureArtifactPreviewStylesheet(workspaceRoot: string): string {
     const sourceRoot = path.join(workspaceRoot, 'src');
     const stylesheet = path.join(sourceRoot, 'index.css');
     fs.mkdirSync(sourceRoot, { recursive: true });
-    if (!fs.existsSync(stylesheet)) {
-        fs.writeFileSync(stylesheet, buildArtifactPreviewStylesheet(), { encoding: 'utf8', flag: 'wx' });
-    }
-    const tailwindConfig = path.join(workspaceRoot, 'tailwind.config.cjs');
-    if (!fs.existsSync(tailwindConfig)) {
-        fs.writeFileSync(tailwindConfig, `module.exports = {
-    content: ['./src/**/*.{js,ts,jsx,tsx}'],
-    darkMode: 'class',
-    theme: {
-        extend: {
-            colors: {
-                border: 'hsl(var(--border))',
-                input: 'hsl(var(--input))',
-                ring: 'hsl(var(--ring))',
-                background: 'hsl(var(--background))',
-                foreground: 'hsl(var(--foreground))',
-                primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
-                secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
-                destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
-                muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
-                accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
-                popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
-                card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
-            },
-            borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
-        },
-    },
-    plugins: [],
-};
-`, { encoding: 'utf8', flag: 'wx' });
-    }
-    const postcssConfig = path.join(workspaceRoot, 'postcss.config.cjs');
-    if (!fs.existsSync(postcssConfig)) {
-        fs.writeFileSync(postcssConfig, `module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } };\n`, { encoding: 'utf8', flag: 'wx' });
+    const existing = fs.existsSync(stylesheet) ? fs.readFileSync(stylesheet, 'utf8') : '';
+    if (!existing.includes(ARTIFACT_PREVIEW_STYLESHEET_MARKER)) {
+        const legacyGenerated = existing.includes('/* kumite-artifact-preview-base */');
+        const baseImport = existing.includes('@import "tailwindcss";') ? '' : '@import "tailwindcss";\\n';
+        const preserved = legacyGenerated ? '' : existing.replace('@import "tailwindcss";', '').trim();
+        const next = [baseImport, buildArtifactPreviewStylesheet(), preserved].filter(Boolean).join('\\n');
+        fs.writeFileSync(stylesheet, next, 'utf8');
     }
     return stylesheet;
 }
