@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PREVIEW_MESSAGE_SOURCE } from '@kumite/models';
+import { COMPONENT_CLI_VERSION, PREVIEW_MESSAGE_SOURCE } from '@kumite/models';
 
 const SNAPSHOT_VERSION = 1;
 const VIEWPORT = { width: 420, height: 280 };
@@ -33,6 +33,7 @@ function readSnapshotMetadata(name: string): {
     sessionId?: string;
     width?: number;
     height?: number;
+    catalogVersion?: string;
 } | null {
     try {
         return JSON.parse(fs.readFileSync(metadataPath(name), 'utf8'));
@@ -59,6 +60,7 @@ export function readCatalogPreviewSnapshot(name: string): string | null {
     const metadata = readSnapshotMetadata(name);
     if (
         metadata?.version !== SNAPSHOT_VERSION ||
+        metadata.catalogVersion !== COMPONENT_CLI_VERSION ||
         metadata.width !== VIEWPORT.width ||
         metadata.height !== VIEWPORT.height
     ) {
@@ -71,6 +73,7 @@ function snapshotMatches(name: string, sessionId: string): boolean {
     const metadata = readSnapshotMetadata(name);
     return Boolean(
         metadata?.version === SNAPSHOT_VERSION &&
+        metadata.catalogVersion === COMPONENT_CLI_VERSION &&
         metadata.sessionId === sessionId &&
         metadata.width === VIEWPORT.width &&
         metadata.height === VIEWPORT.height &&
@@ -186,6 +189,7 @@ async function capture(url: string, name: string, sessionId: string): Promise<st
             JSON.stringify(
                 {
                     version: SNAPSHOT_VERSION,
+                    catalogVersion: COMPONENT_CLI_VERSION,
                     sessionId,
                     width: VIEWPORT.width,
                     height: VIEWPORT.height,
