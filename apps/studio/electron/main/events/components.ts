@@ -188,6 +188,14 @@ export function listenForComponentMessages() {
                         event.sender.send(MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_READY, { name });
                     }
                 },
+                (name, message) => {
+                    if (!event.sender.isDestroyed()) {
+                        event.sender.send(MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_FAILED, {
+                            name,
+                            message,
+                        });
+                    }
+                },
             );
         },
     );
