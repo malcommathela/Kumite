@@ -22,25 +22,41 @@ function metadataPath(name: string): string {
     return path.join(app.getPath('userData'), 'library-preview-metadata', `${safeName(name)}.json`);
 }
 
-function snapshotMatches(name: string, sessionId: string): boolean {
-    const image = imageStorage.readImage(catalogSnapshotFileName(name));
-    if (!image) {
-        return false;
-    }
+function readSnapshotMetadata(name: string): {
+    version?: number;
+    sessionId?: string;
+    width?: number;
+    height?: number;
+} | null {
     try {
-        const metadata = JSON.parse(fs.readFileSync(metadataPath(name), 'utf8')) as {
-            version?: number;
-            sessionId?: string;
-            width?: number;
-            height?: number;
-        };
-        return metadata.version === SNAPSHOT_VERSION &&
-            metadata.sessionId === sessionId &&
-            metadata.width === VIEWPORT.width &&
-            metadata.height === VIEWPORT.height;
+        return JSON.parse(fs.readFileSync(metadataPath(name), 'utf8'));
     } catch {
-        return false;
+        return null;
     }
+}
+
+/** Returns only complete snapshots written by the current renderer version. */
+export function readCatalogPreviewSnapshot(name: string): string | null {
+    const metadata = readSnapshotMetadata(name);
+    if (
+        metadata?.version !== SNAPSHOT_VERSION ||
+        metadata.width !== VIEWPORT.width ||
+        metadata.height !== VIEWPORT.height
+    ) {
+        return null;
+    }
+    return imageStorage.readImage(catalogSnapshotFileName(name));
+}
+
+function snapshotMatches(name: string, sessionId: string): boolean {
+    const metadata = readSnapshotMetadata(name);
+    return Boolean(
+        metadata?.version === SNAPSHOT_VERSION &&
+        metadata.sessionId === sessionId &&
+        metadata.width === VIEWPORT.width &&
+        metadata.height === VIEWPORT.height &&
+        imageStorage.readImage(catalogSnapshotFileName(name)),
+    );
 }
 
 async function capture(url: string, name: string, sessionId: string): Promise<string> {
