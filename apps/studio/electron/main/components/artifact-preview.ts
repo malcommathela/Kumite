@@ -26,6 +26,7 @@ import { buildCatalogHtml } from './preview';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 import { cleanupArtifactPreviewWorkspace } from './preview-workspace-cleanup';
+import { ensureArtifactPreviewStylesheet } from './preview-stylesheet';
 
 const MATERIALIZATIONS_DIRECTORY = '.kumite-materializations';
 const SOURCE_ROOT = 'src';
@@ -585,6 +586,7 @@ export class ArtifactCatalogPreviewServer {
 
         try {
             writeViteAliases(workspaceRoot);
+            ensureArtifactPreviewStylesheet(workspaceRoot);
             const dependencyLog = await this.prepareDependencies(
                 workspaceRoot,
                 readyArtifacts,
