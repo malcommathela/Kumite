@@ -11,7 +11,7 @@ afterAll(() => {
 });
 
 describe('artifact preview stylesheet', () => {
-    it('creates a Tailwind v4 stylesheet with shadcn semantic tokens and artifact scan paths', () => {
+    it('creates a Tailwind v3 stylesheet with shadcn semantic tokens and artifact scan paths', () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-preview-css-'));
         roots.push(root);
         const file = ensureArtifactPreviewStylesheet(root);
