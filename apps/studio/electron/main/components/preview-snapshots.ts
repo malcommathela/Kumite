@@ -34,6 +34,15 @@ function readSnapshotMetadata(name: string): {
     }
 }
 
+function readSnapshotImage(name: string): string | null {
+    const image = imageStorage.readImage(catalogSnapshotFileName(name));
+    if (!image) return null;
+    const base64 = image.replace(/^data:image\/png;base64,/, '');
+    const bytes = Buffer.from(base64, 'base64');
+    const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    return bytes.length >= 1024 && bytes.subarray(0, 8).equals(pngSignature) ? image : null;
+}
+
 /** Returns only complete snapshots written by the current renderer version. */
 export function readCatalogPreviewSnapshot(name: string): string | null {
     const metadata = readSnapshotMetadata(name);
@@ -44,7 +53,7 @@ export function readCatalogPreviewSnapshot(name: string): string | null {
     ) {
         return null;
     }
-    return imageStorage.readImage(catalogSnapshotFileName(name));
+    return readSnapshotImage(name);
 }
 
 function snapshotMatches(name: string, sessionId: string): boolean {
@@ -54,7 +63,7 @@ function snapshotMatches(name: string, sessionId: string): boolean {
         metadata.sessionId === sessionId &&
         metadata.width === VIEWPORT.width &&
         metadata.height === VIEWPORT.height &&
-        imageStorage.readImage(catalogSnapshotFileName(name)),
+        readSnapshotImage(name),
     );
 }
 
