@@ -9,6 +9,7 @@ import { buildCatalogHtml } from './preview';
 import { PreviewRuntimeManager, stableSessionId } from './preview-runtime';
 import { buildArtifactPreviewViteConfig } from './preview-vite-config';
 import { ensureArtifactPreviewStylesheet } from './preview-stylesheet';
+import { ensureCatalogBase } from './catalog';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
 import type { ImplementationArtifact } from '@kumite/models';
 
@@ -26,7 +27,11 @@ describe('artifact preview registry Vite integration', () => {
     it('loads the generated lazy module through Vite and mounts its React component', async () => {
         const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'kumite-registry-vite-'));
         roots.push(root);
-        await fs.promises.symlink(path.resolve(process.cwd(), '../../node_modules'), path.join(root, 'node_modules'), 'junction');
+        // Use the same isolated React 19 + Tailwind v4 runtime as catalog
+        // previews. The Studio workspace intentionally owns Tailwind v3 and
+        // does not install the v4 Vite plugin into the monorepo node_modules.
+        const runtime = await ensureCatalogBase();
+        await fs.promises.symlink(path.join(runtime.root, 'node_modules'), path.join(root, 'node_modules'), 'junction');
         await fs.promises.mkdir(path.join(root, 'src'), { recursive: true });
         await fs.promises.writeFile(path.join(root, 'package.json'), '{"type":"module"}\n');
         ensureArtifactPreviewStylesheet(root);
@@ -78,7 +83,7 @@ describe('artifact preview registry Vite integration', () => {
         console.info('[preview-integration] starting Vite runtime');
         const result = await manager.ensure({
             projectPath: root, kind: 'registry-integration',
-            viteBin: path.resolve(process.cwd(), '../../node_modules/vite/bin/vite.js'),
+            viteBin: path.join(runtime.root, 'node_modules', 'vite', 'bin', 'vite.js'),
             basePort: 38941, ownerId: 'registry-integration-test',
             entries: [{ sessionId, entryId: 'registry-fixture', html: buildCatalogHtml('Registry fixture', sessionId, 'registry-fixture'), source: registry.entrySources[key]! }],
         });
