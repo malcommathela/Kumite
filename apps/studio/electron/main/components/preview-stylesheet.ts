@@ -7,7 +7,7 @@ export function buildArtifactPreviewStylesheet(): string {
     return "/* kumite-artifact-preview-base */\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n:root {\n  --background: 0 0% 100%;\n  --foreground: 222.2 84% 4.9%;\n  --card: 0 0% 100%;\n  --card-foreground: 222.2 84% 4.9%;\n  --popover: 0 0% 100%;\n  --popover-foreground: 222.2 84% 4.9%;\n  --primary: 222.2 47.4% 11.2%;\n  --primary-foreground: 210 40% 98%;\n  --secondary: 210 40% 96.1%;\n  --secondary-foreground: 222.2 47.4% 11.2%;\n  --muted: 210 40% 96.1%;\n  --muted-foreground: 215.4 16.3% 46.9%;\n  --accent: 210 40% 96.1%;\n  --accent-foreground: 222.2 47.4% 11.2%;\n  --destructive: 0 84.2% 60.2%;\n  --destructive-foreground: 210 40% 98%;\n  --border: 214.3 31.8% 91.4%;\n  --input: 214.3 31.8% 91.4%;\n  --ring: 222.2 84% 4.9%;\n  --radius: 0.5rem;\n}\n.dark {\n  --background: 222.2 84% 4.9%;\n  --foreground: 210 40% 98%;\n  --card: 222.2 84% 4.9%;\n  --card-foreground: 210 40% 98%;\n  --popover: 222.2 84% 4.9%;\n  --popover-foreground: 210 40% 98%;\n  --primary: 210 40% 98%;\n  --primary-foreground: 222.2 47.4% 11.2%;\n  --secondary: 217.2 32.6% 17.5%;\n  --secondary-foreground: 210 40% 98%;\n  --muted: 217.2 32.6% 17.5%;\n  --muted-foreground: 215 20.2% 65.1%;\n  --accent: 217.2 32.6% 17.5%;\n  --accent-foreground: 210 40% 98%;\n  --destructive: 0 62.8% 30.6%;\n  --destructive-foreground: 210 40% 98%;\n  --border: 217.2 32.6% 17.5%;\n  --input: 217.2 32.6% 17.5%;\n  --ring: 212.7 26.8% 83.9%;\n}\n@layer base {\n  * { @apply border-border; }\n  html, body, #root { min-height: 100%; margin: 0; }\n  body { @apply bg-background text-foreground; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }\n}\n";
 }
 
-/** Create a self-contained shadcn/Tailwind v4 theme entry only when one is absent. */
+/** Create a self-contained shadcn/Tailwind v3 theme entry only when one is absent. */
 export function ensureArtifactPreviewStylesheet(workspaceRoot: string): string {
     const sourceRoot = path.join(workspaceRoot, 'src');
     const stylesheet = path.join(sourceRoot, 'index.css');
@@ -45,7 +45,7 @@ export function ensureArtifactPreviewStylesheet(workspaceRoot: string): string {
     }
     const postcssConfig = path.join(workspaceRoot, 'postcss.config.cjs');
     if (!fs.existsSync(postcssConfig)) {
-        fs.writeFileSync(postcssConfig, `module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } };\\n`, { encoding: 'utf8', flag: 'wx' });
+        fs.writeFileSync(postcssConfig, `module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } };\n`, { encoding: 'utf8', flag: 'wx' });
     }
     return stylesheet;
 }
