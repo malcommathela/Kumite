@@ -282,7 +282,7 @@ const LibraryCard = observer(function LibraryCard({
     onOpen: () => void;
 }) {
     const previewRef = useRef<HTMLDivElement | null>(null);
-    const [nearViewport, setNearViewport] = useState(false);
+    const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
     const span = getCatalogSpan(item);
     const previewUrl = manager.catalogPreviews[item.name];
     const previewSessionId = manager.catalogSessions[item.name];
@@ -291,22 +291,23 @@ const LibraryCard = observer(function LibraryCard({
 
     useEffect(() => {
         const node = previewRef.current;
-        if (!node || !item.previewable) {
+        if (!node || !item.previewable || hasEnteredViewport) {
             return;
         }
         const observer = new IntersectionObserver(
             ([entry]) => {
-                const visible = Boolean(entry?.isIntersecting);
-                setNearViewport(visible);
-                if (visible && !previewUrl && !previewLoading && !previewError) {
-                    onVisible(item.name);
+                if (!entry?.isIntersecting) {
+                    return;
                 }
+                setHasEnteredViewport(true);
+                observer.disconnect();
+                onVisible(item.name);
             },
             { rootMargin: '100px' },
         );
         observer.observe(node);
         return () => observer.disconnect();
-    }, [item, onVisible, previewError, previewLoading, previewUrl]);
+    }, [hasEnteredViewport, item.name, item.previewable, onVisible]);
 
     return (
         <button
@@ -323,7 +324,7 @@ const LibraryCard = observer(function LibraryCard({
                     PREVIEW_HEIGHT[span],
                 )}
             >
-                {previewUrl && nearViewport ? (
+                {previewUrl && hasEnteredViewport ? (
                     <CardPreview
                         src={previewUrl}
                         title={`${item.title} preview`}
