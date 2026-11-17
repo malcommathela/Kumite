@@ -7,6 +7,9 @@ on:
       - fix/library-preview-rendering
     paths:
       - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/src/components/ComponentPreview/**'
+      - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
+      - 'apps/studio/tests/preview-handshake.test.ts'
       - 'apps/studio/package.json'
       - 'package.json'
       - 'bun.lock'
@@ -17,6 +20,9 @@ on:
       - feat/library-previews
     paths:
       - 'apps/studio/electron/main/components/**'
+      - 'apps/studio/src/components/ComponentPreview/**'
+      - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
+      - 'apps/studio/tests/preview-handshake.test.ts'
       - 'apps/studio/package.json'
       - 'package.json'
       - 'bun.lock'
@@ -59,6 +65,7 @@ jobs:
           electron/main/components/artifact-preview.test.ts
           electron/main/components/source-resolver.test.ts
           electron/main/components/preview-stylesheet.test.ts
+          tests/preview-handshake.test.ts
       - name: Run preview unit and browser integration tests (Ubuntu)
         if: runner.os == 'Linux'
         working-directory: apps/studio
@@ -70,6 +77,7 @@ jobs:
           electron/main/components/artifact-preview.test.ts
           electron/main/components/source-resolver.test.ts
           electron/main/components/preview-stylesheet.test.ts
+          tests/preview-handshake.test.ts
           electron/main/components/preview-registry.integration.test.ts
       - name: Typecheck Studio
         working-directory: apps/studio
