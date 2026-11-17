@@ -374,7 +374,7 @@ const LibraryCard = observer(function LibraryCard({
                     </p>
                 </div>
                 <span className="mt-0.5 shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] text-foreground-tertiary">
-                    {item.previewable ? 'Live' : 'Static'}
+                    {snapshot ? 'Saved' : item.previewable ? 'Live' : 'Static'}
                 </span>
             </div>
         </button>
