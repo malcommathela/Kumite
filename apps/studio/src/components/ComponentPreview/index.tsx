@@ -6,7 +6,7 @@ import {
 import { Button } from '@kumite/ui/button';
 import { Skeleton } from '@kumite/ui/skeleton';
 import { cn } from '@kumite/ui/utils';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export const CATEGORIES: Record<string, string[]> = {
     Forms: [
@@ -202,7 +202,7 @@ export function usePreviewHandshake(sessionId: string | null) {
     const [detail, setDetail] = useState<string | null>(null);
     const [attempt, setAttempt] = useState(0);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         setState('idle');
         setDetail(null);
         if (!sessionId) {
@@ -507,7 +507,7 @@ export function CardPreview({
                 key={`${src}#${frameKey}`}
                 title={title}
                 src={src}
-                loading="lazy"
+                loading="eager"
                 tabIndex={-1}
                 onLoad={() => setLoaded(true)}
                 className={cn(
