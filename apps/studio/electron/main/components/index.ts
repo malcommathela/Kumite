@@ -788,7 +788,7 @@ export async function startCatalogPreview(
                 }
             },
         );
-        void Promise.all(workers);
+        await Promise.all(workers);
         const log = [base.log, result.log].filter(Boolean).join('\n\n');
         onProgress?.({
             component: requested.join(', '),
