@@ -78,6 +78,13 @@ function workspaceRoot(): string {
     return path.join(base, WORKSPACE_DIR);
 }
 
+function writeFileIfChanged(file: string, contents: string): void {
+    if (fs.existsSync(file) && fs.readFileSync(file, 'utf8') === contents) {
+        return;
+    }
+    fs.writeFileSync(file, contents, 'utf8');
+}
+
 function writeBaseFiles(root: string): void {
     fs.mkdirSync(path.join(root, 'src'), { recursive: true });
 
@@ -101,14 +108,13 @@ function writeBaseFiles(root: string): void {
             ...PACKAGE_JSON.devDependencies,
         },
     };
-    fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 4)}\\n`, 'utf8');
-    fs.writeFileSync(
+    writeFileIfChanged(packagePath, `${JSON.stringify(packageJson, null, 4)}\\n`);
+    writeFileIfChanged(
         path.join(root, 'tsconfig.json'),
         `${JSON.stringify(TSCONFIG, null, 4)}\\n`,
-        'utf8',
     );
-    fs.writeFileSync(path.join(root, 'vite.config.ts'), CATALOG_PREVIEW_VITE_CONFIG, 'utf8');
-    fs.writeFileSync(path.join(root, 'src', 'index.css'), INDEX_CSS, 'utf8');
+    writeFileIfChanged(path.join(root, 'vite.config.ts'), CATALOG_PREVIEW_VITE_CONFIG);
+    writeFileIfChanged(path.join(root, 'src', 'index.css'), INDEX_CSS);
 }
 
 const RUNTIME_PACKAGES = {
