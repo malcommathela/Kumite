@@ -622,10 +622,12 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8')) as {
                 schemaVersion?: number; url?: string; contentType?: string; body?: string; digest?: string;
             };
-            if (cached.schemaVersion !== 1 || cached.url !== url || typeof cached.body !== 'string') {
+            if (cached.schemaVersion !== 1 || cached.url !== url || typeof cached.body !== 'string' || typeof cached.digest !== 'string') {
                 return undefined;
             }
-            return { bytes: new Uint8Array(Buffer.from(cached.body, 'base64')), contentType: cached.contentType ?? '' };
+            const bytes = new Uint8Array(Buffer.from(cached.body, 'base64'));
+            if (sha256(bytes) !== cached.digest) return undefined;
+            return { bytes, contentType: cached.contentType ?? '' };
         } catch {
             return undefined;
         }
@@ -637,6 +639,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
         const temporary = `${cachePath}.${randomUUID()}.tmp`;
         fs.writeFileSync(temporary, JSON.stringify({
             schemaVersion: 1, url, contentType: response.contentType,
+            digest: sha256(response.bytes),
             body: Buffer.from(response.bytes).toString('base64'),
         }), { encoding: 'utf8', flag: 'wx' });
         try {
