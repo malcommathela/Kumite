@@ -47,8 +47,8 @@ export function buildArtifactPreviewModule(
             ? `import Implementation from ${JSON.stringify(source)};`
             : `import { ${entry.name} as Implementation } from ${JSON.stringify(source)};`;
     const previewLayout = artifact.metadata.type === 'block'
-        ? 'flex h-full w-full items-center justify-center overflow-hidden p-4 [&>*]:min-h-0 [&>*]:min-w-0 [&>*]:max-h-full [&>*]:max-w-full'
-        : 'mx-auto flex h-full w-full max-w-2xl items-center justify-center overflow-hidden p-4 [&>*]:min-h-0 [&>*]:min-w-0 [&>*]:max-h-full [&>*]:max-w-full';
+        ? 'flex h-full w-full items-center justify-center overflow-hidden p-6 [&>*]:min-h-0 [&>*]:min-w-0 [&>*]:max-h-full [&>*]:max-w-full'
+        : 'mx-auto flex h-full w-full max-w-2xl items-center justify-center overflow-hidden p-6 [&>*]:min-h-0 [&>*]:min-w-0 [&>*]:max-h-full [&>*]:max-w-full';
     return `/* kumite artifact preview */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -69,7 +69,7 @@ class Boundary extends React.Component {
     }
 }
 function Preview() {
-    return <React.StrictMode><Boundary><Handshake /><main className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden"><div className={${JSON.stringify(previewLayout)}}><Implementation /></div></main></Boundary></React.StrictMode>;
+    return <React.StrictMode><Boundary><Handshake /><main className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden"><div className={${JSON.stringify(previewLayout)}} style={{ zoom: ${artifact.metadata.type === "block" ? "0.78" : "0.88"} }}><Implementation /></div></main></Boundary></React.StrictMode>;
 }
 createRoot(document.getElementById('root')!).render(<Preview />);
 void ${JSON.stringify(sessionId)};
