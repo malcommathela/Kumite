@@ -30,9 +30,6 @@ import { componentPreviewServer } from './preview';
 import { recordComponentInstallation } from './provenance';
 import { normalizeOklchTheme, ensureShadcnBaseLayer } from './theme';
 import { recoverArtifactInsertions } from './artifact-insertion';
-import { captureCatalogPreviewSnapshot } from './preview-snapshots';
-
-let catalogSnapshotChain: Promise<void> = Promise.resolve();
 export {
     createShadcnSourceResolver,
     hashImplementationArtifact,
@@ -691,8 +688,6 @@ export async function startCatalogPreview(
     components?: unknown,
     projectId?: unknown,
     onProgress?: (progress: ShadcnInstallProgress) => void,
-    onSnapshotReady?: (name: string) => void,
-    onSnapshotFailed?: (name: string, message: string) => void,
 ): Promise<ShadcnCatalogPreview> {
     try {
         const requested = Array.isArray(components)
@@ -708,10 +703,6 @@ export async function startCatalogPreview(
         if (requested.length === 0) {
             return { urls: {}, sources: {}, errors: {}, missing: [], error: null, log: null };
         }
-        // Do not mutate the shared Vite workspace while hidden windows are
-        // capturing the previous batch, but return this batch's live URLs
-        // without waiting for its snapshots to finish.
-        await catalogSnapshotChain.catch(() => undefined);
         const base = await ensureCatalogBase();
         const errors: Record<string, string> = {};
         const requests: ImplementationRequest[] = [];
@@ -758,50 +749,6 @@ export async function startCatalogPreview(
             },
         );
         Object.assign(errors, result.errors);
-        // Capture snapshots off the request path. Existing cards remain
-        // responsive while Chromium renders a bounded number in the background.
-        const captures: Array<{ name: string; url: string; sessionId: string }> = [];
-        for (const [name, url] of Object.entries(result.urls)) {
-            const sessionId = result.sessions?.[name];
-            if (!sessionId) {
-                onSnapshotFailed?.(name, 'The preview runtime did not return a snapshot session id.');
-                continue;
-            }
-            captures.push({ name, url, sessionId });
-        }
-        let nextCapture = 0;
-        const workers = Array.from(
-            { length: Math.min(2, captures.length) },
-            async () => {
-                while (nextCapture < captures.length) {
-                    const capture = captures[nextCapture++]!;
-                    try {
-                        await captureCatalogPreviewSnapshot(
-                            capture.url,
-                            capture.name,
-                            capture.sessionId,
-                        );
-                        onSnapshotReady?.(capture.name);
-                    } catch (error) {
-                        const message =
-                            error instanceof Error ? error.message : String(error);
-                        console.warn(
-                            `Could not capture library preview for "${capture.name}":`,
-                            error,
-                        );
-                        onSnapshotFailed?.(capture.name, message);
-                    }
-                }
-            },
-        );
-        const captureTask = Promise.all(workers).then(() => undefined);
-        catalogSnapshotChain = captureTask.then(
-            () => undefined,
-            () => undefined,
-        );
-        void captureTask.catch((error) => {
-            console.warn('Library preview snapshot batch failed:', error);
-        });
         const log = [base.log, result.log].filter(Boolean).join('\n\n');
         onProgress?.({
             component: requested.join(', '),
