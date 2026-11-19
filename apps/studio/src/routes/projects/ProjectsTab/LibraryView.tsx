@@ -254,10 +254,12 @@ const LibraryCard = observer(function LibraryCard({
     const previewSessionId = manager.catalogSessions[item.name];
     const previewLoading = Boolean(manager.catalogItemLoading[item.name]);
     const previewError = manager.catalogItemErrors[item.name];
+    // Catalog capability flags are opt-out: omitted means previewable.
+    const previewable = item.previewable !== false;
 
     useEffect(() => {
         const node = previewRef.current;
-        if (!node || !item.previewable || hasEnteredViewport) {
+        if (!node || !previewable || hasEnteredViewport) {
             return;
         }
         const observer = new IntersectionObserver(
@@ -273,7 +275,7 @@ const LibraryCard = observer(function LibraryCard({
         );
         observer.observe(node);
         return () => observer.disconnect();
-    }, [hasEnteredViewport, item.name, item.previewable, onVisible]);
+    }, [hasEnteredViewport, item.name, previewable, onVisible]);
 
     return (
         <button
@@ -291,14 +293,14 @@ const LibraryCard = observer(function LibraryCard({
                         name={item.name}
                         sessionId={previewSessionId}
                     />
-                ) : previewLoading || (item.previewable && !previewError && !previewUrl) ? (
+                ) : previewLoading || (previewable && !previewError && !previewUrl) ? (
                     <PreviewShimmer name={item.name} />
                 ) : (
                     <div className="flex h-full items-center justify-center p-6">
                         <ComponentThumbnail name={item.name} />
                     </div>
                 )}
-                {previewError && item.previewable && (
+                {previewError && previewable && (
                     <span
                         className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] text-foreground-quadranary backdrop-blur"
                         title={previewError}
@@ -333,7 +335,7 @@ const LibraryDetail = observer(function LibraryDetail({
     const [copied, setCopied] = useState<'install' | 'agent' | null>(null);
 
     useEffect(() => {
-        if (!item?.previewable) {
+        if (!item || item.previewable === false) {
             return;
         }
         void manager.ensureCatalogPreviews([item.name]);
@@ -383,7 +385,7 @@ const LibraryDetail = observer(function LibraryDetail({
                                         Retry preview
                                     </Button>
                                 </div>
-                            ) : previewLoading || item.previewable ? (
+                            ) : previewLoading || item.previewable !== false ? (
                                 <PreviewShimmer name={item.name} />
                             ) : (
                                 <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
