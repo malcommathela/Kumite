@@ -11,7 +11,8 @@ import {
 } from '@kumite/models';
 import { COMPONENT_CLI_VERSION } from '@kumite/models';
 
-const UPSTREAM_COMMIT = '1e9e337923aaede7db55b6091cb56a72a661b959';
+export const SHADCN_SOURCE_COMMIT = '1e9e337923aaede7db55b6091cb56a72a661b959';
+const UPSTREAM_COMMIT = SHADCN_SOURCE_COMMIT;
 const RAW_ROOT = `https://raw.githubusercontent.com/shadcn-ui/ui/${UPSTREAM_COMMIT}`;
 const REGISTRY_ROOT = `${RAW_ROOT}/apps/v4/public/r/styles/new-york-v4`;
 const REGISTRY_SOURCE_ROOT = 'registry/new-york-v4';
