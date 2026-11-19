@@ -3,6 +3,7 @@ import { describe, it } from 'bun:test';
 import { getShadcnExampleName, getShadcnLibraryItem } from '@kumite/models';
 import type { ImplementationArtifact } from '@kumite/models';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
+import { buildArtifactPreviewViteConfig } from './preview-vite-config';
 
 function artifact(
     kind: ImplementationArtifact['metadata']['type'],
@@ -45,6 +46,10 @@ function artifact(
 }
 
 describe('artifact preview adapter', () => {
+    it('disables catalog HMR so adding another item cannot reload visible previews', () => {
+        assert.match(buildArtifactPreviewViteConfig(), /server:\s*\{\s*hmr:\s*false/);
+    });
+
     it('associates supported catalog components with verified upstream examples', () => {
         assert.equal(getShadcnExampleName(getShadcnLibraryItem('button')!), 'button-demo');
         assert.equal(getShadcnExampleName(getShadcnLibraryItem('chart')!), 'chart-bar-demo');
