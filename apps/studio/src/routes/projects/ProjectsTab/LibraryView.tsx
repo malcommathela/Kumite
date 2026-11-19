@@ -1,4 +1,5 @@
 import {
+    CardPreview,
     ComponentThumbnail,
     getCategory,
     PreviewFrame,
@@ -283,10 +284,10 @@ const LibraryCard = observer(function LibraryCard({
     const previewRef = useRef<HTMLDivElement | null>(null);
     const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
     const span = getCatalogSpan(item);
-    const snapshot = manager.catalogSnapshots[item.name];
+    const previewUrl = manager.catalogPreviews[item.name];
+    const previewSessionId = manager.catalogSessions[item.name];
     const previewLoading = Boolean(manager.catalogItemLoading[item.name]);
     const previewError = manager.catalogItemErrors[item.name];
-    const snapshotError = manager.catalogSnapshotErrors[item.name];
 
     useEffect(() => {
         const node = previewRef.current;
@@ -300,18 +301,13 @@ const LibraryCard = observer(function LibraryCard({
                 }
                 setHasEnteredViewport(true);
                 observer.disconnect();
-                void manager.loadCatalogSnapshot(item.name).then((snapshot) => {
-                    // A saved snapshot is enough for the library grid. Only
-                    // start the preview runtime when this item has never been
-                    // captured on this device.
-                    if (!snapshot) onVisible(item.name);
-                });
+                onVisible(item.name);
             },
             { rootMargin: '100px' },
         );
         observer.observe(node);
         return () => observer.disconnect();
-    }, [hasEnteredViewport, item.name, item.previewable, manager, onVisible]);
+    }, [hasEnteredViewport, item.name, item.previewable, onVisible]);
 
     return (
         <button
@@ -328,24 +324,24 @@ const LibraryCard = observer(function LibraryCard({
                     PREVIEW_HEIGHT[span],
                 )}
             >
-                {snapshot ? (
-                    <img
-                        src={snapshot}
-                        alt={`${item.title} preview snapshot`}
-                        className="h-full w-full object-contain"
-                        draggable={false}
+                {previewUrl && hasEnteredViewport ? (
+                    <CardPreview
+                        src={previewUrl}
+                        title={`${item.title} preview`}
+                        name={item.name}
+                        sessionId={previewSessionId}
                     />
-                ) : previewLoading || (item.previewable && !previewError && !snapshotError) ? (
+                ) : previewLoading || (item.previewable && !previewError && !previewUrl) ? (
                     <PreviewShimmer name={item.name} />
                 ) : (
                     <div className="flex h-full items-center justify-center p-6">
                         <ComponentThumbnail name={item.name} />
                     </div>
                 )}
-                {(previewError || snapshotError) && item.previewable && !snapshot && (
+                {previewError && item.previewable && (
                     <span
                         className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] text-foreground-quadranary backdrop-blur"
-                        title={previewError ?? snapshotError}
+                        title={previewError}
                     >
                         Preview unavailable
                     </span>
@@ -365,7 +361,7 @@ const LibraryCard = observer(function LibraryCard({
                     </p>
                 </div>
                 <span className="mt-0.5 shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] text-foreground-tertiary">
-                    {snapshot ? 'Saved' : previewError || snapshotError ? 'Unavailable' : item.previewable ? 'Preview' : 'Static'}
+                    {item.previewable ? 'Live' : 'Static'}
                 </span>
             </div>
         </button>
