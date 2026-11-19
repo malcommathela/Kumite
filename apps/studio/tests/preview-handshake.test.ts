@@ -4,6 +4,7 @@ import {
     parsePreviewMessage,
 } from '@kumite/models/components';
 import { describe, expect, it } from 'bun:test';
+import { buildHandshakeScript } from '../electron/main/components/preview-runtime';
 
 const valid = {
     source: PREVIEW_MESSAGE_SOURCE,
@@ -69,5 +70,15 @@ describe('advancePreviewState', () => {
     it('recovers from error only when the preview reports mounted', () => {
         expect(advancePreviewState('error', message('mounted'))).toBe('mounted');
         expect(advancePreviewState('error', message('booting'))).toBeNull();
+    });
+});
+
+
+describe('preview handshake snapshot readiness', () => {
+    it('retains the latest lifecycle state for a listener attached after React mounts', () => {
+        const script = buildHandshakeScript('snapshot-session');
+        expect(script).toContain("state: 'booting'");
+        expect(script).toContain('window.__kumitePreview.state = state');
+        expect(script).toContain('window.__kumitePreview.detail = detail == null ? null : String(detail)');
     });
 });

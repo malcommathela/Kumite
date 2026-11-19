@@ -3,6 +3,7 @@ import { describe, it } from 'bun:test';
 import { getShadcnExampleName, getShadcnLibraryItem } from '@kumite/models';
 import type { ImplementationArtifact } from '@kumite/models';
 import { buildArtifactPreviewModule } from './artifact-preview-module';
+import { buildArtifactPreviewViteConfig } from './preview-vite-config';
 
 function artifact(
     kind: ImplementationArtifact['metadata']['type'],
@@ -45,6 +46,10 @@ function artifact(
 }
 
 describe('artifact preview adapter', () => {
+    it('disables catalog HMR so adding another item cannot reload visible previews', () => {
+        assert.match(buildArtifactPreviewViteConfig(), /server:\s*\{\s*hmr:\s*false/);
+    });
+
     it('associates supported catalog components with verified upstream examples', () => {
         assert.equal(getShadcnExampleName(getShadcnLibraryItem('button')!), 'button-demo');
         assert.equal(getShadcnExampleName(getShadcnLibraryItem('chart')!), 'chart-bar-demo');
@@ -62,7 +67,9 @@ describe('artifact preview adapter', () => {
             /import Implementation from "@\/registry\/new-york-v4\/blocks\/fixture\/page"/,
         );
         assert.match(module, /<Implementation \/>/);
-        assert.match(module, /w-full min-h-full/);
+        assert.match(module, /overflow-hidden p-6/);
+        assert.match(module, /zoom: 0\.78/);
+        assert.match(module, /h-full w-full items-center justify-center overflow-hidden/);
         assert.doesNotMatch(module, /previewCode|insertCode/);
     });
 
@@ -76,7 +83,10 @@ describe('artifact preview adapter', () => {
             module,
             /import \{ Button as Implementation \} from "@\/registry\/new-york-v4\/ui\/fixture"/,
         );
-        assert.match(module, /max-w-2xl items-center justify-center/);
+        assert.match(module, /max-w-2xl items-center justify-center overflow-hidden/);
+        assert.match(module, /overflow-hidden p-6/);
+        assert.match(module, /zoom: 0\.88/);
+        assert.match(module, /<main className=\"flex h-full min-h-0 w-full items-center justify-center overflow-hidden\">/);
     });
 
     it('skips type-only exports when picking a runtime component export', () => {

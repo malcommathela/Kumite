@@ -10,6 +10,7 @@ import { runPackageManagerInstall } from './cli';
 import { projectLifecycle } from '../lifecycle/state';
 import { GENERATED_CONFIG_MARKER, buildArtifactPreviewViteConfig } from './preview-vite-config';
 import { implementationResolutionService } from './implementation-service';
+import { SHADCN_SOURCE_COMMIT } from './source-resolver';
 import {
     ImplementationMaterializationError,
     materializeImplementationArtifact,
@@ -18,6 +19,7 @@ import {
 import {
     implementationWorkspaceIdentity,
     reconcileStalePreviewArtifactReferences,
+    readStoredImplementationArtifact,
     setImplementationArtifactReference,
     storeAndReferenceImplementationArtifact,
 } from './implementation-store';
@@ -44,6 +46,45 @@ export interface ArtifactCatalogPreviewResult {
 
 function sha256(content: string | Buffer): string {
     return createHash('sha256').update(content).digest('hex');
+}
+
+/**
+ * Catalog artifacts are immutable at the pinned upstream commit. Reuse a
+ * validated local artifact before asking the source adapter to fetch files
+ * again; the content-addressed store lives under Electron userData.
+ */
+export async function findCachedCatalogArtifact(
+    request: ImplementationRequest,
+    storeRoot: string,
+): Promise<ImplementationArtifact | null> {
+    const directory = path.join(storeRoot, 'artifacts');
+    let entries: string[];
+    try {
+        entries = await fs.promises.readdir(directory);
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+        throw error;
+    }
+
+    for (const entry of entries) {
+        if (!/^[a-f0-9]{64}$/.test(entry)) continue;
+        try {
+            const stored = await readStoredImplementationArtifact(entry, storeRoot);
+            const artifact = stored?.artifact;
+            if (
+                artifact &&
+                artifact.provider === request.provider &&
+                artifact.metadata.name === request.name &&
+                artifact.metadata.type === request.kind &&
+                artifact.source.commit === SHADCN_SOURCE_COMMIT
+            ) {
+                return artifact;
+            }
+        } catch {
+            // A corrupt/stale cache entry is not trusted. Resolve a fresh copy.
+        }
+    }
+    return null;
 }
 
 function abortIfRequested(signal?: AbortSignal): void {
@@ -555,14 +596,14 @@ export class ArtifactCatalogPreviewServer {
                     message: `Resolving ${request.kind} "${request.name}" from its pinned source artifact…`,
                 });
                 try {
-                    const resolved = await implementationResolutionService.resolve(
-                        request,
-                        options.signal,
-                    );
-                    artifacts.push(resolved.artifact);
+                    const cached = await findCachedCatalogArtifact(request, options.storeRoot);
+                    const artifact =
+                        cached ??
+                        (await implementationResolutionService.resolve(request, options.signal)).artifact;
+                    artifacts.push(artifact);
                     previewNames.set(
-                        resolved.artifact,
-                        options.previewNames?.[request.name] ?? resolved.artifact.metadata.name,
+                        artifact,
+                        options.previewNames?.[request.name] ?? artifact.metadata.name,
                     );
                 } catch (error) {
                     const displayName = options.previewNames?.[request.name] ?? request.name;

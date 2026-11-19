@@ -145,6 +145,10 @@ export function buildHandshakeScript(sessionId: string): string {
             var sessionId = ${JSON.stringify(sessionId)};
             var source = ${JSON.stringify(PREVIEW_MESSAGE_SOURCE)};
             function post(state, detail) {
+                if (window.__kumitePreview) {
+                    window.__kumitePreview.state = state;
+                    window.__kumitePreview.detail = detail == null ? null : String(detail);
+                }
                 try {
                     parent.postMessage(
                         {
@@ -159,7 +163,7 @@ export function buildHandshakeScript(sessionId: string): string {
                     /* The host went away; nothing to report to. */
                 }
             }
-            window.__kumitePreview = { sessionId: sessionId, post: post };
+            window.__kumitePreview = { sessionId: sessionId, post: post, state: 'booting', detail: null };
             post('booting');
             window.addEventListener('error', function (event) {
                 var detail = '';
