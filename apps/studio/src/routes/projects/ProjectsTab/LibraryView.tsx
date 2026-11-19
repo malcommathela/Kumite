@@ -28,7 +28,6 @@ import {
 } from '@kumite/ui/dropdown-menu';
 import { cn } from '@kumite/ui/utils';
 import {
-    ArrowUpRight,
     Blocks,
     Check,
     ChevronDown,
