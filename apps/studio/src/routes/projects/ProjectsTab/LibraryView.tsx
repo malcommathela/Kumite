@@ -52,6 +52,54 @@ interface LibraryViewProps {
     onUse?: (name: string) => void;
 }
 
+interface CatalogItem {
+    kind: CatalogKind;
+    name: string;
+    title: string;
+    description: string;
+    dependencies: string[];
+    parts: string[];
+    installCommand: string;
+    agentPrompt: string;
+    previewable?: boolean;
+    insertable?: boolean;
+    limitation?: string;
+    categories?: string[];
+}
+
+const COMPONENT_ITEMS: CatalogItem[] = SHADCN_COMPONENTS.map((item) => ({
+    kind: 'component',
+    name: item.name,
+    title: item.title,
+    description: item.description,
+    dependencies: item.dependencies,
+    parts: item.parts,
+    installCommand: `npx shadcn@3.7.0 add ${item.name}`,
+    agentPrompt: `Use the shadcn/ui ${item.title} (${item.name}) component. ${item.description} Insert this JSX with the project's existing tokens:\n\n${item.insertCode}`,
+    previewable: item.previewable,
+    insertable: item.insertable,
+    limitation: item.limitation,
+}));
+
+const BLOCK_ITEMS: CatalogItem[] = SHADCN_BLOCKS.map((item) => ({
+    kind: 'block',
+    name: item.name,
+    title: item.title,
+    description: item.description,
+    dependencies: item.dependencies,
+    parts: item.files,
+    installCommand: `npx shadcn@3.7.0 add ${item.registryUrl}`,
+    agentPrompt: `Use the shadcn/ui ${item.title} block (${item.name}). ${item.description} Install it with npx shadcn@3.7.0 add ${item.registryUrl} and adapt the copy and colors to the project.`,
+    previewable: item.previewable,
+    insertable: item.insertable,
+    limitation: item.limitation,
+    categories: item.categories,
+}));
+
+const ITEMS = [...COMPONENT_ITEMS, ...BLOCK_ITEMS];
+
+type Filter = 'all' | CatalogKind;
+
 export const LibraryView = observer((props: LibraryViewProps) => {
     const { popup = false, initialSelectedName = null, onUse } = props;
     const editorEngine = useEditorEngine();
@@ -355,7 +403,7 @@ const LibraryDetail = observer(function LibraryDetail({
                             <div className="mt-5 flex flex-wrap gap-2">
                                 <Tag icon={item.kind === 'block' ? Blocks : Component}>
                                     {item.kind === 'block'
-                                        ? (item.categories[0] ?? 'Block')
+                                        ? (item.categories?.[0] ?? 'Block')
                                         : getCategory(item.name)}
                                 </Tag>
                                 {item.dependencies.slice(0, 4).map((dependency) => (
