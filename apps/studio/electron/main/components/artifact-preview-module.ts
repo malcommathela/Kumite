@@ -47,8 +47,8 @@ export function buildArtifactPreviewModule(
             ? `import Implementation from ${JSON.stringify(source)};`
             : `import { ${entry.name} as Implementation } from ${JSON.stringify(source)};`;
     const previewLayout = artifact.metadata.type === 'block'
-        ? 'flex h-full w-full items-center justify-center overflow-hidden p-4 [&>*]:max-h-full [&>*]:max-w-full'
-        : 'mx-auto flex h-full w-full max-w-2xl items-center justify-center overflow-hidden p-4 [&>*]:max-h-full [&>*]:max-w-full';
+        ? 'flex h-full w-full items-center justify-center overflow-hidden p-4 [&>*]:min-h-0 [&>*]:min-w-0 [&>*]:max-h-full [&>*]:max-w-full'
+        : 'mx-auto flex h-full w-full max-w-2xl items-center justify-center overflow-hidden p-4 [&>*]:min-h-0 [&>*]:min-w-0 [&>*]:max-h-full [&>*]:max-w-full';
     return `/* kumite artifact preview */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
