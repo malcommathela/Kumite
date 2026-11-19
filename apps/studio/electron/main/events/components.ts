@@ -17,7 +17,6 @@ import {
     startComponentPreview,
     stopComponentPreview,
 } from '../components';
-import { readCatalogPreviewSnapshot } from '../components/preview-snapshots';
 
 function progressReporter(sender: WebContents) {
     return (progress: ShadcnInstallProgress) => {
@@ -28,13 +27,6 @@ function progressReporter(sender: WebContents) {
 }
 
 export function listenForComponentMessages() {
-    ipcMain.handle(MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_GET, (_event, args: { name?: string }) => {
-        if (!args || typeof args.name !== 'string' || args.name.trim().length === 0) {
-            return null;
-        }
-        return readCatalogPreviewSnapshot(args.name);
-    });
-
     ipcMain.handle(MainChannels.COMPONENTS_GET_STATUS, async (_event, projectPath: string) => {
         const artifactInsertionRecovery = await reconcileArtifactInsertions(projectPath);
         return { ...getComponentStatus(projectPath), artifactInsertionRecovery };
@@ -183,19 +175,6 @@ export function listenForComponentMessages() {
                 args?.components,
                 args?.projectId,
                 progressReporter(event.sender),
-                (name) => {
-                    if (!event.sender.isDestroyed()) {
-                        event.sender.send(MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_READY, { name });
-                    }
-                },
-                (name, message) => {
-                    if (!event.sender.isDestroyed()) {
-                        event.sender.send(MainChannels.COMPONENTS_PREVIEW_SNAPSHOT_FAILED, {
-                            name,
-                            message,
-                        });
-                    }
-                },
             );
         },
     );
