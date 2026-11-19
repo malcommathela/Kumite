@@ -53,7 +53,7 @@ function sha256(content: string | Buffer): string {
  * validated local artifact before asking the source adapter to fetch files
  * again; the content-addressed store lives under Electron userData.
  */
-async function findCachedCatalogArtifact(
+export async function findCachedCatalogArtifact(
     request: ImplementationRequest,
     storeRoot: string,
 ): Promise<ImplementationArtifact | null> {
