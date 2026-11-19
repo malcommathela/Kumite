@@ -47,86 +47,6 @@ import type { ComponentsManager } from '@/lib/components';
 import { PageHeader } from './Home';
 
 type CatalogKind = 'component' | 'block';
-type CatalogSpan = 'full' | 'half' | 'third';
-
-interface CatalogItem {
-    kind: CatalogKind;
-    name: string;
-    title: string;
-    description: string;
-    categories: string[];
-    dependencies: string[];
-    parts: string[];
-    installCommand: string;
-    agentPrompt: string;
-    previewable: boolean;
-    insertable: boolean;
-    limitation?: string;
-}
-
-const COMPONENT_ITEMS: CatalogItem[] = SHADCN_COMPONENTS.map((item: ShadcnComponentDefinition) => ({
-    kind: 'component',
-    name: item.name,
-    title: item.title,
-    description: item.description,
-    categories: [getCategory(item.name)],
-    dependencies: item.dependencies,
-    parts: item.parts,
-    installCommand: `npx shadcn@3.7.0 add ${item.name}`,
-    agentPrompt: `Use the shadcn/ui ${item.title} (${item.name}) component. ${item.description} Insert this JSX with the project's existing tokens:\n\n${item.insertCode}`,
-    previewable: item.previewable !== false,
-    insertable: item.insertable !== false,
-    limitation: item.limitation,
-}));
-
-const BLOCK_ITEMS: CatalogItem[] = SHADCN_BLOCKS.map((item: ShadcnBlockDefinition) => ({
-    kind: 'block',
-    name: item.name,
-    title: item.title,
-    description: item.description,
-    categories: item.categories,
-    dependencies: item.dependencies,
-    parts: item.files,
-    installCommand: `npx shadcn@3.7.0 add ${item.registryUrl}`,
-    agentPrompt: `Use the shadcn/ui ${item.title} block (${item.name}). ${item.description} Install it with \`npx shadcn@3.7.0 add ${item.registryUrl}\` and adapt the copy and colors to the project.`,
-    previewable: item.previewable !== false,
-    insertable: item.insertable !== false,
-    limitation: item.limitation,
-}));
-
-const ITEMS = [...COMPONENT_ITEMS, ...BLOCK_ITEMS];
-
-type Filter = 'all' | CatalogKind;
-
-/**
- * Wide surfaces get the whole row; auth and calendar blocks sit two-up;
- * primitives share a row three ways.
- */
-function getCatalogSpan(item: CatalogItem): CatalogSpan {
-    if (item.kind === 'component') {
-        if (item.name === 'chart') {
-            return 'full';
-        }
-        if (['table', 'calendar', 'command'].includes(item.name)) {
-            return 'half';
-        }
-        return 'third';
-    }
-    return item.name.startsWith('dashboard-') ? 'full' : 'half';
-}
-
-const SPAN_CLASS: Record<CatalogSpan, string> = {
-    full: 'md:col-span-2 xl:col-span-6',
-    half: 'md:col-span-1 xl:col-span-3',
-    third: 'md:col-span-1 xl:col-span-2',
-};
-
-const PREVIEW_HEIGHT: Record<CatalogSpan, string> = {
-    full: 'h-[300px] xl:h-[380px]',
-    half: 'h-[260px] xl:h-[320px]',
-    third: 'h-[230px] xl:h-[260px]',
-};
-
 interface LibraryViewProps {
     popup?: boolean;
     initialSelectedName?: string | null;
@@ -233,7 +153,7 @@ export const LibraryView = observer((props: LibraryViewProps) => {
                 </span>
             </div>
 
-            <div className="mt-8 grid grid-flow-row-dense grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2 xl:grid-cols-6">
+            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((item) => (
                     <LibraryCard
                         key={`${item.kind}-${item.name}`}
@@ -283,7 +203,6 @@ const LibraryCard = observer(function LibraryCard({
 }) {
     const previewRef = useRef<HTMLDivElement | null>(null);
     const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
-    const span = getCatalogSpan(item);
     const previewUrl = manager.catalogPreviews[item.name];
     const previewSessionId = manager.catalogSessions[item.name];
     const previewLoading = Boolean(manager.catalogItemLoading[item.name]);
@@ -312,17 +231,11 @@ const LibraryCard = observer(function LibraryCard({
     return (
         <button
             onClick={onOpen}
-            className={cn(
-                'group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface text-left transition-colors hover:border-border-hover',
-                SPAN_CLASS[span],
-            )}
+            className="group flex min-w-0 flex-col gap-2.5 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
             <div
                 ref={previewRef}
-                className={cn(
-                    'relative w-full overflow-hidden bg-background-secondary/40',
-                    PREVIEW_HEIGHT[span],
-                )}
+                className="relative aspect-[8/5] w-full overflow-hidden rounded-xl bg-white"
             >
                 {previewUrl && hasEnteredViewport ? (
                     <CardPreview
@@ -346,23 +259,12 @@ const LibraryCard = observer(function LibraryCard({
                         Preview unavailable
                     </span>
                 )}
-                <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 text-foreground-tertiary opacity-0 backdrop-blur transition-opacity group-hover:opacity-100">
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                </span>
-                <span className="absolute left-3 top-3 rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-foreground-tertiary backdrop-blur">
-                    {item.kind === 'block' ? 'Block' : getCategory(item.name)}
-                </span>
             </div>
-            <div className="flex items-start justify-between gap-3 border-t border-border px-4 py-3">
-                <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-foreground">{item.title}</p>
-                    <p className="mt-0.5 line-clamp-1 text-[11.5px] text-foreground-quadranary">
-                        {item.description}
-                    </p>
-                </div>
-                <span className="mt-0.5 shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] text-foreground-tertiary">
-                    {item.previewable ? 'Live' : 'Static'}
-                </span>
+            <div className="min-w-0 px-0.5">
+                <p className="truncate text-[13px] font-medium text-foreground">{item.title}</p>
+                <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-[1.55] text-foreground-quadranary">
+                    {item.description}
+                </p>
             </div>
         </button>
     );
