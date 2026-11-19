@@ -10,7 +10,10 @@ const source = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
     plugins: [react(), tailwindcss()],
-    // Catalog iframes are independent, read-only views. Disable HMR so adding\n    // another cached artifact or rebuilding Tailwind cannot reload previews\n    // that are already visible in the library grid.\n    server: { hmr: false, headers: { 'Cache-Control': 'no-store' } },
+    // Catalog iframes are independent, read-only views. Disable HMR so adding
+    // another cached artifact or rebuilding Tailwind cannot reload previews
+    // that are already visible in the library grid.
+    server: { hmr: false, headers: { 'Cache-Control': 'no-store' } },
     resolve: {
         alias: [
             { find: /^@\/registry\/new-york-v4\//, replacement: source('./src/registry/new-york-v4/') },
