@@ -160,6 +160,9 @@ export class ProjectsManager {
         const project = this._project;
         let result = { success: true, errors: [] as string[] };
         if (project) {
+            // Capture while the editor webviews are still mounted. This also
+            // covers closing back to the dashboard, not only switching projects.
+            await this.capturePreview();
             try {
                 result = (await invokeMainChannel(MainChannels.PROJECT_CLOSE, {
                     id: project.id,
@@ -179,7 +182,6 @@ export class ProjectsManager {
     /** Closes the current project before switching to another one. */
     async openProject(project: Project): Promise<void> {
         if (this._project && this._project.id !== project.id) {
-            await this.capturePreview();
             await this.closeProject();
         }
         this.project = project;
