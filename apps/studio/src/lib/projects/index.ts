@@ -210,7 +210,6 @@ export class ProjectsManager {
             this.updateProject({
                 ...project,
                 previewImg: result.name,
-                updatedAt: new Date().toISOString(),
             });
         } catch (error) {
             console.warn('Could not capture project preview:', error);
