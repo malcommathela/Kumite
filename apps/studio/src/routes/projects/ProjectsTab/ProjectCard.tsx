@@ -4,6 +4,7 @@ import { cn } from '@kumite/ui/utils';
 import ProjectSettingsButton from './Select/ProjectSettingsButton';
 import { getPreviewImage } from '../helpers';
 import { useEffect, useState } from 'react';
+import { Skeleton } from '@kumite/ui/skeleton';
 
 export function ProjectPreview({ project, className }: { project: Project; className?: string }) {
     const [src, setSrc] = useState<string | null>(null);
@@ -14,11 +15,14 @@ export function ProjectPreview({ project, className }: { project: Project; class
             setSrc(null);
             return;
         }
-        getPreviewImage(project.previewImg).then((image) => {
-            if (active) {
-                setSrc(image);
-            }
-        });
+        getPreviewImage(project.previewImg)
+            .then((image) => {
+                if (active) setSrc(image);
+            })
+            .catch((error) => {
+                console.warn('Could not load project preview:', error);
+                if (active) setSrc(null);
+            });
         return () => {
             active = false;
         };
@@ -47,24 +51,19 @@ export function ProjectPreview({ project, className }: { project: Project; class
 
 function PreviewPlaceholder({ name }: { name: string }) {
     return (
-        <div className="flex h-full w-full flex-col gap-2 p-5 opacity-70">
-            <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-foreground/20" />
-                <span className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
-                <span className="h-1.5 w-1.5 rounded-full bg-foreground/10" />
-                <span className="ml-auto font-display text-[13px] text-foreground-quadranary">
-                    {name}
-                </span>
-            </div>
-            <div className="mt-1 h-2 w-1/3 rounded-full bg-foreground/15" />
-            <div className="h-1.5 w-2/3 rounded-full bg-foreground/[0.07]" />
-            <div className="mt-2 flex flex-1 gap-2">
-                <div className="flex-1 rounded-lg border border-border/70 bg-foreground/[0.03]" />
-                <div className="flex w-1/3 flex-col gap-2">
-                    <div className="flex-1 rounded-lg border border-border/70 bg-foreground/[0.03]" />
-                    <div className="h-1/2 rounded-lg border border-border/70 bg-foreground/[0.03]" />
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
+            <div className="grid w-3/4 gap-2">
+                <Skeleton className="h-2.5 w-2/5" />
+                <Skeleton className="h-2 w-full" />
+                <Skeleton className="h-2 w-4/5" />
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Skeleton className="h-12 rounded-lg" />
+                    <Skeleton className="h-12 rounded-lg" />
                 </div>
             </div>
+            <p className="text-[10.5px] text-foreground-quadranary">
+                Open {name} once to generate its preview
+            </p>
         </div>
     );
 }
