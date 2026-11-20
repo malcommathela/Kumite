@@ -223,3 +223,37 @@
         mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
     }
 }
+
+
+@layer utilities {
+    @keyframes kumite-shimmer {
+        100% {
+            transform: translateX(100%);
+        }
+    }
+
+    .kumite-shimmer::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        transform: translateX(-100%);
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            hsl(var(--foreground) / 0.035) 35%,
+            hsl(var(--foreground) / 0.12) 50%,
+            hsl(var(--foreground) / 0.035) 65%,
+            transparent 100%
+        );
+        animation: kumite-shimmer 1.6s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kumite-shimmer::after {
+            animation: none;
+            transform: none;
+            opacity: 0.35;
+        }
+    }
+}
