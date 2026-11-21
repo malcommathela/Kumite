@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { ImplementationArtifact, ImplementationRequest, PackageManager } from '@kumite/models';
+import { resolvePackageManager } from '../package-manager';
 import { implementationResolutionService } from './implementation-service';
 import { prepareImplementationInsertion } from './insertion-preparation';
 import { materializeImplementationArtifact } from './implementation-materializer';
@@ -29,27 +30,11 @@ function hash(value: string | Buffer): string {
 }
 
 function packageManager(root: string): PackageManager {
-    const managers: PackageManager[] = [];
-    if (fs.existsSync(path.join(root, 'bun.lock')) || fs.existsSync(path.join(root, 'bun.lockb'))) {
-        managers.push('bun');
+    const manager = resolvePackageManager(root);
+    if (!manager) {
+        throw new Error('A package-manager lockfile is required for safe artifact insertion.');
     }
-    if (fs.existsSync(path.join(root, 'pnpm-lock.yaml'))) {
-        managers.push('pnpm');
-    }
-    if (fs.existsSync(path.join(root, 'yarn.lock'))) {
-        managers.push('yarn');
-    }
-    if (fs.existsSync(path.join(root, 'package-lock.json'))) {
-        managers.push('npm');
-    }
-    if (managers.length !== 1) {
-        throw new Error(
-            managers.length
-                ? `Conflicting package-manager lockfiles were found (${managers.join(', ')}). Keep exactly one.`
-                : 'A package-manager lockfile is required for safe artifact insertion.',
-        );
-    }
-    return managers[0];
+    return manager;
 }
 
 function lockfilesForApproval(

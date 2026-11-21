@@ -51,12 +51,10 @@ export class ProjectsManager {
         this._projects = cachedProjects.projects;
 
         const appState: AppState | null = await invokeMainChannel(MainChannels.GET_APP_STATE);
-        if (!appState) {
-            console.error('Failed to restore app state');
-            return;
-        }
-        if (appState.activeProjectId) {
-            this.project = this._projects.find((p) => p.id === appState.activeProjectId) || null;
+        if (appState?.activeProjectId) {
+            // Launching the app always shows the dashboard. Clear the stale id
+            // so a previously open project is never restored automatically.
+            this.updateAppState({ activeProjectId: null });
         }
     }
 
