@@ -37,6 +37,7 @@ import {
     RefreshCw,
     Search,
     Sparkles,
+    Target,
 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -354,145 +355,180 @@ const LibraryDetail = observer(function LibraryDetail({
 
     return (
         <Dialog open={!!item} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[860px] overflow-hidden rounded-2xl p-0">
+            <DialogContent className="h-[min(760px,90vh)] w-[min(1180px,94vw)] max-w-none gap-0 overflow-hidden rounded-[28px] border-border bg-background p-0 sm:rounded-[28px]">
                 {item && (
-                    <>
-                        <div
-                            className={cn(
-                                'relative overflow-hidden border-b border-border bg-surface',
-                                item.kind === 'block' ? 'h-[420px]' : 'h-[320px]',
-                            )}
-                        >
-                            {previewUrl ? (
-                                <PreviewFrame
-                                    src={previewUrl}
-                                    title={`${item.title} preview`}
-                                    name={item.name}
-                                    sessionId={previewSessionId}
-                                    onRetry={() => manager.retryPreview(item.name)}
-                                />
-                            ) : previewError ? (
-                                <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-                                    <p className="max-w-md text-[12px] leading-5 text-foreground-tertiary">
-                                        {previewError}
-                                    </p>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => void manager.retryCatalogPreview(item.name)}
-                                    >
-                                        <RefreshCw className="h-3.5 w-3.5" />
-                                        Retry preview
-                                    </Button>
-                                </div>
-                            ) : previewLoading || item.previewable !== false ? (
-                                <PreviewShimmer name={item.name} />
-                            ) : (
-                                <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-                                    <ComponentThumbnail name={item.name} />
-                                    <p className="max-w-sm text-[11.5px] leading-5 text-foreground-quadranary">
-                                        {item.limitation ?? 'This item cannot be previewed.'}
-                                    </p>
-                                </div>
-                            )}
+                    <div className="flex h-full min-h-0 flex-col md:flex-row">
+                        <div className="relative flex min-h-0 flex-1 items-stretch p-4 md:p-5">
+                            <div className="relative h-full min-h-[240px] w-full overflow-hidden rounded-[20px] border border-border bg-surface">
+                                {previewUrl ? (
+                                    <PreviewFrame
+                                        src={previewUrl}
+                                        title={`${item.title} preview`}
+                                        name={item.name}
+                                        sessionId={previewSessionId}
+                                        onRetry={() => manager.retryPreview(item.name)}
+                                    />
+                                ) : previewError ? (
+                                    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+                                        <p className="max-w-md text-[12px] leading-5 text-foreground-tertiary">
+                                            {previewError}
+                                        </p>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                void manager.retryCatalogPreview(item.name)
+                                            }
+                                        >
+                                            <RefreshCw className="h-3.5 w-3.5" />
+                                            Retry preview
+                                        </Button>
+                                    </div>
+                                ) : previewLoading || item.previewable !== false ? (
+                                    <PreviewShimmer name={item.name} />
+                                ) : (
+                                    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+                                        <ComponentThumbnail name={item.name} />
+                                        <p className="max-w-sm text-[11.5px] leading-5 text-foreground-quadranary">
+                                            {item.limitation ?? 'This item cannot be previewed.'}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className="p-6">
-                            <DialogHeader>
-                                <DialogTitle>{item.title}</DialogTitle>
-                                <DialogDescription>{item.description}</DialogDescription>
-                            </DialogHeader>
 
-                            <div className="mt-5 flex flex-wrap gap-2">
-                                <Tag icon={item.kind === 'block' ? Blocks : Component}>
-                                    {item.kind === 'block'
-                                        ? (item.categories?.[0] ?? 'Block')
-                                        : getCategory(item.name)}
-                                </Tag>
-                                {item.dependencies.slice(0, 4).map((dependency) => (
-                                    <Tag key={dependency} icon={Package}>
-                                        {dependency}
-                                    </Tag>
-                                ))}
-                            </div>
+                        <aside className="flex w-full shrink-0 flex-col border-t border-border bg-background-secondary md:w-[356px] md:border-l md:border-t-0">
+                            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-7 md:px-7">
+                                <DialogHeader className="space-y-0 text-left">
+                                    <DialogTitle className="pr-8 text-[2rem] leading-[1.08]">
+                                        {item.title}
+                                    </DialogTitle>
+                                    <DialogDescription className="mt-2.5 text-[12.5px] leading-[1.6] text-foreground-tertiary">
+                                        {item.description}
+                                    </DialogDescription>
+                                </DialogHeader>
 
-                            {item.parts.length > 0 && (
-                                <p className="mt-4 text-[11.5px] leading-5 text-foreground-quadranary">
-                                    <span className="text-foreground-tertiary">Exports: </span>
-                                    {item.parts.join(', ')}
+                                <p className="mt-7 text-[10px] font-medium uppercase tracking-[0.2em] text-foreground-quadranary">
+                                    Details
                                 </p>
-                            )}
 
-                            <div className="mt-5 flex flex-col gap-2">
-                                <div className="flex items-center gap-2 rounded-lg border border-border bg-background-secondary px-3 py-2">
-                                    <code className="min-w-0 flex-1 truncate text-[11.5px] text-foreground-secondary">
-                                        {item.installCommand}
-                                    </code>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-7 px-2"
-                                        onClick={() => copy(item.installCommand, 'install')}
-                                    >
-                                        {copied === 'install' ? (
-                                            <Check className="h-3.5 w-3.5" />
-                                        ) : (
-                                            <Copy className="h-3.5 w-3.5" />
-                                        )}
-                                    </Button>
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                    <Tag icon={item.kind === 'block' ? Blocks : Component}>
+                                        {item.kind === 'block'
+                                            ? (item.categories?.[0] ?? 'Block')
+                                            : getCategory(item.name)}
+                                    </Tag>
+                                    {item.dependencies.slice(0, 5).map((dependency) => (
+                                        <Tag key={dependency} icon={Package}>
+                                            {dependency}
+                                        </Tag>
+                                    ))}
+                                </div>
+
+                                {item.parts.length > 0 && (
+                                    <div className="mt-4">
+                                        <p className="text-[11px] text-foreground-quadranary">
+                                            Exports
+                                        </p>
+                                        <p className="mt-1 text-[11.5px] leading-5 text-foreground-secondary">
+                                            {item.parts.join(', ')}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="mt-5">
+                                    <p className="text-[11px] text-foreground-quadranary">
+                                        Install
+                                    </p>
+                                    <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-background px-3.5 py-2.5">
+                                        <code className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-foreground-secondary">
+                                            {item.installCommand}
+                                        </code>
+                                        <Button
+                                            size="icon-sm"
+                                            variant="ghost"
+                                            className="shrink-0"
+                                            aria-label="Copy install command"
+                                            onClick={() => copy(item.installCommand, 'install')}
+                                        >
+                                            {copied === 'install' ? (
+                                                <Check className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <Copy className="h-3.5 w-3.5" />
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="mt-5 flex items-center justify-between gap-3">
-                                <p className="text-[11px] text-foreground-quadranary">
-                                    Copies a prompt with the install command and JSX.
-                                </p>
-                                <div className="flex shrink-0 items-center gap-2">
+                            <div className="shrink-0 border-t border-border px-6 py-5 md:px-7">
+                                <div className="flex items-center gap-2">
                                     <Button
-                                        variant={onUse ? 'secondary' : 'default'}
+                                        variant="secondary"
+                                        className="h-10 min-w-0 flex-1"
                                         onClick={() => copy(item.agentPrompt, 'agent')}
                                     >
                                         <Sparkles className="h-4 w-4" />
-                                        {copied === 'agent' ? 'Copied' : 'Copy for agent'}
+                                        <span className="truncate">
+                                            {copied === 'agent' ? 'Copied' : 'Copy for agent'}
+                                        </span>
                                     </Button>
-                                    {onUse && item.insertable && (
+                                    {item.insertable !== false && (
                                         <Button
+                                            className="h-10 min-w-0 flex-1"
                                             disabled={
+                                                !onUse ||
                                                 !canUse ||
                                                 manager.using === item.name ||
                                                 manager.installing === item.name
                                             }
                                             title={
-                                                canUse
-                                                    ? undefined
-                                                    : 'Open a supported project and select an element in a frame first'
+                                                !onUse
+                                                    ? 'Open a project to use this component'
+                                                    : canUse
+                                                      ? undefined
+                                                      : 'Open a supported project and select an element in a frame first'
                                             }
-                                            onClick={() => onUse(item.name)}
+                                            onClick={() => onUse?.(item.name)}
                                         >
-                                            {manager.using === item.name && (
+                                            {manager.using === item.name ? (
                                                 <RefreshCw className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Target className="h-4 w-4" />
                                             )}
-                                            {manager.using === item.name
-                                                ? 'Adding…'
-                                                : 'Use artifact in Kumite'}
+                                            <span className="truncate">
+                                                {manager.using === item.name
+                                                    ? 'Adding…'
+                                                    : 'Use in Kumite'}
+                                            </span>
                                         </Button>
                                     )}
                                 </div>
+                                <p className="mt-3 text-[10.5px] leading-4 text-foreground-quadranary">
+                                    {onUse && item.insertable !== false
+                                        ? canUse
+                                            ? 'Adds the component to the element selected in the canvas.'
+                                            : 'Open a supported project and select an element to place this component.'
+                                        : 'Copies a prompt with the install command and JSX.'}
+                                </p>
+                                {onUse &&
+                                    manager.using === item.name &&
+                                    manager.activeInsertionPlanId && (
+                                        <div className="mt-2 flex justify-end">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    void manager.cancelInsertion(item.name)
+                                                }
+                                            >
+                                                Cancel insertion
+                                            </Button>
+                                        </div>
+                                    )}
                             </div>
-                            {onUse &&
-                                manager.using === item.name &&
-                                manager.activeInsertionPlanId && (
-                                    <div className="mt-2 flex justify-end">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => void manager.cancelInsertion(item.name)}
-                                        >
-                                            Cancel insertion
-                                        </Button>
-                                    </div>
-                                )}
-                        </div>
-                    </>
+                        </aside>
+                    </div>
                 )}
             </DialogContent>
         </Dialog>
