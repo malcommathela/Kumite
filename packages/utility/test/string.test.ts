@@ -1,4 +1,20 @@
-import { generateUniqueName } from '@kumite/utility';
+import { generateUniqueName, stripAnsi } from '@kumite/utility';
+
+describe('stripAnsi', () => {
+    it('removes color codes', () => {
+        expect(stripAnsi('\u001b[31mred\u001b[0m')).toBe('red');
+    });
+
+    it('removes cursor and formatting sequences', () => {
+        expect(stripAnsi('\u001b[2K\u001b[1Gready')).toBe('ready');
+    });
+
+    it('leaves plain text untouched', () => {
+        expect(stripAnsi('Local: http://127.0.0.1:3000/')).toBe(
+            'Local: http://127.0.0.1:3000/',
+        );
+    });
+});
 
 describe('generateUniqueName', () => {
     it('should generate a unique name when no existing names', () => {

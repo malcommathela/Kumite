@@ -1,3 +1,7 @@
+/** Resolves after the given number of milliseconds. */
+export const delay = (ms: number): Promise<void> =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
 export const timeAgo = (date: string): string => {
     const now = new Date();
     const then = new Date(date);
