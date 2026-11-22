@@ -51,9 +51,9 @@ export function cleanupArtifactPreviewWorkspace(workspaceRoot: string): void {
     if (!fs.existsSync(materializationsRoot)) {return;}
     const staleStageCutoff = Date.now() - 24 * 60 * 60 * 1000;
     for (const entry of fs.readdirSync(materializationsRoot, { withFileTypes: true })) {
-        if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith('.kumite-implementation-stage-')) continue;
+        if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith('.kumite-implementation-stage-')) {continue;}
         const stageDirectory = path.join(materializationsRoot, entry.name);
-        if (isImplementationMaterializationActive(stageDirectory)) continue;
+        if (isImplementationMaterializationActive(stageDirectory)) {continue;}
         try {
             const stat = fs.lstatSync(stageDirectory);
             if (stat.isDirectory() && stat.mtimeMs < staleStageCutoff) {
@@ -73,7 +73,7 @@ export function cleanupArtifactPreviewWorkspace(workspaceRoot: string): void {
     for (const entry of fs.readdirSync(materializationsRoot, { withFileTypes: true })) {
         if (!entry.isDirectory() || entry.isSymbolicLink()) {continue;}
         const directory = path.join(materializationsRoot, entry.name);
-        if (isImplementationMaterializationActive(directory)) continue;
+        if (isImplementationMaterializationActive(directory)) {continue;}
         try {
             const manifest = JSON.parse(
                 fs.readFileSync(path.join(directory, '.kumite-implementation.json'), 'utf8'),

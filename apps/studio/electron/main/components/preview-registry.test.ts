@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterAll, describe, it } from 'bun:test';
 import { generateArtifactPreviewRegistry } from './preview-registry';
 const roots: string[] = [];
-afterAll(() => { for (const root of roots) fs.rmSync(root, { recursive: true, force: true }); });
+afterAll(() => { for (const root of roots) {fs.rmSync(root, { recursive: true, force: true });} });
 describe('generated artifact preview registry', () => {
     it('writes lazy module loaders and integrity metadata in the isolated workspace', async () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-preview-registry-'));

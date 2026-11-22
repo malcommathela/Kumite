@@ -627,7 +627,7 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                 return undefined;
             }
             const bytes = new Uint8Array(Buffer.from(cached.body, 'base64'));
-            if (sha256(bytes) !== cached.digest) return undefined;
+            if (sha256(bytes) !== cached.digest) {return undefined;}
             return { bytes, contentType: cached.contentType ?? '' };
         } catch {
             try { fs.rmSync(cachePath, { force: true }); } catch { /* best-effort corrupt cache eviction */ }
@@ -647,20 +647,20 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
         try {
             fs.renameSync(temporary, cachePath);
         } catch (error) {
-            if (!fs.existsSync(cachePath)) throw error;
+            if (!fs.existsSync(cachePath)) {throw error;}
             fs.rmSync(temporary, { force: true });
         }
     }
 
     async function fetchPinnedResponse(url: string): Promise<CachedResponse> {
         const cached = readPersistentResponse(url);
-        if (cached) return cached;
+        if (cached) {return cached;}
         let lastError: unknown;
         for (let attempt = 0; attempt < 3; attempt += 1) {
             const controller = new AbortController();
             const abortFromCaller = () => controller.abort(options.signal?.reason);
-            if (options.signal?.aborted) abortFromCaller();
-            else options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+            if (options.signal?.aborted) {abortFromCaller();}
+            else {options.signal?.addEventListener('abort', abortFromCaller, { once: true });}
             const timeout = setTimeout(() => controller.abort(new Error('Request timed out after 20 seconds.')), 20_000);
             try {
                 const response = await fetcher(url, controller.signal);
@@ -682,19 +682,19 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
                     return value;
                 }
             } catch (error) {
-                if (error instanceof SourceResolutionError) throw error;
-                if (options.signal?.aborted) throw error;
+                if (error instanceof SourceResolutionError) {throw error;}
+                if (options.signal?.aborted) {throw error;}
                 lastError = error;
             } finally {
                 clearTimeout(timeout);
                 options.signal?.removeEventListener('abort', abortFromCaller);
             }
-            if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+            if (attempt < 2) {await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));}
         }
         // A failed network request must not hide an already cached, immutable
         // response. Re-read in case another resolver process populated it.
         const stale = readPersistentResponse(url);
-        if (stale) return stale;
+        if (stale) {return stale;}
         const detail = lastError instanceof Error ? lastError.message : String(lastError ?? 'unknown network error');
         throw new SourceResolutionError({
             kind: 'registry', source: url,

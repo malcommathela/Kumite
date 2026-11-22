@@ -7,7 +7,7 @@ import { buildArtifactPreviewStylesheet, ensureArtifactPreviewStylesheet } from 
 
 const roots: string[] = [];
 afterAll(() => {
-    for (const root of roots) fs.rmSync(root, { recursive: true, force: true });
+    for (const root of roots) {fs.rmSync(root, { recursive: true, force: true });}
 });
 
 describe('artifact preview stylesheet', () => {

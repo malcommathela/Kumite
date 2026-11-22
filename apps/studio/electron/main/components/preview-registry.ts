@@ -26,7 +26,7 @@ function sha256(value: string): string {
 }
 async function writeGeneratedFile(file: string, contents: string): Promise<void> {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    if (fs.existsSync(file) && fs.readFileSync(file, 'utf8') === contents) return;
+    if (fs.existsSync(file) && fs.readFileSync(file, 'utf8') === contents) {return;}
     const temporary = `${file}.${randomUUID()}.tmp`;
     try {
         fs.writeFileSync(temporary, contents, { encoding: 'utf8', flag: 'wx' });
@@ -37,12 +37,12 @@ async function writeGeneratedFile(file: string, contents: string): Promise<void>
                 break;
             } catch (error) {
                 const code = (error as NodeJS.ErrnoException).code;
-                if (attempt >= attempts - 1 || !['EPERM', 'EBUSY', 'EACCES'].includes(code ?? '') || !fs.existsSync(temporary)) throw error;
+                if (attempt >= attempts - 1 || !['EPERM', 'EBUSY', 'EACCES'].includes(code ?? '') || !fs.existsSync(temporary)) {throw error;}
                 await new Promise((resolve) => setTimeout(resolve, 30 * (attempt + 1)));
             }
         }
     } finally {
-        if (fs.existsSync(temporary)) fs.rmSync(temporary, { force: true });
+        if (fs.existsSync(temporary)) {fs.rmSync(temporary, { force: true });}
     }
 }
 
@@ -56,7 +56,7 @@ export async function generateArtifactPreviewRegistry(
     let existingEntries: RegistryManifest['entries'] = [];
     try {
         const previous = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')) as RegistryManifest;
-        if (previous.schemaVersion === 1 && Array.isArray(previous.entries)) existingEntries = previous.entries;
+        if (previous.schemaVersion === 1 && Array.isArray(previous.entries)) {existingEntries = previous.entries;}
     } catch {
         existingEntries = [];
     }

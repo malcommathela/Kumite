@@ -17,11 +17,11 @@ export function ProjectPreview({ project, className }: { project: Project; class
         }
         getPreviewImage(project.previewImg)
             .then((image) => {
-                if (active) setSrc(image);
+                if (active) {setSrc(image);}
             })
             .catch((error) => {
                 console.warn('Could not load project preview:', error);
-                if (active) setSrc(null);
+                if (active) {setSrc(null);}
             });
         return () => {
             active = false;

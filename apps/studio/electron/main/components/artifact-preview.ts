@@ -62,12 +62,12 @@ export async function findCachedCatalogArtifact(
     try {
         entries = await fs.promises.readdir(directory);
     } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {return null;}
         throw error;
     }
 
     for (const entry of entries) {
-        if (!/^[a-f0-9]{64}$/.test(entry)) continue;
+        if (!/^[a-f0-9]{64}$/.test(entry)) {continue;}
         try {
             const stored = await readStoredImplementationArtifact(entry, storeRoot);
             const artifact = stored?.artifact;

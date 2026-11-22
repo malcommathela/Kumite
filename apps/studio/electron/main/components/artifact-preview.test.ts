@@ -86,7 +86,10 @@ describe('artifact preview adapter', () => {
         assert.match(module, /max-w-2xl items-center justify-center overflow-hidden/);
         assert.match(module, /overflow-hidden p-6/);
         assert.match(module, /zoom: 0\.88/);
-        assert.match(module, /<main className=\"flex h-full min-h-0 w-full items-center justify-center overflow-hidden\">/);
+        assert.match(
+            module,
+            /<main className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden">/,
+        );
     });
 
     it('skips type-only exports when picking a runtime component export', () => {
