@@ -101,7 +101,7 @@ function Fit({ children }) {
     return (
         <div className="fixed inset-0 flex items-center justify-center overflow-hidden p-6">
             <div ref={frame} className="flex h-full w-full items-center justify-center overflow-hidden">
-                <div ref={content} className="w-full origin-center">{children}</div>
+                <div ref={content} className="flex w-full origin-center items-center justify-center">{children}</div>
             </div>
         </div>
     );
