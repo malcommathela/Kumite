@@ -222,7 +222,7 @@ export function ComponentThumbnail({ name }: { name: string }) {
     }
     if (/^calendar-/.test(name) || name === 'calendar') {
         return (
-            <div className="mx-auto w-3/5 rounded-lg border border-border bg-background p-3">
+            <div className="mx-auto w-3/5 origin-center scale-90 rounded-lg border border-border bg-background p-3">
                 <div className="mb-2 flex items-center justify-between">
                     <span className="h-2 w-1/3 rounded-full bg-foreground/70" />
                     <span className="h-2 w-2 rounded-full bg-muted" />
@@ -272,7 +272,7 @@ export function ComponentThumbnail({ name }: { name: string }) {
     }
     if (['card', 'empty'].includes(name)) {
         return (
-            <div className="mx-auto w-3/4 rounded-lg border border-border bg-background p-3 text-left">
+            <div className="mx-auto w-3/4 origin-center scale-90 rounded-lg border border-border bg-background p-3 text-left">
                 <div className="mb-2 h-2 w-2/5 rounded-full bg-foreground/80" />
                 <div className="mb-1 h-1.5 w-full rounded-full bg-muted" />
                 <div className="h-1.5 w-4/5 rounded-full bg-muted" />
@@ -301,7 +301,7 @@ export function ComponentThumbnail({ name }: { name: string }) {
     }
     if (['tabs', 'accordion', 'breadcrumb', 'navigation-menu', 'pagination'].includes(name)) {
         return (
-            <div className="mx-auto w-4/5 rounded-lg border border-border bg-background p-3 text-left">
+            <div className="mx-auto w-4/5 origin-center scale-90 rounded-lg border border-border bg-background p-3 text-left">
                 <div className="mb-3 flex gap-3 border-b border-border pb-2">
                     <span className="h-2 w-1/4 rounded-full bg-primary" />
                     <span className="h-2 w-1/4 rounded-full bg-muted" />
