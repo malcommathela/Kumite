@@ -285,7 +285,7 @@ const LibraryCard = observer(function LibraryCard({
         >
             <div
                 ref={previewRef}
-                className="relative aspect-[8/5] w-full overflow-hidden rounded-xl bg-white"
+                className="relative aspect-[8/5] w-full overflow-hidden rounded-xl bg-background"
             >
                 {previewUrl && hasEnteredViewport ? (
                     <CardPreview

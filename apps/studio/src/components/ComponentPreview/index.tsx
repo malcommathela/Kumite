@@ -4,7 +4,6 @@ import {
     type PreviewLifecycleState,
 } from '@kumite/models';
 import { Button } from '@kumite/ui/button';
-import { Skeleton } from '@kumite/ui/skeleton';
 import { cn } from '@kumite/ui/utils';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -54,137 +53,14 @@ export function getCategory(name: string): string {
     return CATEGORY_FOR_COMPONENT.get(name) ?? 'Other';
 }
 
-type ShimmerShape = 'avatar' | 'pills' | 'field' | 'panel' | 'rows' | 'bars' | 'grid' | 'lines';
-
-const FIELD_COMPONENTS = [
-    'input',
-    'input-group',
-    'input-otp',
-    'textarea',
-    'field',
-    'form',
-    'label',
-    'select',
-    'checkbox',
-    'radio-group',
-    'combobox',
-];
-
-/**
- * Each kind of component gets a skeleton with the same silhouette, so a loading
- * card hints at what is coming instead of showing the same three bars 54 times.
- */
-function shimmerShape(name: string): ShimmerShape {
-    if (name === 'avatar') {
-        return 'avatar';
-    }
-    if (name === 'chart') {
-        return 'bars';
-    }
-    if (['calendar', 'table', 'data-table', 'date-picker', 'input-otp'].includes(name)) {
-        return 'grid';
-    }
-    if (['badge', 'button', 'button-group', 'toggle', 'toggle-group'].includes(name)) {
-        return 'pills';
-    }
-    if (FIELD_COMPONENTS.includes(name)) {
-        return 'field';
-    }
-    switch (getCategory(name)) {
-        case 'Forms':
-            return 'pills';
-        case 'Feedback':
-            return 'pills';
-        case 'Navigation':
-            return 'rows';
-        case 'Layout':
-        case 'Overlays':
-            return 'panel';
-        default:
-            return 'lines';
-    }
-}
-
 export function PreviewShimmer({ name }: { name?: string }) {
-    const shape: ShimmerShape = name ? shimmerShape(name) : 'lines';
+    void name;
     return (
         <div
-            className="flex h-full w-full items-center justify-center p-4"
+            className="kumite-shimmer relative h-full w-full overflow-hidden bg-muted/40"
             role="status"
             aria-label="Loading preview"
         >
-            {shape === 'avatar' && (
-                <div className="flex w-full flex-col items-center gap-3">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <Skeleton className="h-2.5 w-24" />
-                    <Skeleton className="h-7 w-32 rounded-md" />
-                </div>
-            )}
-            {shape === 'pills' && (
-                <div className="flex w-full flex-wrap items-center justify-center gap-2">
-                    <Skeleton className="h-8 w-24 rounded-md" />
-                    <Skeleton className="h-8 w-20 rounded-md" />
-                    <Skeleton className="h-8 w-16 rounded-md" />
-                </div>
-            )}
-            {shape === 'field' && (
-                <div className="w-3/4 space-y-2">
-                    <Skeleton className="h-2.5 w-20" />
-                    <Skeleton className="h-8 w-full rounded-md" />
-                    <Skeleton className="h-2 w-24" />
-                </div>
-            )}
-            {shape === 'panel' && (
-                <div className="w-4/5 space-y-3 rounded-lg border border-border/70 p-3">
-                    <div className="flex items-center justify-between">
-                        <Skeleton className="h-2.5 w-24" />
-                        <Skeleton className="h-5 w-5 rounded-full" />
-                    </div>
-                    <Skeleton className="h-2 w-full" />
-                    <Skeleton className="h-2 w-4/5" />
-                    <Skeleton className="h-8 w-24 rounded-md" />
-                </div>
-            )}
-            {shape === 'rows' && (
-                <div className="w-4/5 space-y-2">
-                    <div className="flex gap-3">
-                        <Skeleton className="h-2.5 w-16" />
-                        <Skeleton className="h-2.5 w-14" />
-                        <Skeleton className="h-2.5 w-12" />
-                    </div>
-                    <Skeleton className="h-7 w-full rounded-md" />
-                    <Skeleton className="h-7 w-full rounded-md" />
-                </div>
-            )}
-            {shape === 'bars' && (
-                <div className="flex h-20 w-4/5 items-end gap-1.5 border-b border-border/70 px-2">
-                    {[40, 65, 48, 82, 56, 92, 70].map((height, index) => (
-                        <Skeleton
-                            key={index}
-                            className="flex-1 rounded-t-sm"
-                            style={{ height: `${height}%` }}
-                        />
-                    ))}
-                </div>
-            )}
-            {shape === 'grid' && (
-                <div className="w-4/5 space-y-2">
-                    <Skeleton className="h-2 w-24" />
-                    <div className="grid grid-cols-7 gap-1.5">
-                        {Array.from({ length: 21 }, (_, cell) => (
-                            <Skeleton key={cell} className="h-5 rounded-sm" />
-                        ))}
-                    </div>
-                </div>
-            )}
-            {shape === 'lines' && (
-                <div className="w-3/4 space-y-2">
-                    <Skeleton className="h-2.5 w-2/5" />
-                    <Skeleton className="h-2 w-full" />
-                    <Skeleton className="h-2 w-4/5" />
-                    <Skeleton className="h-8 w-28 rounded-md" />
-                </div>
-            )}
             <span className="sr-only">Loading preview</span>
         </div>
     );
