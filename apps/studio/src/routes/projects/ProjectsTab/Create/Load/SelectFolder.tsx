@@ -98,11 +98,4 @@ const LoadSelectFolder: StepComponent = ({ props, variant }) => {
     }
 };
 
-LoadSelectFolder.Header = (props) => <LoadSelectFolder props={props} variant="header" />;
-LoadSelectFolder.Content = (props) => <LoadSelectFolder props={props} variant="content" />;
-LoadSelectFolder.Footer = (props) => <LoadSelectFolder props={props} variant="footer" />;
-LoadSelectFolder.Header.displayName = 'LoadSelectFolder.Header';
-LoadSelectFolder.Content.displayName = 'LoadSelectFolder.Content';
-LoadSelectFolder.Footer.displayName = 'LoadSelectFolder.Footer';
-
 export { LoadSelectFolder };

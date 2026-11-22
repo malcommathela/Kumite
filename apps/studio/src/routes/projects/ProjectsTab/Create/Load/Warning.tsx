@@ -42,11 +42,4 @@ const LoadWarning: StepComponent = ({ props, variant }) => {
     }
 };
 
-LoadWarning.Header = (props) => <LoadWarning props={props} variant="header" />;
-LoadWarning.Content = (props) => <LoadWarning props={props} variant="content" />;
-LoadWarning.Footer = (props) => <LoadWarning props={props} variant="footer" />;
-LoadWarning.Header.displayName = 'LoadWarning.Header';
-LoadWarning.Content.displayName = 'LoadWarning.Content';
-LoadWarning.Footer.displayName = 'LoadWarning.Footer';
-
 export { LoadWarning };

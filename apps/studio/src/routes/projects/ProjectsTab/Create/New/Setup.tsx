@@ -163,12 +163,4 @@ const NewSetupProject: StepComponent = ({ props, variant }) => {
     }
 };
 
-NewSetupProject.Header = (props) => <NewSetupProject props={props} variant="header" />;
-NewSetupProject.Content = (props) => <NewSetupProject props={props} variant="content" />;
-NewSetupProject.Footer = (props) => <NewSetupProject props={props} variant="footer" />;
-
-NewSetupProject.Header.displayName = 'NewSetupProject.Header';
-NewSetupProject.Content.displayName = 'NewSetupProject.Content';
-NewSetupProject.Footer.displayName = 'NewSetupProject.Footer';
-
 export { NewSetupProject };

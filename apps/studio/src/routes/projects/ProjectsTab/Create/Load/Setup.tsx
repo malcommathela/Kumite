@@ -163,12 +163,4 @@ const LoadSetupProject: StepComponent = ({ props, variant }) => {
     }
 };
 
-LoadSetupProject.Header = (props) => <LoadSetupProject props={props} variant="header" />;
-LoadSetupProject.Content = (props) => <LoadSetupProject props={props} variant="content" />;
-LoadSetupProject.Footer = (props) => <LoadSetupProject props={props} variant="footer" />;
-
-LoadSetupProject.Header.displayName = 'LoadSetupProject.Header';
-LoadSetupProject.Content.displayName = 'LoadSetupProject.Content';
-LoadSetupProject.Footer.displayName = 'LoadSetupProject.Footer';
-
 export { LoadSetupProject };
