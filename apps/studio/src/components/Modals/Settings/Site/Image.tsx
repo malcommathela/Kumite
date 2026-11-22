@@ -1,13 +1,6 @@
-import React, {
-    useCallback,
-    useEffect,
-    useState,
-    forwardRef,
-    useImperativeHandle,
-    useRef,
-} from 'react';
 import { Button } from '@kumite/ui/button';
-import { useEditorEngine } from '@/components/Context';
+import React, { forwardRef, useImperativeHandle } from 'react';
+import { useImagePicker } from './useImagePicker';
 
 export interface ImagePickerRef {
     reset: () => void;
@@ -17,90 +10,19 @@ const ImagePicker = forwardRef<
     ImagePickerRef,
     { onImageSelect: (file: File) => void; url?: string }
 >(({ onImageSelect, url }, ref) => {
-    const [selectedImage, setSelectedImage] = useState<string | null>(url ?? null);
-    const [isDragging, setIsDragging] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const {
+        selectedImage,
+        isDragging,
+        fileInputRef,
+        handleDragOver,
+        handleDragLeave,
+        handleDrop,
+        handleFileSelect,
+        openFilePicker,
+        reset,
+    } = useImagePicker(url, onImageSelect);
 
-    const editorEngine = useEditorEngine();
-
-    useEffect(() => {
-        if (url) {
-            const image = editorEngine.image.assets.find((image) => url?.includes(image.fileName));
-            if (image) {
-                setSelectedImage(image.content);
-            }
-        } else {
-            setSelectedImage(null);
-        }
-    }, [url]);
-
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-    }, []);
-
-    const handleDragLeave = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-    }, []);
-
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-
-        const files = Array.from(e.dataTransfer.files);
-        const imageFile = files.find((file) => file.type.startsWith('image/'));
-        if (imageFile) {
-            saveImage(imageFile);
-        }
-    }, []);
-
-    const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        const imageFile = files.find((file) => file.type.startsWith('image/'));
-        if (imageFile) {
-            saveImage(imageFile);
-        }
-    }, []);
-
-    const handleButtonClick = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
-        fileInputRef.current?.click();
-    }, []);
-
-    const reset = useCallback(() => {
-        if (url) {
-            const image = editorEngine.image.assets.find((image) => url?.includes(image.fileName));
-            if (image) {
-                setSelectedImage(image.content);
-            } else {
-                setSelectedImage(url);
-            }
-        } else {
-            setSelectedImage(null);
-        }
-
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-    }, [url, editorEngine.image.assets]);
-
-    useImperativeHandle(
-        ref,
-        () => ({
-            reset,
-        }),
-        [reset],
-    );
-
-    const saveImage = useCallback(
-        async (file: File) => {
-            const url = URL.createObjectURL(file);
-            setSelectedImage(url);
-            onImageSelect(file);
-        },
-        [onImageSelect],
-    );
+    useImperativeHandle(ref, () => ({ reset }), [reset]);
 
     return (
         <div className="flex flex-col gap-2 p-2 text-xs">
@@ -115,7 +37,7 @@ const ImagePicker = forwardRef<
                     backgroundSize: 'cover',
                 }}
             >
-                <UploadButton onButtonClick={handleButtonClick} />
+                <UploadButton onButtonClick={openFilePicker} />
                 <input
                     ref={fileInputRef}
                     type="file"
