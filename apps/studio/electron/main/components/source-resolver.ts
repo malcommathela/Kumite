@@ -261,6 +261,30 @@ function expectedRegistryType(kind: ImplementationKind): string[] {
     }
 }
 
+/**
+ * Some upstream blocks (the `calendar-*` family) ship a single file typed
+ * `registry:component` instead of `registry:block`/`registry:page`. Fall back to
+ * that file so the block is still previewable, but only when the choice is
+ * unambiguous: the file named after the item, or the only component it has.
+ */
+function blockComponentEntry(
+    item: { name: string; files: Array<{ path: string; type?: string }> },
+    kind: ImplementationKind,
+): { path: string; type?: string } | undefined {
+    if (kind !== 'block') {
+        return undefined;
+    }
+    const components = item.files
+        .filter((file) => file.type === 'registry:component')
+        .sort((left, right) => left.path.localeCompare(right.path));
+    return (
+        components.find(
+            (file) =>
+                path.posix.basename(file.path, path.posix.extname(file.path)) === item.name,
+        ) ?? (components.length === 1 ? components[0] : undefined)
+    );
+}
+
 function normalizeSourcePath(value: string, from?: string): string {
     const normalized = path.posix.normalize(value.replaceAll('\\', '/')).replace(/^\.\/+/, '');
     if (
@@ -518,6 +542,12 @@ function referencedAssetPaths(sourcePath: string, content: string): string[] {
     for (const match of content.matchAll(
         /['"`]([^'"`]+\.(?:avif|gif|jpe?g|png|svg|webp|ico|woff2?|ttf|otf|mp4|webm|pdf)(?:[?#][^'"`]*)?)['"`]/gi,
     )) {
+        // A bare filename in a string literal is usually sample text, not a
+        // reference (sidebar-11 lists "favicon.ico" in its file tree). Real
+        // markup references are already collected from JSX attributes above.
+        if (!match[1].includes('/')) {
+            continue;
+        }
         refs.add(match[1]);
     }
     return [...refs];
@@ -902,13 +932,15 @@ export function createShadcnSourceResolver(options: ShadcnSourceResolverOptions 
             request.kind === 'block'
                 ? ['registry:page', 'registry:block']
                 : expectedRegistryType(request.kind);
-        const rootEntry = root.item.files
-            .filter((file) => entryTypes.includes(file.type ?? ''))
-            .sort(
-                (left, right) =>
-                    entryTypes.indexOf(left.type ?? '') - entryTypes.indexOf(right.type ?? '') ||
-                    left.path.localeCompare(right.path),
-            )[0];
+        const rootEntry =
+            root.item.files
+                .filter((file) => entryTypes.includes(file.type ?? ''))
+                .sort(
+                    (left, right) =>
+                        entryTypes.indexOf(left.type ?? '') -
+                            entryTypes.indexOf(right.type ?? '') ||
+                        left.path.localeCompare(right.path),
+                )[0] ?? blockComponentEntry(root.item, request.kind);
         if (!rootEntry) {
             throw new SourceResolutionError({
                 kind: 'metadata',
