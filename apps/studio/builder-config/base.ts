@@ -53,6 +53,7 @@ const config: Configuration = {
         artifactName: '${productName}-setup.${ext}',
     },
     linux: {
+        maintainer: 'Kumite <kumite@malcommathela.dev>',
         target: [
             {
                 target: 'AppImage',
@@ -89,6 +90,7 @@ const config: Configuration = {
         provider: 'github',
         owner: 'malcommathela',
         repo: 'Kumite',
+        releaseType: 'release',
     },
 };
 

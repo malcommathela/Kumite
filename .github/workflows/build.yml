@@ -82,6 +82,7 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
                   CSC_LINK: ${{ startsWith(matrix.os, 'macos') && secrets.MAC_CERTS || '' }}
                   CSC_KEY_PASSWORD: ${{ startsWith(matrix.os, 'macos') && secrets.MAC_CERTS_PASSWORD || '' }}
                   APPLE_API_KEY: ${{ startsWith(matrix.os, 'macos') && format('~/private_keys/AuthKey_{0}.p8', secrets.APPLE_API_KEY_ID) || '' }}

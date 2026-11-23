@@ -8,6 +8,7 @@
     "license": "Apache-2.0",
     "author": {
         "name": "Kumite",
+        "email": "kumite@malcommathela.dev",
         "url": "https://github.com/malcommathela/Kumite"
     },
     "private": true,
