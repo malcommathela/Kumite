@@ -5,7 +5,7 @@ import {
 } from '@kumite/models';
 import { Button } from '@kumite/ui/button';
 import { cn } from '@kumite/ui/utils';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export const CATEGORIES: Record<string, string[]> = {
     Forms: [
@@ -67,6 +67,21 @@ export function PreviewShimmer({ name }: { name?: string }) {
 }
 
 /**
+ * A preview that errors or never reports `mounted` is almost always waiting on
+ * a module chunk that Vite deleted when it re-optimized its dependencies
+ * (`node_modules/.vite/deps/chunk-*.js?v=<old hash>`). Remounting the iframe
+ * re-requests the entry, which Vite rewrites against the current hashes, so the
+ * card recovers instead of showing a thumbnail for the rest of the session.
+ *
+ * The delays are intentionally short: the stale-chunk window is a second or
+ * two. `PREVIEW_BOOT_TIMEOUT_MS` is only a backstop for a frame whose failure
+ * never surfaces as an event (a cold dependency optimize can legitimately take
+ * a while), so it is generous.
+ */
+const PREVIEW_AUTO_RETRY_DELAYS_MS = [1_000, 3_000];
+const PREVIEW_BOOT_TIMEOUT_MS = 30_000;
+
+/**
  * Waits for the preview page's handshake instead of trusting `load`: a Vite
  * iframe fires `load` on the empty shell before React commits, which left the
  * shimmer covering a blank frame. Messages are accepted only from this iframe
@@ -77,6 +92,19 @@ export function usePreviewHandshake(sessionId: string | null) {
     const [state, setState] = useState<PreviewLifecycleState | 'idle'>('idle');
     const [detail, setDetail] = useState<string | null>(null);
     const [attempt, setAttempt] = useState(0);
+    const [autoRetries, setAutoRetries] = useState(0);
+
+    const exhausted = autoRetries >= PREVIEW_AUTO_RETRY_DELAYS_MS.length;
+
+    const remount = useCallback(() => {
+        setAutoRetries((value) => value + 1);
+        setAttempt((value) => value + 1);
+    }, []);
+
+    const retry = useCallback(() => {
+        setAutoRetries(0);
+        setAttempt((value) => value + 1);
+    }, []);
 
     useLayoutEffect(() => {
         setState('idle');
@@ -113,12 +141,48 @@ export function usePreviewHandshake(sessionId: string | null) {
         };
     }, [sessionId, attempt]);
 
+    // A new session means a different preview; give it its own retry budget.
+    useEffect(() => {
+        setAutoRetries(0);
+    }, [sessionId]);
+
+    // Recover from a reported failure by remounting, with capped backoff.
+    useEffect(() => {
+        if (!sessionId || state !== 'error' || exhausted) {
+            return;
+        }
+        const delay =
+            PREVIEW_AUTO_RETRY_DELAYS_MS[autoRetries] ??
+            PREVIEW_AUTO_RETRY_DELAYS_MS[PREVIEW_AUTO_RETRY_DELAYS_MS.length - 1];
+        const timer = window.setTimeout(remount, delay);
+        return () => window.clearTimeout(timer);
+    }, [autoRetries, exhausted, remount, sessionId, state]);
+
+    // Backstop for a frame that never reports anything at all.
+    useEffect(() => {
+        if (!sessionId || state === 'mounted' || state === 'error') {
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            if (exhausted) {
+                setState('error');
+                setDetail('The preview took too long to load.');
+                return;
+            }
+            remount();
+        }, PREVIEW_BOOT_TIMEOUT_MS);
+        return () => window.clearTimeout(timer);
+    }, [attempt, exhausted, remount, sessionId, state]);
+
     return {
         frameRef,
         state,
         detail,
         frameKey: `${attempt}`,
-        retry: () => setAttempt((value) => value + 1),
+        // Retries are exhausted and the preview is still failing: the caller
+        // should show its fallback instead of the loading shimmer.
+        failed: Boolean(sessionId) && state === 'error' && exhausted,
+        retry,
     };
 }
 
@@ -135,7 +199,9 @@ export function PreviewFrame({
     sessionId?: string | null;
     onRetry?: () => Promise<void> | void;
 }) {
-    const { frameRef, state, detail, frameKey, retry } = usePreviewHandshake(sessionId ?? null);
+    const { frameRef, state, detail, frameKey, failed, retry } = usePreviewHandshake(
+        sessionId ?? null,
+    );
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
@@ -144,7 +210,6 @@ export function PreviewFrame({
 
     // Without a handshake id (an official block preview) fall back to `load`.
     const ready = sessionId ? state === 'mounted' : loaded;
-    const failed = Boolean(sessionId) && state === 'error';
 
     return (
         <div className="relative h-full min-h-[300px] w-full">
@@ -353,7 +418,7 @@ export function CardPreview({
     name?: string;
     sessionId?: string | null;
 }) {
-    const { frameRef, state, frameKey } = usePreviewHandshake(sessionId ?? null);
+    const { frameRef, state, frameKey, failed } = usePreviewHandshake(sessionId ?? null);
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
@@ -361,7 +426,6 @@ export function CardPreview({
     }, [src]);
 
     const ready = sessionId ? state === 'mounted' : loaded;
-    const failed = Boolean(sessionId) && state === 'error';
 
     if (failed) {
         return (

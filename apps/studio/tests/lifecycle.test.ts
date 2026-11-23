@@ -240,6 +240,25 @@ describe('shared preview runtime', () => {
         return spec;
     }
 
+    it('rewrites a generated shell but never a user-owned preview file', () => {
+        const root = tempProject();
+        const sessionId = 'ks_rewrite';
+        const directory = path.join(root, '__kumite_preview', sessionId);
+        const htmlPath = path.join(directory, 'index.html');
+
+        entry(root, sessionId);
+        const newer = {
+            ...entry(root, sessionId),
+            html: `<!-- kumite-preview-session -->\n<!doctype html><html><body><div id="root"></div><script>/* v2 */</script></body></html>`,
+        };
+        expect(() => writeSessionEntry(root, newer)).not.toThrow();
+        expect(fs.readFileSync(htmlPath, 'utf8')).toBe(newer.html);
+
+        fs.writeFileSync(htmlPath, '<!doctype html><html><body>user file</body></html>');
+        expect(() => writeSessionEntry(root, newer)).toThrow('Preview files already exist');
+        expect(fs.readFileSync(htmlPath, 'utf8')).toContain('user file');
+    });
+
     it('keeps the server while another consumer owns sessions', async () => {
         const root = tempProject();
         const manager = new PreviewRuntimeManager({ idleTimeoutMs: 60_000 });

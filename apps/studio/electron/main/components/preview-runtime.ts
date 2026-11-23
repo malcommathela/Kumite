@@ -165,15 +165,33 @@ export function buildHandshakeScript(sessionId: string): string {
             }
             window.__kumitePreview = { sessionId: sessionId, post: post, state: 'booting', detail: null };
             post('booting');
+            // Capture phase, because a module script that fails to load (for
+            // example a dependency chunk that Vite re-optimized after this page
+            // started) reports the failure on the script element, not on
+            // window. Without this the host would wait for a handshake that
+            // can never arrive.
             window.addEventListener('error', function (event) {
+                var target = event && event.target;
+                var isResource = Boolean(target) && target !== window;
+                // Images and fonts are not fatal: the component can still mount.
+                if (
+                    isResource &&
+                    target.tagName !== 'SCRIPT' &&
+                    target.tagName !== 'LINK'
+                ) {
+                    return;
+                }
+                if (isResource && window.__kumitePreview.state === 'mounted') {
+                    return;
+                }
                 var detail = '';
                 if (event && event.message) {
                     detail = event.message;
-                } else if (event && event.target && event.target.src) {
-                    detail = 'Failed to load ' + event.target.src;
+                } else if (isResource && (target.src || target.href)) {
+                    detail = 'Failed to load ' + (target.src || target.href);
                 }
                 post('error', detail || 'The preview failed to load.');
-            });
+            }, true);
             window.addEventListener('unhandledrejection', function (event) {
                 var reason = event && event.reason;
                 post('error', (reason && reason.message) || reason || 'Unhandled rejection');
@@ -205,10 +223,12 @@ export function writeSessionEntry(
         if (!existing.includes(PREVIEW_MARKER)) {
             throw new Error('Preview files already exist in this project.');
         }
+        // The shell is fully generated and carries the marker, so a newer
+        // build may replace an older one. Session ids are stable, so refusing
+        // to rewrite would strand every preview cached by a previous build
+        // (for example after the handshake script changes).
         if (existing !== spec.html) {
-            throw new Error(
-                'Preview HTML changed since this session was created; refusing to overwrite it.',
-            );
+            fs.writeFileSync(htmlPath, spec.html, 'utf8');
         }
     }
     if (fs.existsSync(sourcePath)) {
