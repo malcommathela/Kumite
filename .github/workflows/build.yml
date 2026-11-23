@@ -15,6 +15,7 @@ on:
             - '.dockerignore'
             - 'Dockerfile'
             - '.gitignore'
+    workflow_dispatch:
 
 jobs:
     build:
@@ -38,7 +39,7 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: 20
+                  node-version: 22
 
             - name: Install node-gyp dependencies
               shell: bash
@@ -76,20 +77,28 @@ jobs:
               run: bun run ci:build
 
             - name: Build and Release
-              uses: samuelmeuli/action-electron-builder@v1
-              with:
-                  skip_build: true
-                  package_root: apps/studio
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  release: ${{ startsWith(github.ref, 'refs/tags/v') }}
-                  mac_certs: ${{ secrets.MAC_CERTS }}
-                  mac_certs_password: ${{ secrets.MAC_CERTS_PASSWORD }}
-                  args: ${{ startsWith(matrix.os, 'macos') && '--x64 --arm64' || '' }} --config builder-config/base.ts
+              shell: bash
+              working-directory: apps/studio
               env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  CSC_LINK: ${{ startsWith(matrix.os, 'macos') && secrets.MAC_CERTS || '' }}
+                  CSC_KEY_PASSWORD: ${{ startsWith(matrix.os, 'macos') && secrets.MAC_CERTS_PASSWORD || '' }}
                   APPLE_API_KEY: ${{ startsWith(matrix.os, 'macos') && format('~/private_keys/AuthKey_{0}.p8', secrets.APPLE_API_KEY_ID) || '' }}
                   APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
                   APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
                   AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
                   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
                   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+              run: |
+                  if [[ "$RUNNER_OS" == "macOS" ]]; then
+                      ARCH_ARGS="--x64 --arm64"
+                  else
+                      ARCH_ARGS=""
+                  fi
+                  if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+                      PUBLISH="always"
+                  else
+                      PUBLISH="never"
+                  fi
+                  bun run package -- $ARCH_ARGS --publish $PUBLISH
