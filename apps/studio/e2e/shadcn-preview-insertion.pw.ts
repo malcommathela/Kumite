@@ -513,7 +513,7 @@ async function dumpPreviewDiagnostics(
             path.join(workspace, 'kumite-preview'),
             path.join(workspace, '__kumite_preview'),
         ]) {
-            if (!fs.existsSync(directory)) continue;
+            if (!fs.existsSync(directory)) {continue;}
             entries.push(
                 ...fs
                     .readdirSync(directory, { recursive: true })

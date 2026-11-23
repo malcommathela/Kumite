@@ -120,11 +120,4 @@ const NewSelectFolder: StepComponent = ({ props, variant }) => {
     }
 };
 
-NewSelectFolder.Header = (props) => <NewSelectFolder props={props} variant="header" />;
-NewSelectFolder.Content = (props) => <NewSelectFolder props={props} variant="content" />;
-NewSelectFolder.Footer = (props) => <NewSelectFolder props={props} variant="footer" />;
-NewSelectFolder.Header.displayName = 'NewSelectFolder.Header';
-NewSelectFolder.Content.displayName = 'NewSelectFolder.Content';
-NewSelectFolder.Footer.displayName = 'NewSelectFolder.Footer';
-
 export { NewSelectFolder };

@@ -1,7 +1,7 @@
 {
     "productName": "Kumite",
     "name": "@kumite/studio",
-    "version": "0.2.31",
+    "version": "0.2.32",
     "homepage": "https://github.com/malcommathela/Kumite",
     "main": "dist-electron/main/index.js",
     "description": "Kumite - a design-engineering studio for editing React apps visually. Derived from Onlook (Apache-2.0).",

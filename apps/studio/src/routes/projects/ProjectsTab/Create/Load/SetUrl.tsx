@@ -211,11 +211,4 @@ const LoadSetUrl: StepComponent = ({ props, variant }) => {
     }
 };
 
-LoadSetUrl.Header = (props) => <LoadSetUrl props={props} variant="header" />;
-LoadSetUrl.Content = (props) => <LoadSetUrl props={props} variant="content" />;
-LoadSetUrl.Footer = (props) => <LoadSetUrl props={props} variant="footer" />;
-LoadSetUrl.Header.displayName = 'LoadSetUrl.Header';
-LoadSetUrl.Content.displayName = 'LoadSetUrl.Content';
-LoadSetUrl.Footer.displayName = 'LoadSetUrl.Footer';
-
 export { LoadSetUrl };

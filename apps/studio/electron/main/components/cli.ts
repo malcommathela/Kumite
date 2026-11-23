@@ -1,5 +1,6 @@
 import type { PackageManager } from '@kumite/models';
 import { COMPONENT_CLI_VERSION } from '@kumite/models';
+import { stripAnsi } from '@kumite/utility';
 import { execFile, spawn, spawnSync, type ChildProcess } from 'child_process';
 import path from 'path';
 import { promisify } from 'util';
@@ -171,11 +172,15 @@ async function runProjectCommand(
             env,
             signal,
         });
-        return { command: printable, success: true, output: stripAnsi(`${stdout}\n${stderr}`) };
+        return {
+            command: printable,
+            success: true,
+            output: stripAnsi(`${stdout}\n${stderr}`).trim(),
+        };
     } catch (error: any) {
         const output = stripAnsi(
             [error?.stdout, error?.stderr, error?.message].filter(Boolean).join('\n'),
-        );
+        ).trim();
         return { command: printable, success: false, output };
     }
 }
@@ -210,7 +215,7 @@ function runStreamingCommand(
             settled = true;
             clearTimeout(timer);
             options.signal?.removeEventListener('abort', abort);
-            resolve({ command: options.printable, success, output: stripAnsi(output) });
+            resolve({ command: options.printable, success, output: stripAnsi(output).trim() });
         };
         const timer = setTimeout(() => {
             killProcess(child);
@@ -247,7 +252,7 @@ function runStreamingCommand(
         }
 
         const append = (data: Buffer) => {
-            const chunk = stripAnsi(data.toString());
+            const chunk = stripAnsi(data.toString()).trim();
             if (!chunk) {
                 return;
             }
@@ -280,8 +285,4 @@ function killProcess(child: ChildProcess): void {
     } catch {
         child.kill('SIGTERM');
     }
-}
-
-function stripAnsi(value: string): string {
-    return value.replace(/\u001b\[[0-9;]*m/g, '').trim();
 }

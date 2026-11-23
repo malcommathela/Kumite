@@ -1,6 +1,7 @@
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import os from 'os';
+import { delay } from '@kumite/utility';
 import { portRegistry, type PortOwnerScope } from './ports';
 
 export type ManagedProcessType =
@@ -45,10 +46,6 @@ export interface ManagedProcessRecord {
 
 const DEFAULT_STOP_TIMEOUT_MS = 5000;
 const GRACE_MS = 1500;
-
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function isExited(record: ManagedProcessRecord): boolean {
     if (record.state === 'exited') {

@@ -25,7 +25,7 @@ describe('catalog preview runtime dependencies', () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-catalog-runtime-'));
         try {
             assert.equal(isCatalogRuntimeInstalled(root), false);
-            for (const [name, version] of Object.entries(runtimePackages)) writePackage(root, name, version);
+            for (const [name, version] of Object.entries(runtimePackages)) {writePackage(root, name, version);}
             assert.equal(isCatalogRuntimeInstalled(root), true);
         } finally {
             fs.rmSync(root, { recursive: true, force: true });
@@ -35,7 +35,7 @@ describe('catalog preview runtime dependencies', () => {
     it('rejects Tailwind v3 even when Vite is present', () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-catalog-runtime-'));
         try {
-            for (const [name, version] of Object.entries(runtimePackages)) writePackage(root, name, version);
+            for (const [name, version] of Object.entries(runtimePackages)) {writePackage(root, name, version);}
             writePackage(root, 'tailwindcss', '3.4.4');
             assert.equal(isCatalogRuntimeInstalled(root), false);
         } finally {
@@ -47,7 +47,7 @@ describe('catalog preview runtime dependencies', () => {
         const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kumite-catalog-runtime-'));
         try {
             for (const [name, version] of Object.entries(runtimePackages)) {
-                if (name !== '@tailwindcss/vite') writePackage(root, name, version);
+                if (name !== '@tailwindcss/vite') {writePackage(root, name, version);}
             }
             assert.equal(isCatalogRuntimeInstalled(root), false);
         } finally {

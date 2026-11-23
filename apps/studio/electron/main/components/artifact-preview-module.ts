@@ -46,9 +46,6 @@ export function buildArtifactPreviewModule(
         entry.kind === 'default'
             ? `import Implementation from ${JSON.stringify(source)};`
             : `import { ${entry.name} as Implementation } from ${JSON.stringify(source)};`;
-    const previewLayout = artifact.metadata.type === 'block'
-        ? 'flex h-full w-full items-center justify-center overflow-hidden p-6 [&>*]:max-h-full [&>*]:max-w-full'
-        : 'mx-auto flex h-full w-full max-w-2xl items-center justify-center overflow-hidden p-6 [&>*]:max-h-full [&>*]:max-w-full';
     return `/* kumite artifact preview */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -68,8 +65,49 @@ class Boundary extends React.Component {
             : this.props.children;
     }
 }
+/**
+ * Scales the rendered component down until it fits the preview frame, so tall
+ * demos (accordion, calendar, cards) are shown whole instead of clipped.
+ */
+function Fit({ children }) {
+    const frame = React.useRef(null);
+    const content = React.useRef(null);
+    React.useLayoutEffect(() => {
+        const fit = () => {
+            const outer = frame.current;
+            const inner = content.current;
+            if (!outer || !inner) {
+                return;
+            }
+            inner.style.transform = 'none';
+            const height = inner.scrollHeight;
+            const width = inner.scrollWidth;
+            if (!height || !width) {
+                return;
+            }
+            const scale = Math.min(1, outer.clientHeight / height, outer.clientWidth / width);
+            inner.style.transform = 'scale(' + scale + ')';
+        };
+        fit();
+        const observer = new ResizeObserver(fit);
+        observer.observe(frame.current);
+        observer.observe(content.current);
+        window.addEventListener('resize', fit);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', fit);
+        };
+    }, []);
+    return (
+        <div className="fixed inset-0 flex items-center justify-center overflow-hidden p-6">
+            <div ref={frame} className="flex h-full w-full items-center justify-center overflow-hidden">
+                <div ref={content} className="flex w-full origin-center items-center justify-center">{children}</div>
+            </div>
+        </div>
+    );
+}
 function Preview() {
-    return <React.StrictMode><Boundary><Handshake /><main className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden"><div className={${JSON.stringify(previewLayout)}} style={{ zoom: ${artifact.metadata.type === "block" ? "0.78" : "0.88"} }}><Implementation /></div></main></Boundary></React.StrictMode>;
+    return <React.StrictMode><Boundary><Handshake /><main className="h-full w-full"><Fit><Implementation /></Fit></main></Boundary></React.StrictMode>;
 }
 createRoot(document.getElementById('root')!).render(<Preview />);
 void ${JSON.stringify(sessionId)};

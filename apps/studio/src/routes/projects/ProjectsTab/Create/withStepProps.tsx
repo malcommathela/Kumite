@@ -2,16 +2,12 @@ import type React from 'react';
 import type { StepProps } from './index';
 import { MotionCardContent, MotionCardHeader } from '@kumite/ui/motion-card';
 
-interface StepComponentProps {
+export interface StepComponentProps {
     props: StepProps;
     variant: 'header' | 'content' | 'footer';
 }
 
-export interface StepComponent extends React.FC<StepComponentProps> {
-    Header: React.FC<StepProps>;
-    Content: React.FC<StepProps>;
-    Footer: React.FC<StepProps>;
-}
+export type StepComponent = React.FC<StepComponentProps>;
 
 export function withStepProps(Component: StepComponent): {
     header: React.FC<StepProps>;

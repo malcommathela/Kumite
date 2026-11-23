@@ -51,12 +51,10 @@ export class ProjectsManager {
         this._projects = cachedProjects.projects;
 
         const appState: AppState | null = await invokeMainChannel(MainChannels.GET_APP_STATE);
-        if (!appState) {
-            console.error('Failed to restore app state');
-            return;
-        }
-        if (appState.activeProjectId) {
-            this.project = this._projects.find((p) => p.id === appState.activeProjectId) || null;
+        if (appState?.activeProjectId) {
+            // Launching the app always shows the dashboard. Clear the stale id
+            // so a previously open project is never restored automatically.
+            this.updateAppState({ activeProjectId: null });
         }
     }
 
@@ -160,6 +158,9 @@ export class ProjectsManager {
         const project = this._project;
         let result = { success: true, errors: [] as string[] };
         if (project) {
+            // Capture while the editor webviews are still mounted. This also
+            // covers closing back to the dashboard, not only switching projects.
+            await this.capturePreview();
             try {
                 result = (await invokeMainChannel(MainChannels.PROJECT_CLOSE, {
                     id: project.id,
@@ -179,7 +180,6 @@ export class ProjectsManager {
     /** Closes the current project before switching to another one. */
     async openProject(project: Project): Promise<void> {
         if (this._project && this._project.id !== project.id) {
-            await this.capturePreview();
             await this.closeProject();
         }
         this.project = project;
@@ -208,7 +208,6 @@ export class ProjectsManager {
             this.updateProject({
                 ...project,
                 previewImg: result.name,
-                updatedAt: new Date().toISOString(),
             });
         } catch (error) {
             console.warn('Could not capture project preview:', error);

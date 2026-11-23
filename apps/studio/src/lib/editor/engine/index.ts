@@ -322,7 +322,10 @@ export class EditorEngine {
             console.error('Failed to take screenshot, no webviews found');
             return null;
         }
-        const webviewId = Array.from(this.webviews.webviews.values())[0].webview.id;
+        const activeFrameId = this.canvas.activeFrameId;
+        const webviewId = activeFrameId && this.webviews.getWebview(activeFrameId)
+            ? activeFrameId
+            : Array.from(this.webviews.webviews.values())[0].webview.id;
         return this.takeWebviewScreenshot(name, webviewId, options);
     }
 

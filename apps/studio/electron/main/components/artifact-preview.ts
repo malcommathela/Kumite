@@ -62,12 +62,12 @@ export async function findCachedCatalogArtifact(
     try {
         entries = await fs.promises.readdir(directory);
     } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {return null;}
         throw error;
     }
 
     for (const entry of entries) {
-        if (!/^[a-f0-9]{64}$/.test(entry)) continue;
+        if (!/^[a-f0-9]{64}$/.test(entry)) {continue;}
         try {
             const stored = await readStoredImplementationArtifact(entry, storeRoot);
             const artifact = stored?.artifact;
@@ -356,6 +356,7 @@ async function prepareDependencies(
         existingDependencyManifest = {};
     }
     let changed = false;
+    let needsInstall = false;
     for (const [name, requirement] of requested) {
         abortIfRequested(signal);
         const installedPath = path.join(
@@ -402,9 +403,17 @@ async function prepareDependencies(
             packageJson.dependencies[name] = version;
             changed = true;
         }
+        // package.json can already pin a version whose install never completed
+        // (an interrupted or offline run). Trust node_modules, not the manifest,
+        // so the next preview retries the install instead of failing forever.
+        if (!installedVersion) {
+            needsInstall = true;
+        }
     }
     if (changed) {
         fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 4)}\n`, 'utf8');
+    }
+    if (changed || needsInstall) {
         onProgress?.({
             component: artifacts.map((artifact) => artifact.metadata.name).join(', '),
             phase: 'installing',
@@ -460,7 +469,7 @@ async function prepareDependencies(
         )}\n`,
         'utf8',
     );
-    return changed
+    return changed || needsInstall
         ? `Installed ${Object.keys(selected).join(', ')} in the isolated preview workspace.`
         : '';
 }

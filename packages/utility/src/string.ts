@@ -8,6 +8,13 @@ export function isString(value: any): boolean {
     return typeof value === 'string';
 }
 
+const ANSI_PATTERN = /\x1B\[[0-9;]*[a-zA-Z]/g;
+
+/** Removes ANSI escape sequences (colors, cursor movement) from terminal output. */
+export function stripAnsi(value: string): string {
+    return value.replace(ANSI_PATTERN, '');
+}
+
 export function toNormalCase(str: string): string {
     if (!str) {
         return '';

@@ -3,6 +3,7 @@ import download from 'download';
 import * as fs from 'fs';
 import * as path from 'path';
 import { runBunCommand } from '../bun';
+import { removePackageManagerLockfiles } from '../package-manager';
 
 export async function createProject(
     projectName: string,
@@ -21,6 +22,10 @@ export async function createProject(
 
         onProgress(CreateStage.CLONING, `Cloning template...`);
         await downloadTemplate(fullPath);
+
+        // The starter template ships npm/yarn lockfiles. Remove them so the
+        // install below writes a single Bun lockfile for this project.
+        removePackageManagerLockfiles(fullPath);
 
         // Install dependencies
         const result = await runBunCommand('npm install -y --no-audit --no-fund', {

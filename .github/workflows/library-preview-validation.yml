@@ -6,6 +6,7 @@ on:
       - feat/library-previews
       - fix/library-preview-rendering
       - feat/library-preview-snapshots
+      - fix/library-shimmer-dashboard-previews
     paths:
       - 'apps/studio/electron/main/components/**'
       - 'apps/studio/electron/main/events/components.ts'
@@ -13,6 +14,11 @@ on:
       - 'apps/studio/src/components/ComponentPreview/**'
       - 'apps/studio/src/lib/components/**'
       - 'apps/studio/src/routes/projects/ProjectsTab/LibraryView.tsx'
+      - 'apps/studio/src/lib/projects/**'
+      - 'apps/studio/src/lib/editor/engine/**'
+      - 'apps/studio/src/routes/projects/ProjectsTab/ProjectCard.tsx'
+      - 'packages/ui/src/components/skeleton.tsx'
+      - 'packages/ui/src/globals.css'
       - 'apps/studio/tests/preview-handshake.test.ts'
       - 'packages/models/src/constants/ipc.ts'
       - 'apps/studio/package.json'

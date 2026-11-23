@@ -4,9 +4,8 @@ import {
     type PreviewLifecycleState,
 } from '@kumite/models';
 import { Button } from '@kumite/ui/button';
-import { Skeleton } from '@kumite/ui/skeleton';
 import { cn } from '@kumite/ui/utils';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export const CATEGORIES: Record<string, string[]> = {
     Forms: [
@@ -54,141 +53,33 @@ export function getCategory(name: string): string {
     return CATEGORY_FOR_COMPONENT.get(name) ?? 'Other';
 }
 
-type ShimmerShape = 'avatar' | 'pills' | 'field' | 'panel' | 'rows' | 'bars' | 'grid' | 'lines';
-
-const FIELD_COMPONENTS = [
-    'input',
-    'input-group',
-    'input-otp',
-    'textarea',
-    'field',
-    'form',
-    'label',
-    'select',
-    'checkbox',
-    'radio-group',
-    'combobox',
-];
-
-/**
- * Each kind of component gets a skeleton with the same silhouette, so a loading
- * card hints at what is coming instead of showing the same three bars 54 times.
- */
-function shimmerShape(name: string): ShimmerShape {
-    if (name === 'avatar') {
-        return 'avatar';
-    }
-    if (name === 'chart') {
-        return 'bars';
-    }
-    if (['calendar', 'table', 'data-table', 'date-picker', 'input-otp'].includes(name)) {
-        return 'grid';
-    }
-    if (['badge', 'button', 'button-group', 'toggle', 'toggle-group'].includes(name)) {
-        return 'pills';
-    }
-    if (FIELD_COMPONENTS.includes(name)) {
-        return 'field';
-    }
-    switch (getCategory(name)) {
-        case 'Forms':
-            return 'pills';
-        case 'Feedback':
-            return 'pills';
-        case 'Navigation':
-            return 'rows';
-        case 'Layout':
-        case 'Overlays':
-            return 'panel';
-        default:
-            return 'lines';
-    }
-}
-
 export function PreviewShimmer({ name }: { name?: string }) {
-    const shape: ShimmerShape = name ? shimmerShape(name) : 'lines';
+    void name;
     return (
         <div
-            className="flex h-full w-full items-center justify-center p-4"
+            className="kumite-shimmer relative h-full w-full overflow-hidden bg-muted/40"
             role="status"
             aria-label="Loading preview"
         >
-            {shape === 'avatar' && (
-                <div className="flex w-full flex-col items-center gap-3">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <Skeleton className="h-2.5 w-24" />
-                    <Skeleton className="h-7 w-32 rounded-md" />
-                </div>
-            )}
-            {shape === 'pills' && (
-                <div className="flex w-full flex-wrap items-center justify-center gap-2">
-                    <Skeleton className="h-8 w-24 rounded-md" />
-                    <Skeleton className="h-8 w-20 rounded-md" />
-                    <Skeleton className="h-8 w-16 rounded-md" />
-                </div>
-            )}
-            {shape === 'field' && (
-                <div className="w-3/4 space-y-2">
-                    <Skeleton className="h-2.5 w-20" />
-                    <Skeleton className="h-8 w-full rounded-md" />
-                    <Skeleton className="h-2 w-24" />
-                </div>
-            )}
-            {shape === 'panel' && (
-                <div className="w-4/5 space-y-3 rounded-lg border border-border/70 p-3">
-                    <div className="flex items-center justify-between">
-                        <Skeleton className="h-2.5 w-24" />
-                        <Skeleton className="h-5 w-5 rounded-full" />
-                    </div>
-                    <Skeleton className="h-2 w-full" />
-                    <Skeleton className="h-2 w-4/5" />
-                    <Skeleton className="h-8 w-24 rounded-md" />
-                </div>
-            )}
-            {shape === 'rows' && (
-                <div className="w-4/5 space-y-2">
-                    <div className="flex gap-3">
-                        <Skeleton className="h-2.5 w-16" />
-                        <Skeleton className="h-2.5 w-14" />
-                        <Skeleton className="h-2.5 w-12" />
-                    </div>
-                    <Skeleton className="h-7 w-full rounded-md" />
-                    <Skeleton className="h-7 w-full rounded-md" />
-                </div>
-            )}
-            {shape === 'bars' && (
-                <div className="flex h-20 w-4/5 items-end gap-1.5 border-b border-border/70 px-2">
-                    {[40, 65, 48, 82, 56, 92, 70].map((height, index) => (
-                        <Skeleton
-                            key={index}
-                            className="flex-1 rounded-t-sm"
-                            style={{ height: `${height}%` }}
-                        />
-                    ))}
-                </div>
-            )}
-            {shape === 'grid' && (
-                <div className="w-4/5 space-y-2">
-                    <Skeleton className="h-2 w-24" />
-                    <div className="grid grid-cols-7 gap-1.5">
-                        {Array.from({ length: 21 }, (_, cell) => (
-                            <Skeleton key={cell} className="h-5 rounded-sm" />
-                        ))}
-                    </div>
-                </div>
-            )}
-            {shape === 'lines' && (
-                <div className="w-3/4 space-y-2">
-                    <Skeleton className="h-2.5 w-2/5" />
-                    <Skeleton className="h-2 w-full" />
-                    <Skeleton className="h-2 w-4/5" />
-                    <Skeleton className="h-8 w-28 rounded-md" />
-                </div>
-            )}
             <span className="sr-only">Loading preview</span>
         </div>
     );
 }
+
+/**
+ * A preview that errors or never reports `mounted` is almost always waiting on
+ * a module chunk that Vite deleted when it re-optimized its dependencies
+ * (`node_modules/.vite/deps/chunk-*.js?v=<old hash>`). Remounting the iframe
+ * re-requests the entry, which Vite rewrites against the current hashes, so the
+ * card recovers instead of showing a thumbnail for the rest of the session.
+ *
+ * The delays are intentionally short: the stale-chunk window is a second or
+ * two. `PREVIEW_BOOT_TIMEOUT_MS` is only a backstop for a frame whose failure
+ * never surfaces as an event (a cold dependency optimize can legitimately take
+ * a while), so it is generous.
+ */
+const PREVIEW_AUTO_RETRY_DELAYS_MS = [1_000, 3_000];
+const PREVIEW_BOOT_TIMEOUT_MS = 30_000;
 
 /**
  * Waits for the preview page's handshake instead of trusting `load`: a Vite
@@ -201,6 +92,19 @@ export function usePreviewHandshake(sessionId: string | null) {
     const [state, setState] = useState<PreviewLifecycleState | 'idle'>('idle');
     const [detail, setDetail] = useState<string | null>(null);
     const [attempt, setAttempt] = useState(0);
+    const [autoRetries, setAutoRetries] = useState(0);
+
+    const exhausted = autoRetries >= PREVIEW_AUTO_RETRY_DELAYS_MS.length;
+
+    const remount = useCallback(() => {
+        setAutoRetries((value) => value + 1);
+        setAttempt((value) => value + 1);
+    }, []);
+
+    const retry = useCallback(() => {
+        setAutoRetries(0);
+        setAttempt((value) => value + 1);
+    }, []);
 
     useLayoutEffect(() => {
         setState('idle');
@@ -237,12 +141,48 @@ export function usePreviewHandshake(sessionId: string | null) {
         };
     }, [sessionId, attempt]);
 
+    // A new session means a different preview; give it its own retry budget.
+    useEffect(() => {
+        setAutoRetries(0);
+    }, [sessionId]);
+
+    // Recover from a reported failure by remounting, with capped backoff.
+    useEffect(() => {
+        if (!sessionId || state !== 'error' || exhausted) {
+            return;
+        }
+        const delay =
+            PREVIEW_AUTO_RETRY_DELAYS_MS[autoRetries] ??
+            PREVIEW_AUTO_RETRY_DELAYS_MS[PREVIEW_AUTO_RETRY_DELAYS_MS.length - 1];
+        const timer = window.setTimeout(remount, delay);
+        return () => window.clearTimeout(timer);
+    }, [autoRetries, exhausted, remount, sessionId, state]);
+
+    // Backstop for a frame that never reports anything at all.
+    useEffect(() => {
+        if (!sessionId || state === 'mounted' || state === 'error') {
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            if (exhausted) {
+                setState('error');
+                setDetail('The preview took too long to load.');
+                return;
+            }
+            remount();
+        }, PREVIEW_BOOT_TIMEOUT_MS);
+        return () => window.clearTimeout(timer);
+    }, [attempt, exhausted, remount, sessionId, state]);
+
     return {
         frameRef,
         state,
         detail,
         frameKey: `${attempt}`,
-        retry: () => setAttempt((value) => value + 1),
+        // Retries are exhausted and the preview is still failing: the caller
+        // should show its fallback instead of the loading shimmer.
+        failed: Boolean(sessionId) && state === 'error' && exhausted,
+        retry,
     };
 }
 
@@ -259,7 +199,9 @@ export function PreviewFrame({
     sessionId?: string | null;
     onRetry?: () => Promise<void> | void;
 }) {
-    const { frameRef, state, detail, frameKey, retry } = usePreviewHandshake(sessionId ?? null);
+    const { frameRef, state, detail, frameKey, failed, retry } = usePreviewHandshake(
+        sessionId ?? null,
+    );
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
@@ -268,7 +210,6 @@ export function PreviewFrame({
 
     // Without a handshake id (an official block preview) fall back to `load`.
     const ready = sessionId ? state === 'mounted' : loaded;
-    const failed = Boolean(sessionId) && state === 'error';
 
     return (
         <div className="relative h-full min-h-[300px] w-full">
@@ -346,7 +287,7 @@ export function ComponentThumbnail({ name }: { name: string }) {
     }
     if (/^calendar-/.test(name) || name === 'calendar') {
         return (
-            <div className="mx-auto w-3/5 rounded-lg border border-border bg-background p-3">
+            <div className="mx-auto w-3/5 origin-center scale-90 rounded-lg border border-border bg-background p-3">
                 <div className="mb-2 flex items-center justify-between">
                     <span className="h-2 w-1/3 rounded-full bg-foreground/70" />
                     <span className="h-2 w-2 rounded-full bg-muted" />
@@ -396,7 +337,7 @@ export function ComponentThumbnail({ name }: { name: string }) {
     }
     if (['card', 'empty'].includes(name)) {
         return (
-            <div className="mx-auto w-3/4 rounded-lg border border-border bg-background p-3 text-left">
+            <div className="mx-auto w-3/4 origin-center scale-90 rounded-lg border border-border bg-background p-3 text-left">
                 <div className="mb-2 h-2 w-2/5 rounded-full bg-foreground/80" />
                 <div className="mb-1 h-1.5 w-full rounded-full bg-muted" />
                 <div className="h-1.5 w-4/5 rounded-full bg-muted" />
@@ -425,7 +366,7 @@ export function ComponentThumbnail({ name }: { name: string }) {
     }
     if (['tabs', 'accordion', 'breadcrumb', 'navigation-menu', 'pagination'].includes(name)) {
         return (
-            <div className="mx-auto w-4/5 rounded-lg border border-border bg-background p-3 text-left">
+            <div className="mx-auto w-4/5 origin-center scale-90 rounded-lg border border-border bg-background p-3 text-left">
                 <div className="mb-3 flex gap-3 border-b border-border pb-2">
                     <span className="h-2 w-1/4 rounded-full bg-primary" />
                     <span className="h-2 w-1/4 rounded-full bg-muted" />
@@ -477,7 +418,7 @@ export function CardPreview({
     name?: string;
     sessionId?: string | null;
 }) {
-    const { frameRef, state, frameKey } = usePreviewHandshake(sessionId ?? null);
+    const { frameRef, state, frameKey, failed } = usePreviewHandshake(sessionId ?? null);
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
@@ -485,7 +426,6 @@ export function CardPreview({
     }, [src]);
 
     const ready = sessionId ? state === 'mounted' : loaded;
-    const failed = Boolean(sessionId) && state === 'error';
 
     if (failed) {
         return (

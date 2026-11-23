@@ -497,6 +497,40 @@ describe('shadcn source resolver', () => {
         assert.equal(artifact.entryPoint, 'registry/new-york-v4/blocks/entry-order/page.tsx');
     });
 
+    it('falls back to the block component file when upstream ships no page entry', async () => {
+        const rootUrl = `${rootRegistryUrl}/calendar-fixture.json`;
+        const item = registryItem('calendar-fixture', 'registry:block', [
+            {
+                path: 'registry/new-york-v4/blocks/calendar-fixture.tsx',
+                type: 'registry:component',
+                content: 'export default function CalendarFixture() { return null; }',
+            },
+        ]);
+        const artifact = await createFixtureResolver({
+            fetcher: fixtureFetcher({ [rootUrl]: item }),
+        }).resolve({ provider: 'shadcn', kind: 'block', name: 'calendar-fixture' });
+
+        assert.equal(artifact.entryPoint, 'registry/new-york-v4/blocks/calendar-fixture.tsx');
+    });
+
+    it('ignores bare filenames in sample data instead of fetching them as assets', async () => {
+        const rootUrl = `${rootRegistryUrl}/sample-tree.json`;
+        const item = registryItem('sample-tree', 'registry:block', [
+            {
+                path: 'registry/new-york-v4/blocks/sample-tree/page.tsx',
+                type: 'registry:page',
+                content:
+                    'const files = ["favicon.ico", "logo.svg"];\n' +
+                    'export default function Page() { return <div>{files.join(", ")}</div>; }',
+            },
+        ]);
+        const artifact = await createFixtureResolver({
+            fetcher: fixtureFetcher({ [rootUrl]: item }),
+        }).resolve({ provider: 'shadcn', kind: 'block', name: 'sample-tree' });
+
+        assert.deepEqual(artifact.assets, []);
+    });
+
     it('resolves recursive Sass use and forward partials while ignoring sass built-ins', async () => {
         const rootUrl = `${rootRegistryUrl}/sass-example.json`;
         const item = registryItem('sass-example', 'registry:example', [

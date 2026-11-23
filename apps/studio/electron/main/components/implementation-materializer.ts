@@ -33,7 +33,7 @@ async function publishStageDirectory(stageDirectory: string, destinationDirector
             fs.renameSync(stageDirectory, destinationDirectory);
             return;
         } catch (error) {
-            if (error instanceof ImplementationMaterializationError) throw error;
+            if (error instanceof ImplementationMaterializationError) {throw error;}
             const code = (error as NodeJS.ErrnoException).code;
             if (!transientCodes.has(code ?? '') || attempt === maxAttempts - 1) {
                 if (process.platform === 'win32' && transientCodes.has(code ?? '') && fs.existsSync(stageDirectory) && !fs.existsSync(destinationDirectory)) {
@@ -51,7 +51,7 @@ async function publishStageDirectory(stageDirectory: string, destinationDirector
                 }
                 throw error;
             }
-            if (!fs.existsSync(stageDirectory) || fs.existsSync(destinationDirectory)) throw error;
+            if (!fs.existsSync(stageDirectory) || fs.existsSync(destinationDirectory)) {throw error;}
             await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
         }
     }
@@ -887,7 +887,7 @@ async function materializeImplementationArtifactUnlocked(
     } catch (error) {
         throw wrapError(error, 'io', 'Implementation materialization failed');
     } finally {
-        if (stageDirectory) activeMaterializationStages.delete(path.resolve(stageDirectory));
+        if (stageDirectory) {activeMaterializationStages.delete(path.resolve(stageDirectory));}
         if (stageDirectory && fs.existsSync(stageDirectory)) {
             try {
                 fs.rmSync(stageDirectory, { recursive: true, force: true });
@@ -907,21 +907,21 @@ export function materializeImplementationArtifact(
     const directory = path.resolve(destinationDirectory);
     const artifactHash = artifactValue?.integrity?.artifactHash ?? '';
     const pending = materializationFlights.get(directory);
-    if (pending?.artifactHash === artifactHash) return pending.promise;
+    if (pending?.artifactHash === artifactHash) {return pending.promise;}
     const task = (async () => {
         activeMaterializationDirectories.set(directory, (activeMaterializationDirectories.get(directory) ?? 0) + 1);
         try {
-            if (pending) await pending.promise.catch(() => undefined);
+            if (pending) {await pending.promise.catch(() => undefined);}
             return await materializeImplementationArtifactUnlocked(artifactValue, destinationDirectory, options);
         } finally {
             const remaining = (activeMaterializationDirectories.get(directory) ?? 1) - 1;
-            if (remaining > 0) activeMaterializationDirectories.set(directory, remaining);
-            else activeMaterializationDirectories.delete(directory);
+            if (remaining > 0) {activeMaterializationDirectories.set(directory, remaining);}
+            else {activeMaterializationDirectories.delete(directory);}
         }
     })();
     materializationFlights.set(directory, { artifactHash, promise: task });
     const clear = () => {
-        if (materializationFlights.get(directory)?.promise === task) materializationFlights.delete(directory);
+        if (materializationFlights.get(directory)?.promise === task) {materializationFlights.delete(directory);}
     };
     void task.then(clear, clear);
     return task;

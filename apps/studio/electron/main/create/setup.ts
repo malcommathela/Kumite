@@ -1,5 +1,6 @@
 import { SetupStage, type SetupCallback } from '@kumite/models';
 import { runBunCommand } from '../bun';
+import { removePackageManagerLockfiles } from '../package-manager';
 import fs from 'fs';
 import path from 'path';
 
@@ -41,13 +42,7 @@ export const reinstallProjectDependencies = async (
             await fs.promises.rm(nodeModulesPath, { recursive: true, force: true });
         }
 
-        const lockFiles = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb'];
-        for (const lockFile of lockFiles) {
-            const lockPath = path.join(targetPath, lockFile);
-            if (fs.existsSync(lockPath)) {
-                await fs.promises.unlink(lockPath);
-            }
-        }
+        removePackageManagerLockfiles(targetPath);
 
         onProgress(SetupStage.INSTALLING, 'Reinstalling packages...');
         const result = await runBunCommand(installCommand, {

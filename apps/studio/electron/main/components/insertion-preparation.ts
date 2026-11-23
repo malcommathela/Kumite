@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { ImplementationArtifact, PackageManager } from '@kumite/models';
 import { ImplementationArtifactSchema } from '@kumite/models';
 import { Project, SyntaxKind } from 'ts-morph';
+import { detectPackageManagers, resolvePackageManager } from '../package-manager';
 import { hashImplementationArtifact, hashImplementationSource } from './source-resolver';
 import {
     describeMissingEntryExport,
@@ -95,28 +96,6 @@ function readJson(filePath: string): Record<string, any> | null {
 
 function sha256(content: string | Buffer): string {
     return createHash('sha256').update(content).digest('hex');
-}
-
-function packageManagers(root: string): PackageManager[] {
-    const managers: PackageManager[] = [];
-    if (fs.existsSync(path.join(root, 'bun.lock')) || fs.existsSync(path.join(root, 'bun.lockb'))) {
-        managers.push('bun');
-    }
-    if (fs.existsSync(path.join(root, 'pnpm-lock.yaml'))) {
-        managers.push('pnpm');
-    }
-    if (fs.existsSync(path.join(root, 'yarn.lock'))) {
-        managers.push('yarn');
-    }
-    if (fs.existsSync(path.join(root, 'package-lock.json'))) {
-        managers.push('npm');
-    }
-    return managers;
-}
-
-function packageManager(root: string): PackageManager | null {
-    const managers = packageManagers(root);
-    return managers.length === 1 ? managers[0] : null;
 }
 
 function findConfig(root: string, names: string[]): string | null {
@@ -458,12 +437,15 @@ export function prepareImplementationInsertion(
             'The project has no matching TypeScript path alias for its configured components alias.',
         );
     }
-    const packageManagersFound = packageManagers(root);
-    if (packageManagersFound.length !== 1) {
+    const packageManagersFound = detectPackageManagers(root);
+    const resolvedPackageManager = resolvePackageManager(root);
+    if (!resolvedPackageManager) {
         unsupportedRequirements.push(
-            packageManagersFound.length === 0
-                ? 'No package-manager lockfile was found; insertion requires one to manage approved dependencies safely.'
-                : `Conflicting package-manager lockfiles were found (${packageManagersFound.join(', ')}). Keep exactly one before insertion.`,
+            'No package-manager lockfile was found; insertion requires one to manage approved dependencies safely.',
+        );
+    } else if (packageManagersFound.length > 1) {
+        warnings.push(
+            `Multiple package-manager lockfiles were found (${packageManagersFound.join(', ')}); inserting with ${resolvedPackageManager}.`,
         );
     }
     if (configurationChanges.length > 0) {
@@ -541,7 +523,7 @@ export function prepareImplementationInsertion(
         project: {
             root,
             framework,
-            packageManager: packageManager(root),
+            packageManager: resolvedPackageManager,
             componentsAlias:
                 typeof componentsJson?.aliases?.components === 'string'
                     ? componentsJson.aliases.components

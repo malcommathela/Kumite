@@ -1,3 +1,4 @@
+import { delay, stripAnsi } from '@kumite/utility';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import { processLifecycle, type ManagedProcessType } from './processes';
@@ -5,12 +6,8 @@ import type { PortOwnerScope } from './ports';
 
 const START_TIMEOUT_MS = 45_000;
 const POLL_INTERVAL_MS = 150;
-const ANSI_PATTERN = /\x1B\[[0-9;]*[a-zA-Z]/g;
+const READY_POLL_INTERVAL_MS = 400;
 const LOCAL_URL_PATTERN = /https?:\/\/(?:localhost|127\.0\.0\.1):(\d+)\/?/i;
-
-export function stripAnsi(value: string): string {
-    return value.replace(ANSI_PATTERN, '');
-}
 
 /** The first local URL in a server's output, with its actual port. */
 export function findLocalUrl(value: string): { url: string; port: number } | null {
@@ -23,10 +20,6 @@ export function findLocalUrl(value: string): { url: string; port: number } | nul
         return null;
     }
     return { url: `http://127.0.0.1:${port}`, port };
-}
-
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function realPath(value: string): string {
@@ -124,22 +117,28 @@ export async function startVitePreview(options: StartViteOptions): Promise<Start
     });
 
     const startedAt = Date.now();
+    const startupFailure = async (): Promise<StartViteResult | null> => {
+        let error: string | null = null;
+        if (child.exitCode !== null) {
+            error = 'Preview server exited.';
+        } else if (options.isValid && !options.isValid()) {
+            error = 'Preview start was cancelled.';
+        } else if (Date.now() - startedAt > timeoutMs) {
+            error = 'Preview server timed out.';
+        }
+        if (!error) {
+            return null;
+        }
+        const output = log.value || null;
+        await processLifecycle.stop(options.resourceId);
+        return { server: null, error, log: output };
+    };
+
     let detected = findLocalUrl(log.value);
     while (!detected) {
-        if (child.exitCode !== null) {
-            const output = log.value || null;
-            await processLifecycle.stop(options.resourceId);
-            return { server: null, error: 'Preview server exited.', log: output };
-        }
-        if (options.isValid && !options.isValid()) {
-            const output = log.value || null;
-            await processLifecycle.stop(options.resourceId);
-            return { server: null, error: 'Preview start was cancelled.', log: output };
-        }
-        if (Date.now() - startedAt > timeoutMs) {
-            const output = log.value || null;
-            await processLifecycle.stop(options.resourceId);
-            return { server: null, error: 'Preview server timed out.', log: output };
+        const failure = await startupFailure();
+        if (failure) {
+            return failure;
         }
         await delay(POLL_INTERVAL_MS);
         detected = findLocalUrl(log.value);
@@ -147,20 +146,9 @@ export async function startVitePreview(options: StartViteOptions): Promise<Start
 
     let ready = false;
     while (!ready) {
-        if (child.exitCode !== null) {
-            const output = log.value || null;
-            await processLifecycle.stop(options.resourceId);
-            return { server: null, error: 'Preview server exited.', log: output };
-        }
-        if (options.isValid && !options.isValid()) {
-            const output = log.value || null;
-            await processLifecycle.stop(options.resourceId);
-            return { server: null, error: 'Preview start was cancelled.', log: output };
-        }
-        if (Date.now() - startedAt > timeoutMs) {
-            const output = log.value || null;
-            await processLifecycle.stop(options.resourceId);
-            return { server: null, error: 'Preview server timed out.', log: output };
+        const failure = await startupFailure();
+        if (failure) {
+            return failure;
         }
         try {
             // Any response proves the server is listening. A workspace whose
@@ -171,7 +159,7 @@ export async function startVitePreview(options: StartViteOptions): Promise<Start
             // Not accepting connections yet.
         }
         if (!ready) {
-            await delay(400);
+            await delay(READY_POLL_INTERVAL_MS);
         }
     }
 

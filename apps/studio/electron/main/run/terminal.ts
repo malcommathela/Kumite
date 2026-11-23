@@ -1,5 +1,6 @@
 import { MainChannels } from '@kumite/models/constants';
 import { RunState } from '@kumite/models/run';
+import { stripAnsi } from '@kumite/utility';
 import { spawn } from 'child_process';
 import * as pty from 'node-pty';
 import os from 'os';
@@ -195,8 +196,6 @@ class TerminalManager {
 
     checkSuccess(data: string): boolean {
         // Strip ANSI escape codes to get plain text
-        const stripAnsi = (str: string) => str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
-
         const plainText = stripAnsi(data).trim().toLowerCase();
         const successPatterns = ['get / 200'];
 

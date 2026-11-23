@@ -68,7 +68,7 @@ describe('artifact preview adapter', () => {
         );
         assert.match(module, /<Implementation \/>/);
         assert.match(module, /overflow-hidden p-6/);
-        assert.match(module, /zoom: 0\.78/);
+        assert.match(module, /function Fit/);
         assert.match(module, /h-full w-full items-center justify-center overflow-hidden/);
         assert.doesNotMatch(module, /previewCode|insertCode/);
     });
@@ -83,10 +83,9 @@ describe('artifact preview adapter', () => {
             module,
             /import \{ Button as Implementation \} from "@\/registry\/new-york-v4\/ui\/fixture"/,
         );
-        assert.match(module, /max-w-2xl items-center justify-center overflow-hidden/);
         assert.match(module, /overflow-hidden p-6/);
-        assert.match(module, /zoom: 0\.88/);
-        assert.match(module, /<main className=\"flex h-full min-h-0 w-full items-center justify-center overflow-hidden\">/);
+        assert.match(module, /function Fit/);
+        assert.match(module, /<main className="h-full w-full">/);
     });
 
     it('skips type-only exports when picking a runtime component export', () => {

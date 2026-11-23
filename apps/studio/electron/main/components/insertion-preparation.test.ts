@@ -116,6 +116,22 @@ describe('implementation insertion preparation', () => {
         assert.deepEqual(fs.readdirSync(root).sort(), before);
     });
 
+    it('resolves conflicting lockfiles instead of blocking insertion', () => {
+        const root = createProject();
+        fs.writeFileSync(path.join(root, 'bun.lockb'), '');
+        fs.writeFileSync(path.join(root, 'yarn.lock'), '');
+
+        const plan = prepareImplementationInsertion(artifact(), root);
+
+        assert.equal(plan.project.packageManager, 'bun');
+        assert.equal(plan.project.compatible, true);
+        assert.ok(
+            plan.warnings.some((warning) =>
+                warning.includes('Multiple package-manager lockfiles were found'),
+            ),
+        );
+    });
+
     it('reuses byte-identical files and reports differing files as conflicts', () => {
         const root = createProject();
         const destination = path.join(
