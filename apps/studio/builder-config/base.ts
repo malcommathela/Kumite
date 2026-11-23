@@ -28,6 +28,7 @@ const config: Configuration = {
         },
     ],
     mac: {
+        identity: null,
         artifactName: '${productName}-${arch}.${ext}',
         category: 'public.app-category.developer-tools',
         hardenedRuntime: true,
