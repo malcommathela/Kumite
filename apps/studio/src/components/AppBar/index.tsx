@@ -50,12 +50,18 @@ export const AppBar = observer(() => {
         editorEngine.settingsTab = SettingsTabValue.PREFERENCES;
     };
 
-    const newFile = () => {
+    const newFile = async () => {
+        if (projectsManager.project && !appState.showHome) {
+            await projectsManager.capturePreview();
+        }
         appState.showHome = true;
         projectsManager.projectsTab = ProjectTabs.PROMPT_CREATE;
     };
 
-    const importProject = () => {
+    const importProject = async () => {
+        if (projectsManager.project && !appState.showHome) {
+            await projectsManager.capturePreview();
+        }
         appState.showHome = true;
         projectsManager.projectsTab = ProjectTabs.IMPORT_PROJECT;
     };
@@ -79,7 +85,7 @@ export const AppBar = observer(() => {
                     target?.isContentEditable;
                 if (!typing) {
                     event.preventDefault();
-                    newFile();
+                    void newFile();
                 }
             }
         };
