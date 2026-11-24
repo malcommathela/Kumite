@@ -92,7 +92,7 @@ export class ProjectCreator {
                         scripts: {
                             // Install in the project terminal, after the editor
                             // has opened. Bun is the app's default npm runtime.
-                            dev: 'bun install && vite --host 0.0.0.0 --port 3000',
+                            dev: 'npm install --no-audit --no-fund && vite --host 0.0.0.0 --port 3000',
                             build: 'vite build',
                             preview: 'vite preview',
                         },
