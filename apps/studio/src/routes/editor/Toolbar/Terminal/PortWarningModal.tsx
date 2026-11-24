@@ -15,12 +15,10 @@ const PortWarningModal = observer(
         const portManager = projectsManager.runner?.port;
         const [showStillTaken, setShowStillTaken] = useState(false);
 
-        if (!portManager) {
-            console.error('Port manager not found');
-            return null;
-        }
-
         useEffect(() => {
+            if (!portManager) {
+                return;
+            }
             portManager.listenForPortChanges();
             return () => portManager.clearPortCheckInterval();
         }, [portManager]);
@@ -33,13 +31,13 @@ const PortWarningModal = observer(
 
         const getMessage = () =>
             showStillTaken
-                ? `Port ${portManager.currentPort} is still occupied. Check your other IDE.`
-                : `Port ${portManager.currentPort} is currently in use.`;
+                ? `Port ${portManager!.currentPort} is still occupied. Check your other IDE.`
+                : `Port ${portManager!.currentPort} is currently in use.`;
 
         const handleRefresh = async () => {
             try {
-                await portManager.checkPort();
-                if (!portManager.isPortAvailable) {
+                await portManager!.checkPort();
+                if (!portManager!.isPortAvailable) {
                     setShowStillTaken(true);
                     setTimeout(() => setShowStillTaken(false), 3000);
                 }
@@ -49,12 +47,20 @@ const PortWarningModal = observer(
         };
 
         const messageCharacters = useMemo(() => {
+            if (!portManager) {
+                return [];
+            }
             const message = getMessage();
             return message.split('').map((label, index) => ({
                 label,
                 id: `port-message-${message.length}-${index}-${label}`,
             }));
-        }, [getMessage, showStillTaken]);
+        }, [getMessage, showStillTaken, portManager]);
+
+        if (!portManager) {
+            console.error('Port manager not found');
+            return null;
+        }
 
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -118,7 +124,7 @@ const PortWarningModal = observer(
                             </div>
                             <p className="text-regular text-foreground/80">
                                 Another process is running on{' '}
-                                <strong>localhost:{portManager.currentPort}</strong>. You may need
+                                <strong>localhost:{portManager!.currentPort}</strong>. You may need
                                 to stop that process or run your application on a different port.
                             </p>
                         </div>
