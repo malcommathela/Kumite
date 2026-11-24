@@ -92,9 +92,12 @@ export class RunManager {
 
         this.isLoading = true;
 
-        const minLoadingDuration = 5000;
+        // The editor canvas is usable as soon as its shell and terminal are
+        // created. Do not hold it behind the old 5s minimum + 3s grace period
+        // while the dev server installs packages in the background.
+        const minLoadingDuration = 0;
         const maxLoadingDuration = 15000;
-        const gracePeriod = 3000;
+        const gracePeriod = 250;
 
         const startTime = Date.now();
         let consecutiveReadyChecks = 0;
