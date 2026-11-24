@@ -70,59 +70,6 @@ const ComponentsTab = observer(() => {
             });
             return;
         }
-        const files =
-            review.filesToCreate
-                .map(
-                    (file) =>
-                        `  • ${file.path}\n    ${file.sourceHash} → ${file.publishedHash}${file.transformations.length ? `\n    AST: ${file.transformations.map((item) => `${item.from} → ${item.to}`).join(', ')}` : ''}`,
-                )
-                .join('\n') || '  • No new source files';
-        const dependencies =
-            review.dependencies
-                .map(
-                    (dependency) =>
-                        `  • ${dependency.action === 'install' ? 'Install' : 'Reuse'} ${dependency.name}@${dependency.version} — ${dependency.provenance}; lifecycle scripts: ${dependency.lifecycleScripts === null ? 'unknown (disabled)' : dependency.lifecycleScripts.length ? `${dependency.lifecycleScripts.join(', ')} (disabled)` : 'none'}`,
-                )
-                .join('\n') || '  • None';
-        const assets =
-            review.assets
-                .filter((asset) => !asset.external)
-                .map(
-                    (asset) =>
-                        `  • ${asset.action} ${asset.sourcePath} → ${asset.destinationPath} [${asset.sha256 ?? 'hash unavailable'}]`,
-                )
-                .join('\n') || '  • None';
-        const approval = [
-            `Artifact: ${review.artifact.id}`,
-            `SHA-256: ${review.artifact.artifactHash}`,
-            `Project runtime: ${review.project.framework}; package manager: ${review.project.packageManager ?? 'unknown'}`,
-            `Aliases: components=${review.project.componentsAlias ?? 'default'}, ui=${review.project.uiAlias ?? 'default'}`,
-            `Editor target: ${review.editorTarget.oid} (${review.editorTarget.domId})`,
-            '',
-            'Files to create:',
-            files,
-            '',
-            'Dependencies (exact versions; lifecycle scripts disabled):',
-            dependencies,
-            `Manifests/lockfiles to change: ${review.lockfilesToChange.join(', ') || 'none'}`,
-            review.transitiveDependencyNote,
-            '',
-            'Local assets:',
-            assets,
-            '',
-            `Providers: ${review.providers.join(', ') || 'none'}`,
-            `Configuration changes: ${review.configurationChanges.join(', ') || 'none'}`,
-            `Warnings: ${review.warnings.join('; ') || 'none'}`,
-            '',
-            'Approve publishing these files and installing only the listed dependencies?',
-        ].join('\n');
-        if (!window.confirm(approval)) {
-            toast({
-                title: 'Insertion cancelled',
-                description: 'No project files or dependencies were changed.',
-            });
-            return;
-        }
         const result = await manager.insert(definition.name, {
             planId: review.planId,
             planHash: review.planHash,
