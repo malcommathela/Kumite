@@ -3,8 +3,7 @@ import { Sidebar } from './Sidebar';
 import { observer } from 'mobx-react-lite';
 import type React from 'react';
 import { useEffect } from 'react';
-import { useAppStateManager, useProjectsManager } from '@/components/Context';
-import { ProjectTabs } from '@/lib/projects';
+import { useAppStateManager } from '@/components/Context';
 
 type WorkspaceShellProps = {
     children: React.ReactNode;
@@ -13,7 +12,6 @@ type WorkspaceShellProps = {
 
 export const WorkspaceShell = observer(({ children, sidebar = true }: WorkspaceShellProps) => {
     const appState = useAppStateManager();
-    const projectsManager = useProjectsManager();
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -22,22 +20,10 @@ export const WorkspaceShell = observer(({ children, sidebar = true }: WorkspaceS
                 event.preventDefault();
                 appState.searchOpen = true;
             }
-            if (meta && event.key.toLowerCase() === 'n') {
-                const target = event.target as HTMLElement | null;
-                const typing =
-                    target?.tagName === 'INPUT' ||
-                    target?.tagName === 'TEXTAREA' ||
-                    target?.isContentEditable;
-                if (!typing) {
-                    event.preventDefault();
-                    appState.showHome = true;
-                    projectsManager.projectsTab = ProjectTabs.PROMPT_CREATE;
-                }
-            }
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [appState, projectsManager]);
+    }, [appState]);
 
     return (
         <div className="flex min-h-0 flex-1 overflow-hidden">
