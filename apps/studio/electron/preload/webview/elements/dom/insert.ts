@@ -117,8 +117,11 @@ export function insertElement(
     return domEl;
 }
 
-export function createElement(element: ActionElement) {
-    const newEl = document.createElement(element.tagName);
+export function createElement(element: ActionElement, namespace: 'svg' | null = null): HTMLElement {
+    const isSvg = namespace === 'svg' || element.tagName.toLowerCase() === 'svg';
+    const newEl: Element = isSvg
+        ? document.createElementNS('http://www.w3.org/2000/svg', element.tagName)
+        : document.createElement(element.tagName);
     newEl.setAttribute(EditorAttributes.DATA_KUMITE_INSERTED, 'true');
 
     for (const [key, value] of Object.entries(element.attributes)) {
@@ -130,14 +133,14 @@ export function createElement(element: ActionElement) {
     }
 
     for (const [key, value] of Object.entries(element.styles)) {
-        newEl.style.setProperty(cssManager.jsToCssProperty(key), value);
+        (newEl as HTMLElement).style.setProperty(cssManager.jsToCssProperty(key), value);
     }
 
     for (const child of element.children) {
-        const childEl = createElement(child);
+        const childEl = createElement(child, isSvg ? 'svg' : null);
         newEl.appendChild(childEl);
     }
-    return newEl;
+    return newEl as HTMLElement;
 }
 
 export function removeElement(location: ActionLocation): DomElement | null {

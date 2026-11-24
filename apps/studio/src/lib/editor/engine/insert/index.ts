@@ -12,6 +12,7 @@ import { DefaultSettings, EditorAttributes } from '@kumite/models/constants';
 import type { DropElementProperties, ElementPosition } from '@kumite/models/element';
 import { StyleChangeType } from '@kumite/models/style';
 import { colors } from '@kumite/ui/tokens';
+import type { LucideIconData, LucideIconNode } from 'lucide-react';
 import type React from 'react';
 import type { EditorEngine } from '..';
 import type { RectDimensions } from '../overlay/rect';
@@ -365,6 +366,98 @@ export class InsertManager {
         };
 
         this.editorEngine.action.run(action);
+    }
+
+    insertSvgIcon(
+        webview: Electron.WebviewTag,
+        target: { domId: string; oid: string | null },
+        icon: LucideIconData,
+    ) {
+        const domId = createDomId();
+        const oid = createOid();
+        const element: ActionElement = {
+            domId,
+            oid,
+            tagName: 'svg',
+            attributes: {
+                [EditorAttributes.DATA_KUMITE_ID]: oid,
+                [EditorAttributes.DATA_KUMITE_DOM_ID]: domId,
+                [EditorAttributes.DATA_KUMITE_INSERTED]: 'true',
+                xmlns: 'http://www.w3.org/2000/svg',
+                width: '24',
+                height: '24',
+                viewBox: '0 0 24 24',
+                fill: 'none',
+                stroke: 'currentColor',
+                'stroke-width': '2',
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+            },
+            children: icon.node.map((node) => this.iconNodeToActionElement(node)),
+            textContent: null,
+            styles: {},
+        };
+
+        const action: InsertElementAction = {
+            type: 'insert-element',
+            targets: [{ webviewId: webview.id, domId, oid }],
+            element,
+            location: {
+                type: 'append',
+                targetDomId: target.domId,
+                targetOid: target.oid,
+            },
+            editText: false,
+            pasteParams: null,
+            codeBlock: this.iconCodeBlock(icon),
+        };
+        this.editorEngine.action.run(action);
+    }
+
+    private iconNodeToActionElement([tagName, attributes, children]: LucideIconNode): ActionElement {
+        const domId = createDomId();
+        const attrs: Record<string, string> = {
+            [EditorAttributes.DATA_KUMITE_IGNORE]: 'true',
+        };
+        for (const [key, value] of Object.entries(attributes ?? {})) {
+            if (key === 'key' || value === undefined || value === null) {
+                continue;
+            }
+            attrs[key] = String(value);
+        }
+        return {
+            domId,
+            oid: '',
+            tagName,
+            attributes: attrs,
+            children: (children ?? []).map((child) => this.iconNodeToActionElement(child)),
+            textContent: null,
+            styles: {},
+        };
+    }
+
+    private iconCodeBlock(icon: LucideIconData): string {
+        const renderNode = ([tagName, attributes, children]: LucideIconNode): string => {
+            const attrs = Object.entries(attributes ?? {})
+                .filter(([key, value]) => key !== 'key' && value !== undefined && value !== null)
+                .map(
+                    ([key, value]) =>
+                        `${key.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase())}="${String(value).replace(/"/g, '&quot;')}"`,
+                )
+                .join(' ');
+            const body = (children ?? []).map(renderNode).join('');
+            return `<${tagName}${attrs ? ` ${attrs}` : ''}>${body}</${tagName}>`;
+        };
+        return [
+            '<svg',
+            ' xmlns="http://www.w3.org/2000/svg"',
+            ' width="24" height="24" viewBox="0 0 24 24"',
+            ' fill="none" stroke="currentColor"',
+            ' strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"',
+            '>',
+            icon.node.map(renderNode).join(''),
+            '</svg>',
+        ].join('');
     }
 
     dispose() {

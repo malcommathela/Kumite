@@ -8,6 +8,7 @@ import {
     LayoutGrid,
     Monitor,
     Palette,
+    Shapes,
     type LucideIcon,
 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
@@ -16,6 +17,7 @@ import AppsTab from './AppsTab';
 import BrandTab from './BrandTab';
 import ComponentsTab from './ComponentsTab';
 import { HelpDropdown } from './HelpDropdown';
+import IconsTab from './IconsTab';
 import ImagesTab from './ImageTab';
 import LayersTab from './LayersTab';
 import OpenCodeMini from './OpenCodeMini';
@@ -44,6 +46,7 @@ const PANEL_TABS: PanelTab[] = [
         icon: LayoutGrid,
         label: 'editor.panels.layers.tabs.components',
     },
+    { value: LayersPanelTabValue.ICONS, icon: Shapes, label: 'editor.panels.layers.tabs.icons' },
 ];
 
 export const LayersPanel = observer(() => {
@@ -137,6 +140,7 @@ export const LayersPanel = observer(() => {
                         <div className="h-full overflow-auto">
                             {selectedTab === LayersPanelTabValue.LAYERS && <LayersTab />}
                             {selectedTab === LayersPanelTabValue.COMPONENTS && <ComponentsTab />}
+                            {selectedTab === LayersPanelTabValue.ICONS && <IconsTab />}
                             {selectedTab === LayersPanelTabValue.PAGES && <PagesTab />}
                             {selectedTab === LayersPanelTabValue.IMAGES && <ImagesTab />}
                             {selectedTab === LayersPanelTabValue.WINDOWS && <WindowsTab />}
