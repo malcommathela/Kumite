@@ -52,6 +52,7 @@
         "electron-updater": "^6.3.4",
         "embla-carousel-react": "^8.3.0",
         "embla-carousel-wheel-gestures": "^8.0.1",
+        "fast-glob": "^3.3.3",
         "fflate": "^0.8.2",
         "fix-path": "^4.0.0",
         "flexsearch": "^0.8.151",
@@ -152,6 +153,7 @@
         "@babel/traverse": "^7.14.5",
         "@babel/types": "^7.24.7",
         "@kumite/models": "*",
+        "fast-glob": "^3.3.3",
       },
       "devDependencies": {
         "@kumite/typescript": "*",
