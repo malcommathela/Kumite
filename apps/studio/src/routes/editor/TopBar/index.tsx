@@ -32,13 +32,13 @@ export const EditorTopBar = observer(() => {
     ];
 
     return (
-        <div className="flex h-11 items-center gap-2 px-3">
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
             <div className="flex min-w-0 flex-1 items-center">
                 <ProjectBreadcrumb />
             </div>
             <ModeToggle />
             <div className="flex flex-1 items-center justify-end gap-2">
-                <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface/85 p-0.5 shadow-lg backdrop-blur-xl">
+                <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface/70 p-0.5">
                     <motion.div
                         className="hidden space-x-0 lg:block"
                         layout
@@ -56,7 +56,7 @@ export const EditorTopBar = observer(() => {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-7 w-7 rounded-full"
+                                            className="h-7 w-7 rounded-md"
                                             onClick={click}
                                             disabled={isDisabled}
                                         >
@@ -75,7 +75,7 @@ export const EditorTopBar = observer(() => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 rounded-full"
+                                className="h-7 w-7 rounded-md"
                                 onClick={() => {
                                     editorEngine.settingsTab = SettingsTabValue.VERSIONS;
                                     editorEngine.isSettingsOpen = true;

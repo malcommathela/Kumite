@@ -110,7 +110,7 @@ export const Toolbar = observer(() => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="flex flex-col rounded-2xl border border-border bg-surface/90 p-1 px-1.5 shadow-xl backdrop-blur"
+                    className="flex flex-col rounded-xl border border-border bg-surface/95 p-1 px-1.5 shadow-2xl backdrop-blur-xl"
                     transition={{
                         type: 'spring',
                         bounce: 0.1,
@@ -154,6 +154,7 @@ export const Toolbar = observer(() => {
                                     </Tooltip>
                                 ))}
                             </ToggleGroup>
+                            <div className="mx-1 h-6 w-px bg-border" />
                             <motion.div layout className="relative -my-1">
                                 <RunButton />
                             </motion.div>

@@ -11,7 +11,6 @@ import {
 } from '@kumite/ui/dropdown-menu';
 import { Icons } from '@kumite/ui/icons';
 import ResizablePanel from '@kumite/ui/resizable';
-import { Separator } from '@kumite/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@kumite/ui/tabs';
 import { cn } from '@kumite/ui/utils';
 import { observer } from 'mobx-react-lite';
@@ -88,8 +87,8 @@ export const EditPanel = observer(() => {
             >
                 <TabsList
                     className={cn(
-                        'bg-transparent w-full select-none justify-between items-center px-2',
-                        isOpen ? 'h-11' : 'h-full',
+                        'bg-transparent w-full select-none justify-between items-center border-b border-border px-2',
+                        isOpen ? 'h-12' : 'h-full',
                     )}
                 >
                     <div className="flex flex-row items-center gap-2 ">
@@ -106,7 +105,7 @@ export const EditPanel = observer(() => {
                             >
                                 <div className="flex items-center">
                                     <TabsTrigger
-                                        className="bg-transparent py-2 px-1 text-small hover:text-foreground-hover"
+                                        className="rounded-md bg-transparent px-2 py-1.5 text-small hover:bg-background-hover hover:text-foreground data-[state=active]:bg-background-active"
                                         value={EditorTabValue.CHAT}
                                     >
                                         <Icons.Sparkles className="mr-1.5 mb-0.5 h-4 w-4" />
@@ -202,7 +201,7 @@ export const EditPanel = observer(() => {
                             </DropdownMenuContent>
                         </DropdownMenu>
                         <TabsTrigger
-                            className="bg-transparent py-2 px-1 text-small hover:text-foreground-hover"
+                            className="rounded-md bg-transparent px-2 py-1.5 text-small hover:bg-background-hover hover:text-foreground data-[state=active]:bg-background-active"
                             value={EditorTabValue.STYLES}
                         >
                             <Icons.Styles className="mr-1.5 h-4 w-4" />
@@ -217,7 +216,7 @@ export const EditPanel = observer(() => {
                         </TabsTrigger>
                         {isKumiteIde && (
                             <TabsTrigger
-                                className="bg-transparent py-2 px-1 text-small hover:text-foreground-hover"
+                                className="rounded-md bg-transparent px-2 py-1.5 text-small hover:bg-background-hover hover:text-foreground data-[state=active]:bg-background-active"
                                 value={EditorTabValue.DEV}
                             >
                                 <Icons.Code className="mr-1.5 h-4 w-4" />
@@ -227,12 +226,11 @@ export const EditPanel = observer(() => {
                     </div>
                     {selectedTab === EditorTabValue.CHAT && <ChatControls />}
                 </TabsList>
-                <Separator className="mt-0" />
                 <ChatHistory isOpen={isChatHistoryOpen} onOpenChange={setIsChatHistoryOpen} />
                 <div
                     className={`min-h-0 flex-1 ${selectedTab === EditorTabValue.DEV ? 'overflow-hidden' : 'overflow-auto'}`}
                 >
-                    <TabsContent value={EditorTabValue.CHAT}>
+                    <TabsContent value={EditorTabValue.CHAT} className="mt-0 h-full">
                         <ChatTab />
                     </TabsContent>
                     <TabsContent value={EditorTabValue.PROPS}>
@@ -266,8 +264,8 @@ export const EditPanel = observer(() => {
     return (
         <div
             className={cn(
-                'flex flex-row h-full',
-                editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : 'visible',
+                'flex h-full shrink-0 flex-row',
+                editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : '',
             )}
         >
             <ResizablePanel
@@ -280,8 +278,8 @@ export const EditPanel = observer(() => {
                 <div
                     id="editor-panel"
                     className={cn(
-                        'group/panel h-full w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-xl transition-width duration-300',
-                        editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : 'visible',
+                        'group/panel h-full w-full overflow-hidden border-l border-border bg-surface transition-width duration-300',
+                        editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : 'block',
                     )}
                 >
                     <div

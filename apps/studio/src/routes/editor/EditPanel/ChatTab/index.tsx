@@ -4,7 +4,7 @@ import { ErrorView } from './ErrorView';
 
 export const ChatTab = () => {
     return (
-        <div className="w-full h-[calc(100vh-8.25rem)] flex flex-col justify-end gap-2">
+        <div className="flex h-full w-full flex-col justify-end gap-2">
             <ChatMessages />
             <ErrorView />
             <ChatInput />

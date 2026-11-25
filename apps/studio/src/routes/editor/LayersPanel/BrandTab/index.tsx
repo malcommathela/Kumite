@@ -58,7 +58,7 @@ const BrandTab = observer(() => {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8.25rem)] text-xs text-active flex-grow w-full p-0">
+        <div className="flex h-full w-full flex-grow flex-col p-0 text-xs text-active">
             {/* Brand Palette Section */}
             <div className="flex flex-col gap-3 px-4 pt-4 pb-6 border-b border-border">
                 <div className="flex flex-col gap-2">

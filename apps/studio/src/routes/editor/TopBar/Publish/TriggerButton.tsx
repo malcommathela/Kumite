@@ -60,7 +60,7 @@ export const PublishButton = observer(() => {
                 variant="outline"
                 size="sm"
                 className={cn(
-                    'flex h-8 items-center justify-center rounded-full px-3.5 text-xs shadow-sm transition-all duration-300 ease-in-out',
+                    'flex h-8 items-center justify-center rounded-lg px-3.5 text-xs shadow-sm transition-all duration-300 ease-in-out',
                     colorClasses,
                 )}
             >

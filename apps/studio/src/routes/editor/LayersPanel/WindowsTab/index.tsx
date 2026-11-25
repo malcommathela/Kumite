@@ -37,7 +37,7 @@ const WindowsTab = observer(() => {
         setRoute(settings ? getRoute(settings.url) : '/');
     }, [settings?.id, settings?.url]);
 
-    const WIDTH = 'w-[275px]';
+    const WIDTH = 'w-full';
 
     function changeRoute() {
         if (!settings) {

@@ -36,7 +36,7 @@ const ModeToggle = observer(() => {
     }
 
     return (
-        <div className="flex items-center gap-0.5 rounded-full border border-border bg-surface/85 p-0.5 shadow-lg backdrop-blur-xl">
+        <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface/70 p-0.5">
             {MODE_TOGGLE_ITEMS.map((item) => (
                 <Tooltip key={item.mode}>
                     <TooltipTrigger asChild>
@@ -46,7 +46,7 @@ const ModeToggle = observer(() => {
                                 setMode(item.mode);
                             }}
                             className={cn(
-                                'h-7 whitespace-nowrap rounded-full px-3.5 text-[12px] transition-colors',
+                                'h-7 whitespace-nowrap rounded-md px-3.5 text-[12px] transition-colors',
                                 mode === item.mode
                                     ? 'bg-background-active text-foreground'
                                     : 'text-foreground-tertiary hover:text-foreground',

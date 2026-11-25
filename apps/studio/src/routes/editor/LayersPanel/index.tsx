@@ -1,5 +1,6 @@
 import { useEditorEngine } from '@/components/Context';
 import { EditorMode, LayersPanelTabValue } from '@/lib/models';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
 import { cn } from '@kumite/ui/utils';
 import {
     FileText,
@@ -8,10 +9,14 @@ import {
     LayoutGrid,
     Monitor,
     Palette,
+    PanelLeftClose,
+    Pin,
+    PinOff,
     Shapes,
     type LucideIcon,
 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppsTab from './AppsTab';
 import BrandTab from './BrandTab';
@@ -52,42 +57,21 @@ const PANEL_TABS: PanelTab[] = [
 export const LayersPanel = observer(() => {
     const editorEngine = useEditorEngine();
     const { t } = useTranslation();
+    const [collapsed, setCollapsed] = useState(false);
     const isLocked = editorEngine.isLayersPanelLocked;
     const selectedTab = editorEngine.layersPanelTab;
+    const activeTab = selectedTab ?? LayersPanelTabValue.LAYERS;
+    const activeTabMeta = PANEL_TABS.find((tab) => tab.value === activeTab) ?? PANEL_TABS[0];
 
     const handleMouseEnter = (tab: LayersPanelTabValue) => {
-        if (isLocked) {
+        if (isLocked || collapsed) {
             return;
         }
         editorEngine.layersPanelTab = tab;
     };
 
-    const isMouseInContentPanel = (e: React.MouseEvent<HTMLDivElement>): boolean => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-        const contentPanel = e.currentTarget;
-        if (contentPanel) {
-            const { left, right, top, bottom } = contentPanel.getBoundingClientRect();
-            if (mouseX < left || mouseX > right || mouseY < top || mouseY > bottom) {
-                return false;
-            }
-        }
-        return true;
-    };
-
-    const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isLocked) {
-            // This is to handle things like dropdown where the mouse is still in the content panel
-            if (!isMouseInContentPanel(e)) {
-                editorEngine.layersPanelTab = null;
-            }
-        } else {
-            // If we're locked, return to the locked tab when mouse leaves
-            editorEngine.layersPanelTab = selectedTab;
-        }
-    };
-
     const handleClick = (tab: LayersPanelTabValue) => {
+        setCollapsed(false);
         if (selectedTab === tab && isLocked) {
             editorEngine.isLayersPanelLocked = false;
         } else {
@@ -96,62 +80,108 @@ export const LayersPanel = observer(() => {
         }
     };
 
+    const collapsePanel = () => {
+        setCollapsed(true);
+    };
+
+    const toggleLock = () => {
+        editorEngine.isLayersPanelLocked = !isLocked;
+    };
+
     return (
         <div
             className={cn(
-                'flex h-full gap-2 p-2',
-                editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : 'visible',
+                'flex h-full shrink-0',
+                editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : '',
             )}
-            onMouseLeave={handleMouseLeave}
         >
-            {/* Left rail with tabs */}
-            <div className="flex w-16 flex-col items-center gap-1 rounded-2xl border border-border bg-surface/90 py-2 backdrop-blur-xl">
-                {PANEL_TABS.map(({ value, icon: Icon, label }) => {
-                    const active = selectedTab === value && isLocked;
-                    return (
-                        <button
-                            key={value}
-                            className={cn(
-                                'flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] leading-tight transition-colors',
-                                active
-                                    ? 'bg-background-active text-foreground'
-                                    : 'text-foreground-tertiary hover:bg-background-hover hover:text-foreground',
-                            )}
-                            onClick={() => handleClick(value)}
-                            onMouseEnter={() => handleMouseEnter(value)}
-                        >
-                            <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                            <span className="max-w-full truncate px-1">{t(label)}</span>
-                        </button>
-                    );
-                })}
+            <aside className="flex w-16 shrink-0 flex-col items-center border-r border-border bg-background py-2">
+                <div className="flex w-full flex-col items-center gap-0.5">
+                    {PANEL_TABS.map(({ value, icon: Icon, label }) => {
+                        const active = activeTab === value;
+                        return (
+                            <button
+                                key={value}
+                                aria-label={t(label)}
+                                className={cn(
+                                    'flex h-[52px] w-[52px] flex-col items-center justify-center gap-1 rounded-lg text-[10px] leading-tight transition-colors',
+                                    active
+                                        ? 'bg-background-active text-foreground'
+                                        : 'text-foreground-tertiary hover:bg-background-hover hover:text-foreground',
+                                )}
+                                onClick={() => handleClick(value)}
+                                onMouseEnter={() => handleMouseEnter(value)}
+                            >
+                                <Icon className="h-[17px] w-[17px]" strokeWidth={1.7} />
+                                <span className="max-w-full truncate px-1">{t(label)}</span>
+                            </button>
+                        );
+                    })}
+                </div>
 
-                <div className="mt-auto flex flex-col items-center gap-1">
+                <div className="mt-auto flex flex-col items-center gap-1 border-t border-border/70 pt-2">
                     <OpenCodeMini />
                     <ZoomControls />
                     <HelpDropdown />
                 </div>
-            </div>
+            </aside>
 
-            {/* Content panel */}
-            {editorEngine.layersPanelTab && (
-                <>
-                    <div className="w-[300px] overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
-                        <div className="h-full overflow-auto">
-                            {selectedTab === LayersPanelTabValue.LAYERS && <LayersTab />}
-                            {selectedTab === LayersPanelTabValue.COMPONENTS && <ComponentsTab />}
-                            {selectedTab === LayersPanelTabValue.ICONS && <IconsTab />}
-                            {selectedTab === LayersPanelTabValue.PAGES && <PagesTab />}
-                            {selectedTab === LayersPanelTabValue.IMAGES && <ImagesTab />}
-                            {selectedTab === LayersPanelTabValue.WINDOWS && <WindowsTab />}
-                            {selectedTab === LayersPanelTabValue.BRAND && <BrandTab />}
-                            {selectedTab === LayersPanelTabValue.APPS && <AppsTab />}
+            {!collapsed && (
+                <div className="flex h-full w-[288px] shrink-0 flex-col border-r border-border bg-surface">
+                    <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+                        <span className="truncate text-[12px] font-medium text-foreground">
+                            {t(activeTabMeta.label)}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        aria-label={isLocked ? 'Unpin panel' : 'Pin panel'}
+                                        className={cn(
+                                            'flex h-6 w-6 items-center justify-center rounded-md transition-colors',
+                                            isLocked
+                                                ? 'text-foreground-secondary hover:bg-background-hover hover:text-foreground'
+                                                : 'text-foreground-quadranary hover:bg-background-hover hover:text-foreground',
+                                        )}
+                                        onClick={toggleLock}
+                                    >
+                                        {isLocked ? (
+                                            <Pin className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <PinOff className="h-3.5 w-3.5" />
+                                        )}
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                    {isLocked ? 'Unpin panel' : 'Pin panel'}
+                                </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        aria-label="Collapse panel"
+                                        className="flex h-6 w-6 items-center justify-center rounded-md text-foreground-quadranary transition-colors hover:bg-background-hover hover:text-foreground"
+                                        onClick={collapsePanel}
+                                    >
+                                        <PanelLeftClose className="h-3.5 w-3.5" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">Collapse panel</TooltipContent>
+                            </Tooltip>
                         </div>
                     </div>
 
-                    {/* Invisible padding area that maintains hover state */}
-                    {!isLocked && <div className="h-full w-16" />}
-                </>
+                    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+                        {activeTab === LayersPanelTabValue.LAYERS && <LayersTab />}
+                        {activeTab === LayersPanelTabValue.COMPONENTS && <ComponentsTab />}
+                        {activeTab === LayersPanelTabValue.ICONS && <IconsTab />}
+                        {activeTab === LayersPanelTabValue.PAGES && <PagesTab />}
+                        {activeTab === LayersPanelTabValue.IMAGES && <ImagesTab />}
+                        {activeTab === LayersPanelTabValue.WINDOWS && <WindowsTab />}
+                        {activeTab === LayersPanelTabValue.BRAND && <BrandTab />}
+                        {activeTab === LayersPanelTabValue.APPS && <AppsTab />}
+                    </div>
+                </div>
             )}
         </div>
     );
