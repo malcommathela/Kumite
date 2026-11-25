@@ -2,7 +2,8 @@ import { invokeMainChannel } from '@/lib/utils';
 import { MainChannels } from '@kumite/models/constants';
 import { WindowCommand } from '@kumite/models/projects';
 import { Button } from '@kumite/ui/button';
-import { Minus, Square, X } from 'lucide-react';
+import { Cancel01Icon, MinusSignIcon, SquareIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { useState } from 'react';
 
 export const WindowsControls = () => {
@@ -27,7 +28,7 @@ export const WindowsControls = () => {
                 className="h-full w-11 rounded-none text-foreground-tertiary hover:bg-background-hover hover:text-foreground"
                 aria-label="Minimize"
             >
-                <Minus className="h-3.5 w-3.5" strokeWidth={1.6} />
+                <HugeiconsIcon icon={MinusSignIcon} size={14} strokeWidth={1.6} />
             </Button>
             <Button
                 onClick={() =>
@@ -37,7 +38,7 @@ export const WindowsControls = () => {
                 className="h-full w-11 rounded-none text-foreground-tertiary hover:bg-background-hover hover:text-foreground"
                 aria-label="Maximize"
             >
-                <Square className="h-3 w-3" strokeWidth={1.6} />
+                <HugeiconsIcon icon={SquareIcon} size={12} strokeWidth={1.6} />
             </Button>
             <Button
                 onClick={() => sendCommand(WindowCommand.CLOSE)}
@@ -45,7 +46,7 @@ export const WindowsControls = () => {
                 className="h-full w-11 rounded-none text-foreground-tertiary hover:bg-[#e81123] hover:text-white"
                 aria-label="Close"
             >
-                <X className="h-3.5 w-3.5" strokeWidth={1.6} />
+                <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={1.6} />
             </Button>
         </div>
     );

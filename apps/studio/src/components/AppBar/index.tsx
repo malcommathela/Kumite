@@ -20,16 +20,17 @@ import {
 } from '@kumite/ui/dropdown-menu';
 import { cn } from '@kumite/ui/utils';
 import {
-    Archive,
-    Folder,
-    LayoutGrid,
-    LibraryBig,
-    LogOut,
-    Plus,
-    Search,
-    Settings,
-    Upload,
-} from 'lucide-react';
+    Archive01Icon,
+    FolderOpenIcon,
+    LayoutGridIcon,
+    LibraryIcon,
+    Logout01Icon,
+    PlusSignIcon,
+    Search01Icon,
+    Setting07Icon,
+    Upload01Icon,
+} from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 import type React from 'react';
 import { useEffect } from 'react';
@@ -114,54 +115,54 @@ export const AppBar = observer(() => {
                 <div className="no-drag relative z-10 flex items-center">
                     <Menu label="File">
                         <DropdownMenuItem onSelect={newFile}>
-                            <Plus />
+                            <HugeiconsIcon icon={PlusSignIcon} size={16} />
                             New file
                             <DropdownMenuShortcut>Ctrl N</DropdownMenuShortcut>
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={importProject}>
-                            <Upload />
+                            <HugeiconsIcon icon={Upload01Icon} size={16} />
                             Import existing project
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={openSettings}>
-                            <Settings />
+                            <HugeiconsIcon icon={Setting07Icon} size={16} />
                             Settings
                             <DropdownMenuShortcut>Ctrl ,</DropdownMenuShortcut>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => authManager.signOut()}>
-                            <LogOut />
+                            <HugeiconsIcon icon={Logout01Icon} size={16} />
                             Sign out
                         </DropdownMenuItem>
                     </Menu>
 
                     <Menu label="Edit">
                         <DropdownMenuItem onSelect={() => (appState.searchOpen = true)}>
-                            <Search />
+                            <HugeiconsIcon icon={Search01Icon} size={16} />
                             Search files
                             <DropdownMenuShortcut>Ctrl K</DropdownMenuShortcut>
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={openSettings}>
-                            <Settings />
+                            <HugeiconsIcon icon={Setting07Icon} size={16} />
                             Preferences
                         </DropdownMenuItem>
                     </Menu>
 
                     <Menu label="View">
                         <DropdownMenuItem onSelect={() => goto('files')}>
-                            <LayoutGrid />
+                            <HugeiconsIcon icon={LayoutGridIcon} size={16} />
                             Files
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => goto('folders')}>
-                            <Folder />
+                            <HugeiconsIcon icon={FolderOpenIcon} size={16} />
                             Folders
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => goto('archive')}>
-                            <Archive />
+                            <HugeiconsIcon icon={Archive01Icon} size={16} />
                             Archive
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => goto('library')}>
-                            <LibraryBig />
+                            <HugeiconsIcon icon={LibraryIcon} size={16} />
                             Library
                         </DropdownMenuItem>
                     </Menu>

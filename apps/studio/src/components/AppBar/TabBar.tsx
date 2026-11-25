@@ -2,7 +2,8 @@ import { useAppStateManager, useProjectsManager, useRouteManager } from '@/compo
 import { ProjectTabs } from '@/lib/projects';
 import { Route } from '@/lib/routes';
 import { cn } from '@kumite/ui/utils';
-import { LayoutGrid, Plus, X } from 'lucide-react';
+import { Cancel01Icon, GridViewIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 import type React from 'react';
 
@@ -45,14 +46,14 @@ export const TabBar = observer(() => {
         <div className="flex h-11 shrink-0 items-stretch border-b border-border bg-background px-2">
             <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
                 <TabButton active={homeActive} onClick={openHome}>
-                    <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    <HugeiconsIcon icon={GridViewIcon} size={14} strokeWidth={1.7} />
                     <span>Dashboard</span>
                 </TabButton>
 
                 {project && (
                     <div
                         className={cn(
-                            'group flex h-8 min-w-0 max-w-[240px] items-center gap-2 rounded-lg pl-2.5 pr-1.5 text-[12.5px] transition-colors',
+                            'group flex h-8 min-w-0 max-w-[240px] items-center gap-2 rounded-lg pl-2.5 pr-1.5 text-xs transition-colors',
                             !homeActive
                                 ? 'bg-background-active text-foreground'
                                 : 'text-foreground-tertiary hover:bg-background-hover hover:text-foreground-secondary',
@@ -77,7 +78,7 @@ export const TabBar = observer(() => {
                                 void closeProject();
                             }}
                         >
-                            <X className="h-3 w-3" />
+                            <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={1.7} />
                         </button>
                     </div>
                 )}
@@ -87,7 +88,7 @@ export const TabBar = observer(() => {
                     onClick={newTab}
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-foreground-quadranary transition-colors hover:bg-background-hover hover:text-foreground"
                 >
-                    <Plus className="h-4 w-4" strokeWidth={1.7} />
+                    <HugeiconsIcon icon={PlusSignIcon} size={16} strokeWidth={1.7} />
                 </button>
             </div>
         </div>
