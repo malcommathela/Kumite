@@ -19,6 +19,20 @@ import BrowserControls from './BrowserControl';
 import GestureScreen from './GestureScreen';
 import ResizeHandles from './ResizeHandles';
 
+function getFrameLabel(settings: FrameSettings) {
+    const device = settings.device?.split(':')[0]?.trim();
+    if (device) {
+        return device;
+    }
+    if (settings.dimension.width >= 1024) {
+        return 'Desktop';
+    }
+    if (settings.dimension.width >= 600) {
+        return 'Tablet';
+    }
+    return 'Mobile';
+}
+
 const Frame = observer(
     ({
         messageBridge,
@@ -383,6 +397,22 @@ const Frame = observer(
                 className="flex flex-col fixed"
                 style={{ transform: `translate(${webviewPosition.x}px, ${webviewPosition.y}px)` }}
             >
+                <div
+                    className="flex items-center justify-between gap-4"
+                    style={{
+                        transform: `scale(${1 / editorEngine.canvas.scale})`,
+                        transformOrigin: 'left bottom',
+                        width: `${webviewSize.width * editorEngine.canvas.scale}px`,
+                        marginBottom: `${4 / editorEngine.canvas.scale}px`,
+                    }}
+                >
+                    <span className="truncate text-[11px] font-medium text-foreground-secondary">
+                        {getFrameLabel(settings)}
+                    </span>
+                    <span className="shrink-0 text-[11px] text-foreground-tertiary">
+                        {webviewSize.width} × {webviewSize.height}
+                    </span>
+                </div>
                 <BrowserControls
                     webviewRef={domReady ? webviewRef : null}
                     webviewSrc={webviewSrc}

@@ -166,7 +166,12 @@ export const Canvas = observer(({ children }: { children: ReactNode }) => {
         <HotkeysArea>
             <div
                 ref={containerRef}
-                className="overflow-hidden bg-background-kumite flex flex-grow relative"
+                className="relative flex h-full w-full flex-grow overflow-hidden bg-background-kumite"
+                style={{
+                    backgroundImage:
+                        'radial-gradient(hsl(var(--border-hover) / 0.4) 1px, transparent 1px)',
+                    backgroundSize: '22px 22px',
+                }}
                 onMouseDown={handleCanvasMouseDown}
             >
                 <Overlay>
