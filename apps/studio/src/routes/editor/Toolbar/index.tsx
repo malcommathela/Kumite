@@ -2,9 +2,19 @@ import { useEditorEngine } from '@/components/Context';
 import { HotKeyLabel } from '@/components/ui/hotkeys-label';
 import { EditorMode } from '@/lib/models';
 import type { DropElementProperties } from '@kumite/models/element';
-import { Icons } from '@kumite/ui/icons';
+import { Button } from '@kumite/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@kumite/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
+import { cn } from '@kumite/ui/utils';
+import {
+    Cancel01Icon,
+    Cursor01Icon,
+    HandGrabIcon,
+    SquareIcon,
+    TerminalIcon,
+    TextIcon,
+} from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
@@ -16,39 +26,31 @@ import { Hotkey } from '/common/hotkeys';
 const TOOLBAR_ITEMS = ({ t }: { t: (key: string) => string }) => [
     {
         mode: EditorMode.DESIGN,
-        icon: Icons.CursorArrow,
+        icon: Cursor01Icon,
         hotkey: Hotkey.SELECT,
-        disabled: false,
         draggable: false,
         label: t('editor.toolbar.tools.select.name'),
-        tooltip: t('editor.toolbar.tools.select.tooltip'),
     },
     {
         mode: EditorMode.PAN,
-        icon: Icons.Hand,
+        icon: HandGrabIcon,
         hotkey: Hotkey.PAN,
-        disabled: false,
         draggable: false,
         label: t('editor.toolbar.tools.pan.name'),
-        tooltip: t('editor.toolbar.tools.pan.tooltip'),
     },
     {
         mode: EditorMode.INSERT_DIV,
-        icon: Icons.Square,
+        icon: SquareIcon,
         hotkey: Hotkey.INSERT_DIV,
-        disabled: false,
         draggable: true,
         label: t('editor.toolbar.tools.insertDiv.name'),
-        tooltip: t('editor.toolbar.tools.insertDiv.tooltip'),
     },
     {
         mode: EditorMode.INSERT_TEXT,
-        icon: Icons.Text,
+        icon: TextIcon,
         hotkey: Hotkey.INSERT_TEXT,
-        disabled: false,
         draggable: true,
         label: t('editor.toolbar.tools.insertText.name'),
-        tooltip: t('editor.toolbar.tools.insertText.tooltip'),
     },
 ];
 
@@ -56,7 +58,7 @@ export const Toolbar = observer(() => {
     const { t } = useTranslation();
     const editorEngine = useEditorEngine();
     const [mode, setMode] = useState<EditorMode>(editorEngine.mode);
-    const [terminalHidden, setTerminalHidden] = useState(true);
+    const [terminalOpen, setTerminalOpen] = useState(false);
 
     useEffect(() => {
         setMode(editorEngine.mode);
@@ -80,16 +82,14 @@ export const Toolbar = observer(() => {
         return preview;
     };
 
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, mode: EditorMode) => {
-        const properties = editorEngine.insert.getDefaultProperties(mode);
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, itemMode: EditorMode) => {
+        const properties = editorEngine.insert.getDefaultProperties(itemMode);
 
-        e.dataTransfer.setData('text/plain', mode);
+        e.dataTransfer.setData('text/plain', itemMode);
         e.dataTransfer.setData('application/json', JSON.stringify(properties));
         e.dataTransfer.effectAllowed = 'copy';
+        editorEngine.mode = itemMode;
 
-        editorEngine.mode = mode;
-
-        // Disable pointer-events on webviews during drag
         for (const webview of editorEngine.webviews.webviews.values()) {
             webview.webview.style.pointerEvents = 'none';
         }
@@ -97,112 +97,130 @@ export const Toolbar = observer(() => {
         const dragPreview = createDragPreview(properties);
         document.body.appendChild(dragPreview);
         e.dataTransfer.setDragImage(dragPreview, 50, 50);
-
         setTimeout(() => document.body.removeChild(dragPreview), 0);
     };
 
-    const toolbarItems = TOOLBAR_ITEMS({ t });
+    const items = TOOLBAR_ITEMS({ t });
 
     return (
         <AnimatePresence mode="wait">
             {editorEngine.mode !== EditorMode.PREVIEW && (
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="flex flex-col rounded-xl border border-border bg-surface/95 p-1 px-1.5 shadow-2xl backdrop-blur-xl"
-                    transition={{
-                        type: 'spring',
-                        bounce: 0.1,
-                        duration: 0.4,
-                        stiffness: 200,
-                        damping: 25,
-                    }}
+                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                    transition={{ type: 'spring', bounce: 0.12, duration: 0.3 }}
+                    className="relative flex flex-col rounded-2xl border border-border/80 bg-surface/95 p-1.5 shadow-2xl shadow-black/25 backdrop-blur-2xl"
                 >
-                    {terminalHidden ? (
-                        <motion.div layout className="flex items-center gap-1">
-                            <ToggleGroup
-                                type="single"
-                                value={mode}
-                                onValueChange={(value) => {
-                                    if (value) {
-                                        editorEngine.mode = value as EditorMode;
-                                        setMode(value as EditorMode);
-                                    }
-                                }}
+                    <AnimatePresence>
+                        {terminalOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                transition={{ duration: 0.18 }}
+                                className="absolute bottom-full left-1/2 z-30 mb-2 -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
                             >
-                                {toolbarItems.map((item) => (
-                                    <Tooltip key={item.mode}>
+                                <div className="flex h-11 items-center justify-between border-b border-border px-3">
+                                    <div className="flex items-center gap-2 text-[12px] font-medium text-foreground">
+                                        <HugeiconsIcon
+                                            icon={TerminalIcon}
+                                            size={16}
+                                            className="text-foreground-tertiary"
+                                        />
+                                        Terminal
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label="Close terminal"
+                                        className="text-foreground-tertiary"
+                                        onClick={() => setTerminalOpen(false)}
+                                    >
+                                        <HugeiconsIcon icon={Cancel01Icon} size={16} />
+                                    </Button>
+                                </div>
+                                <Terminal />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="flex h-11 items-center gap-1">
+                        <ToggleGroup
+                            type="single"
+                            value={mode}
+                            aria-label="Canvas tools"
+                            onValueChange={(value) => {
+                                if (value) {
+                                    editorEngine.mode = value as EditorMode;
+                                    setMode(value as EditorMode);
+                                }
+                            }}
+                            className="gap-0.5"
+                        >
+                            {items.map((item, index) => (
+                                <div
+                                    key={item.mode}
+                                    draggable={item.draggable}
+                                    onDragStart={(event) => handleDragStart(event, item.mode)}
+                                    className={cn(
+                                        index === 2 && 'ml-1.5 border-l border-border pl-1.5',
+                                    )}
+                                >
+                                    <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <div
-                                                draggable={item.draggable}
-                                                onDragStart={(e) => handleDragStart(e, item.mode)}
+                                            <ToggleGroupItem
+                                                value={item.mode}
+                                                aria-label={item.label}
+                                                className="h-9 w-9 rounded-xl text-foreground-tertiary transition-colors hover:bg-background-hover hover:text-foreground data-[state=on]:bg-background-active data-[state=on]:text-foreground"
                                             >
-                                                <ToggleGroupItem
-                                                    value={item.mode}
-                                                    aria-label={item.hotkey.description}
-                                                    disabled={item.disabled}
-                                                    className="hover:text-foreground-hover text-foreground-tertiary"
-                                                >
-                                                    <item.icon />
-                                                </ToggleGroupItem>
-                                            </div>
+                                                <HugeiconsIcon
+                                                    icon={item.icon}
+                                                    size={17}
+                                                    strokeWidth={1.7}
+                                                />
+                                            </ToggleGroupItem>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                            <HotKeyLabel hotkey={item.hotkey} />
+                                        <TooltipContent side="top" className="space-y-1">
+                                            <p>{item.label}</p>
+                                            <HotKeyLabel
+                                                hotkey={item.hotkey}
+                                                showDescription={false}
+                                            />
                                         </TooltipContent>
                                     </Tooltip>
-                                ))}
-                            </ToggleGroup>
-                            <div className="mx-1 h-6 w-px bg-border" />
-                            <motion.div layout className="relative -my-1">
-                                <RunButton />
-                            </motion.div>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() => setTerminalHidden(!terminalHidden)}
-                                        className="h-9 w-9 flex items-center justify-center hover:text-foreground-hover text-foreground-tertiary hover:bg-accent rounded-md"
-                                    >
-                                        <Icons.Terminal />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>Toggle Terminal</TooltipContent>
-                            </Tooltip>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            layout
-                            className="flex items-center justify-between w-full mb-1"
-                        >
-                            <motion.span
-                                initial={{ opacity: 0, x: 10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -10 }}
-                                transition={{ duration: 0.7 }}
-                                className="text-small text-foreground-secondary ml-2 select-none"
-                            >
-                                Terminal
-                            </motion.span>
-                            <div className="flex items-center gap-1">
-                                <motion.div layout>
-                                    <RunButton />
-                                </motion.div>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            onClick={() => setTerminalHidden(!terminalHidden)}
-                                            className="h-9 w-9 flex items-center justify-center hover:text-foreground-hover text-foreground-tertiary hover:bg-accent rounded-lg"
-                                        >
-                                            <Icons.ChevronDown />
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Toggle Terminal</TooltipContent>
-                                </Tooltip>
-                            </div>
-                        </motion.div>
-                    )}
-                    <Terminal hidden={terminalHidden} />
+                                </div>
+                            ))}
+                        </ToggleGroup>
+
+                        <div className="mx-1.5 h-6 w-px bg-border/80" />
+
+                        <div className="flex items-center rounded-xl border border-border/70 bg-background/50 px-1">
+                            <RunButton />
+                        </div>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={terminalOpen ? 'secondary' : 'ghost'}
+                                    size="icon"
+                                    aria-label={terminalOpen ? 'Hide terminal' : 'Show terminal'}
+                                    aria-pressed={terminalOpen}
+                                    className="h-9 w-9 rounded-xl text-foreground-tertiary hover:text-foreground"
+                                    onClick={() => setTerminalOpen((open) => !open)}
+                                >
+                                    <HugeiconsIcon
+                                        icon={TerminalIcon}
+                                        size={17}
+                                        strokeWidth={1.7}
+                                    />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                                {terminalOpen ? 'Hide terminal' : 'Show terminal'}
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                 </motion.div>
             )}
         </AnimatePresence>

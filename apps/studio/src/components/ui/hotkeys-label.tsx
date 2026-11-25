@@ -2,10 +2,18 @@ import { Kbd } from '@kumite/ui/kbd';
 import { cn } from '@kumite/ui/utils';
 import type { Hotkey } from '/common/hotkeys';
 
-export function HotKeyLabel({ hotkey, className }: { hotkey: Hotkey; className?: string }) {
+export function HotKeyLabel({
+    hotkey,
+    className,
+    showDescription = true,
+}: {
+    hotkey: Hotkey;
+    className?: string;
+    showDescription?: boolean;
+}) {
     return (
         <span className={cn('flex items-center space-x-2', className)}>
-            <span>{hotkey.description}</span>
+            {showDescription && <span>{hotkey.description}</span>}
 
             <Kbd>
                 <span

@@ -1,9 +1,10 @@
 import { useEditorEngine, useProjectsManager } from '@/components/Context';
 import { RunState } from '@kumite/models/run';
 import { Button } from '@kumite/ui/button';
-import { Icons } from '@kumite/ui/icons/index';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
 import { cn } from '@kumite/ui/utils';
+import { Alert02Icon, Loading01Icon, PlayIcon, StopIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 import { useMemo, useState } from 'react';
@@ -39,25 +40,25 @@ const RunButton = observer(() => {
 
     function renderIcon() {
         if (!isPortAvailable) {
-            return <Icons.ExclamationTriangle className="text-amber-100" />;
+            return <HugeiconsIcon icon={Alert02Icon} size={16} className="text-amber-100" />;
         }
 
         if (runner?.isLoading) {
-            return <Icons.Shadow className="animate-spin" />;
+            return <HugeiconsIcon icon={Loading01Icon} size={16} className="animate-spin" />;
         }
 
         switch (runner?.state) {
             case RunState.SETTING_UP:
             case RunState.STOPPING:
-                return <Icons.Shadow className="animate-spin" />;
+                return <HugeiconsIcon icon={Loading01Icon} size={16} className="animate-spin" />;
             case RunState.ERROR:
-                return <Icons.ExclamationTriangle />;
+                return <HugeiconsIcon icon={Alert02Icon} size={16} />;
             case RunState.RUNNING:
-                return <Icons.Stop />;
+                return <HugeiconsIcon icon={StopIcon} size={16} />;
             case RunState.STOPPED:
-                return <Icons.Play />;
+                return <HugeiconsIcon icon={PlayIcon} size={16} />;
             default:
-                return <Icons.Play />;
+                return <HugeiconsIcon icon={PlayIcon} size={16} />;
         }
     }
 
@@ -161,7 +162,7 @@ const RunButton = observer(() => {
                         <Button
                             variant="ghost"
                             className={cn(
-                                'border-transparent rounded-none px-3 py-6 gap-x-1.5 top-[0.5px] transition-colors duration-300 z-8 relative',
+                                'relative z-10 h-8 min-w-12 gap-x-1.5 rounded-lg border-transparent px-3 py-0 transition-colors duration-300',
                                 getExtraButtonClasses(),
                                 runner?.isLoading ? 'cursor-wait' : '',
                             )}

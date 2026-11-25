@@ -21,7 +21,7 @@ const Publish = observer(() => {
             }}
         >
             <PublishButton />
-            <DropdownMenuContent align="end" className="w-96 p-0 text-sm">
+            <DropdownMenuContent align="end" className="w-96 p-0 text-xs">
                 <PublishDropdown />
             </DropdownMenuContent>
         </DropdownMenu>

@@ -1,295 +1,178 @@
 import { useEditorEngine, useUserManager } from '@/components/Context';
-import { EditorMode, EditorTabValue } from '@/lib/models';
-import { DefaultSettings, MainChannels } from '@kumite/models/constants';
+import { EditorTabValue, SettingsTabValue } from '@/lib/models';
+import { MainChannels } from '@kumite/models/constants';
 import { IdeType } from '@kumite/models/ide';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@kumite/ui/dropdown-menu';
-import { Icons } from '@kumite/ui/icons';
 import ResizablePanel from '@kumite/ui/resizable';
+import { Button } from '@kumite/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@kumite/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
 import { cn } from '@kumite/ui/utils';
+import { Clock01Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatTab } from './ChatTab';
-import { ChatControls } from './ChatTab/ChatControls';
-import { ChatHistory } from './ChatTab/ChatControls/ChatHistory';
 import { DevTab } from './DevTab';
 import { PropsTab } from './PropsTab';
 import { StylesTab } from './StylesTab';
+import ModeToggle from '../TopBar/ModeToggle';
+import ProjectBreadcrumb from '../TopBar/ProjectSelect';
+import Publish from '../TopBar/Publish';
 
-const EDIT_PANEL_WIDTHS = {
-    [EditorTabValue.CHAT]: 352,
-    [EditorTabValue.PROPS]: 295,
-    [EditorTabValue.STYLES]: 240,
+const EDITOR_WIDTHS = {
+    [EditorTabValue.CHAT]: 320,
+    [EditorTabValue.PROPS]: 320,
+    [EditorTabValue.STYLES]: 320,
     [EditorTabValue.DEV]: 700,
 };
 const DEV_PANEL_MIN_WIDTH = 300;
 const DEV_PANEL_MAX_WIDTH = 1000;
+
 export const EditPanel = observer(() => {
     const editorEngine = useEditorEngine();
     const userManager = useUserManager();
     const { t } = useTranslation();
-
-    const currentIdeType = userManager.settings.settings?.editor?.ideType;
-    const isKumiteIde = currentIdeType === IdeType.KUMITE;
-
-    const chatSettings = userManager.settings.settings?.chat || DefaultSettings.CHAT_SETTINGS;
-    const [isOpen, setIsOpen] = useState(true);
-    const [selectedTab, setSelectedTab] = useState<EditorTabValue>(editorEngine.editPanelTab);
-    const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
-    const editPanelWidth = EDIT_PANEL_WIDTHS[selectedTab];
+    const isKumiteIde = userManager.settings.settings?.editor?.ideType === IdeType.KUMITE;
+    const [selectedTab, setSelectedTab] = useState<EditorTabValue>(
+        editorEngine.editPanelTab === EditorTabValue.CHAT
+            ? EditorTabValue.STYLES
+            : editorEngine.editPanelTab,
+    );
 
     useEffect(() => {
-        tabChange(editorEngine.editPanelTab);
+        if (editorEngine.editPanelTab !== EditorTabValue.CHAT) {
+            setSelectedTab(editorEngine.editPanelTab);
+        }
     }, [editorEngine.editPanelTab]);
 
-    // Listens for SHOW_EDITOR_TAB event to switch to DevTab when files are opened via the Kumite IDE
     useEffect(() => {
-        const handleShowEditorTab = (_event: any, tabValue: string) => {
+        const handleShowEditorTab = (...args: unknown[]) => {
+            const tabValue = args[1] as string | undefined;
             if (tabValue === EditorTabValue.DEV) {
-                tabChange(EditorTabValue.DEV);
+                changeTab(EditorTabValue.DEV);
             }
         };
 
         window.api.on(MainChannels.SHOW_EDITOR_TAB, handleShowEditorTab);
-
-        return () => {
-            window.api.removeListener(MainChannels.SHOW_EDITOR_TAB, handleShowEditorTab);
-        };
+        return () => window.api.removeListener(MainChannels.SHOW_EDITOR_TAB, handleShowEditorTab);
     }, []);
 
-    function renderEmptyState() {
-        return (
-            <div className="text-sm pt-96 flex items-center justify-center text-center opacity-70 px-4">
-                {t('editor.panels.edit.tabs.styles.emptyState')}
-            </div>
-        );
-    }
-
-    function tabChange(value: EditorTabValue) {
+    function changeTab(value: EditorTabValue) {
         editorEngine.editPanelTab = value;
         setSelectedTab(value);
-        setIsOpen(true);
-    }
-
-    function renderTabs() {
-        return (
-            <Tabs
-                className="flex h-full flex-col"
-                onValueChange={(value) => tabChange(value as EditorTabValue)}
-                value={selectedTab}
-            >
-                <TabsList
-                    className={cn(
-                        'bg-transparent w-full select-none justify-between items-center border-b border-border px-2',
-                        isOpen ? 'h-12' : 'h-full',
-                    )}
-                >
-                    <div className="flex flex-row items-center gap-2 ">
-                        <button
-                            className="text-default rounded-lg p-2 bg-transparent hover:text-foreground-hover hidden"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            <Icons.PinRight />
-                        </button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger
-                                asChild
-                                disabled={selectedTab !== EditorTabValue.CHAT}
-                            >
-                                <div className="flex items-center">
-                                    <TabsTrigger
-                                        className="rounded-md bg-transparent px-2 py-1.5 text-small hover:bg-background-hover hover:text-foreground data-[state=active]:bg-background-active"
-                                        value={EditorTabValue.CHAT}
-                                    >
-                                        <Icons.Sparkles className="mr-1.5 mb-0.5 h-4 w-4" />
-                                        {t('editor.panels.edit.tabs.chat.name')}
-                                        <Icons.ChevronDown className="ml-1 h-3 w-3 text-muted-foreground" />
-                                    </TabsTrigger>
-                                </div>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="min-w-[220px]">
-                                <DropdownMenuItem
-                                    className="flex items-center py-1.5"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        userManager.settings.updateChat({
-                                            showSuggestions: !chatSettings.showSuggestions,
-                                        });
-                                    }}
-                                >
-                                    <Icons.Check
-                                        className={cn(
-                                            'mr-2 h-4 w-4',
-                                            chatSettings.showSuggestions
-                                                ? 'opacity-100'
-                                                : 'opacity-0',
-                                        )}
-                                    />
-                                    Show suggestions
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="flex items-center py-1.5"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        userManager.settings.updateChat({
-                                            autoApplyCode: !chatSettings.autoApplyCode,
-                                        });
-                                    }}
-                                >
-                                    <Icons.Check
-                                        className={cn(
-                                            'mr-2 h-4 w-4',
-                                            chatSettings.autoApplyCode
-                                                ? 'opacity-100'
-                                                : 'opacity-0',
-                                        )}
-                                    />
-                                    Auto-apply results
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="flex items-center py-1.5"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        userManager.settings.updateChat({
-                                            expandCodeBlocks: !chatSettings.expandCodeBlocks,
-                                        });
-                                    }}
-                                >
-                                    <Icons.Check
-                                        className={cn(
-                                            'mr-2 h-4 w-4',
-                                            chatSettings.expandCodeBlocks
-                                                ? 'opacity-100'
-                                                : 'opacity-0',
-                                        )}
-                                    />
-                                    Show code while rendering
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="flex items-center py-1.5"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        userManager.settings.updateChat({
-                                            showMiniChat: !chatSettings.showMiniChat,
-                                        });
-                                    }}
-                                >
-                                    <Icons.Check
-                                        className={cn(
-                                            'mr-2 h-4 w-4',
-                                            chatSettings.showMiniChat ? 'opacity-100' : 'opacity-0',
-                                        )}
-                                    />
-                                    Show mini chat
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        setIsChatHistoryOpen(!isChatHistoryOpen);
-                                    }}
-                                >
-                                    <Icons.CounterClockwiseClock className="mr-2 h-4 w-4" />
-                                    Chat History
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <TabsTrigger
-                            className="rounded-md bg-transparent px-2 py-1.5 text-small hover:bg-background-hover hover:text-foreground data-[state=active]:bg-background-active"
-                            value={EditorTabValue.STYLES}
-                        >
-                            <Icons.Styles className="mr-1.5 h-4 w-4" />
-                            {t('editor.panels.edit.tabs.styles.name')}
-                        </TabsTrigger>
-                        <TabsTrigger
-                            className="bg-transparent py-2 px-1 text-xs hover:text-foreground-hover hidden"
-                            value={EditorTabValue.PROPS}
-                        >
-                            <Icons.MixerHorizontal className="mr-1.5 mb-0.5" />
-                            Props
-                        </TabsTrigger>
-                        {isKumiteIde && (
-                            <TabsTrigger
-                                className="rounded-md bg-transparent px-2 py-1.5 text-small hover:bg-background-hover hover:text-foreground data-[state=active]:bg-background-active"
-                                value={EditorTabValue.DEV}
-                            >
-                                <Icons.Code className="mr-1.5 h-4 w-4" />
-                                Code
-                            </TabsTrigger>
-                        )}
-                    </div>
-                    {selectedTab === EditorTabValue.CHAT && <ChatControls />}
-                </TabsList>
-                <ChatHistory isOpen={isChatHistoryOpen} onOpenChange={setIsChatHistoryOpen} />
-                <div
-                    className={`min-h-0 flex-1 ${selectedTab === EditorTabValue.DEV ? 'overflow-hidden' : 'overflow-auto'}`}
-                >
-                    <TabsContent value={EditorTabValue.CHAT} className="mt-0 h-full">
-                        <ChatTab />
-                    </TabsContent>
-                    <TabsContent value={EditorTabValue.PROPS}>
-                        <PropsTab />
-                    </TabsContent>
-                    <TabsContent value={EditorTabValue.STYLES}>
-                        {editorEngine.elements.selected.length > 0 ? (
-                            <StylesTab />
-                        ) : (
-                            renderEmptyState()
-                        )}
-                    </TabsContent>
-                    {/* Empty TabsContent to make the tabs system work, but actual content is rendered separately */}
-                    {isKumiteIde && <TabsContent value={EditorTabValue.DEV}></TabsContent>}
-
-                    {/* Keep DevTab mounted but control visibility based on selected tab so we dont lose the state when switching tabs */}
-                    {isKumiteIde && (
-                        <div
-                            className={
-                                selectedTab === EditorTabValue.DEV ? 'block h-full' : 'hidden'
-                            }
-                        >
-                            <DevTab />
-                        </div>
-                    )}
-                </div>
-            </Tabs>
-        );
     }
 
     return (
-        <div
-            className={cn(
-                'flex h-full shrink-0 flex-row',
-                editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : '',
-            )}
-        >
+        <div className="flex h-full shrink-0 flex-row">
             <ResizablePanel
                 side="right"
-                defaultWidth={editPanelWidth}
-                forceWidth={editPanelWidth}
-                minWidth={selectedTab === EditorTabValue.DEV ? DEV_PANEL_MIN_WIDTH : 240}
-                maxWidth={selectedTab === EditorTabValue.DEV ? DEV_PANEL_MAX_WIDTH : 700}
+                defaultWidth={EDITOR_WIDTHS[selectedTab]}
+                forceWidth={EDITOR_WIDTHS[selectedTab]}
+                minWidth={selectedTab === EditorTabValue.DEV ? DEV_PANEL_MIN_WIDTH : 280}
+                maxWidth={selectedTab === EditorTabValue.DEV ? DEV_PANEL_MAX_WIDTH : 520}
             >
                 <div
                     id="editor-panel"
-                    className={cn(
-                        'group/panel h-full w-full overflow-hidden border-l border-border bg-surface transition-width duration-300',
-                        editorEngine.mode === EditorMode.PREVIEW ? 'hidden' : 'block',
-                    )}
+                    className="group/panel flex h-full w-full flex-col overflow-hidden border-l border-border/80 bg-surface"
                 >
-                    <div
-                        className={cn(
-                            'relative h-full backdrop-blur-xl transition-opacity duration-300',
-                            isOpen ? 'visible opacity-100' : 'invisible opacity-0',
-                        )}
-                    >
-                        {renderTabs()}
+                    <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/80 px-2.5">
+                        <div className="flex items-center gap-1">
+                            <span className="px-1.5 text-xs font-semibold tracking-tight text-foreground">
+                                Inspector
+                            </span>
+                            <ProjectBreadcrumb />
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label={t('editor.toolbar.versionHistory')}
+                                        className="text-foreground-tertiary"
+                                        onClick={() => {
+                                            editorEngine.settingsTab = SettingsTabValue.VERSIONS;
+                                            editorEngine.isSettingsOpen = true;
+                                        }}
+                                    >
+                                        <HugeiconsIcon
+                                            icon={Clock01Icon}
+                                            size={15}
+                                            strokeWidth={1.7}
+                                        />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                    {t('editor.toolbar.versionHistory')}
+                                </TooltipContent>
+                            </Tooltip>
+                            <ModeToggle />
+                        </div>
                     </div>
+                    <Tabs
+                        className="flex min-h-0 flex-1 flex-col"
+                        onValueChange={(value) => changeTab(value as EditorTabValue)}
+                        value={selectedTab}
+                    >
+                        <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border/80 px-3">
+                            <TabsList className="h-11 min-w-0 flex-1 justify-start gap-1 rounded-none bg-transparent p-0">
+                                <TabsTrigger
+                                    className="h-8 rounded-lg bg-transparent px-3 text-[11px] text-foreground-secondary hover:bg-background-hover data-[state=active]:bg-background-active data-[state=active]:text-foreground"
+                                    value={EditorTabValue.STYLES}
+                                >
+                                    {t('editor.panels.edit.tabs.styles.name')}
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    className="h-8 rounded-lg bg-transparent px-3 text-[11px] text-foreground-secondary hover:bg-background-hover data-[state=active]:bg-background-active data-[state=active]:text-foreground"
+                                    value={EditorTabValue.PROPS}
+                                >
+                                    Props
+                                </TabsTrigger>
+                                {isKumiteIde && (
+                                    <TabsTrigger
+                                        className="h-8 rounded-lg bg-transparent px-3 text-[11px] text-foreground-secondary hover:bg-background-hover data-[state=active]:bg-background-active data-[state=active]:text-foreground"
+                                        value={EditorTabValue.DEV}
+                                    >
+                                        {t('editor.panels.edit.tabs.dev.name', 'Code')}
+                                    </TabsTrigger>
+                                )}
+                            </TabsList>
+                            <Publish />
+                        </div>
+                        <div
+                            className={cn(
+                                'min-h-0 flex-1',
+                                selectedTab === EditorTabValue.DEV
+                                    ? 'overflow-hidden'
+                                    : 'overflow-auto',
+                            )}
+                        >
+                            <TabsContent value={EditorTabValue.PROPS} className="mt-0">
+                                <PropsTab />
+                            </TabsContent>
+                            <TabsContent value={EditorTabValue.STYLES} className="mt-0">
+                                {editorEngine.elements.selected.length > 0 ? (
+                                    <StylesTab />
+                                ) : (
+                                    <div className="flex min-h-48 items-center justify-center px-6 text-center text-[12px] text-foreground-tertiary">
+                                        {t('editor.panels.edit.tabs.styles.emptyState')}
+                                    </div>
+                                )}
+                            </TabsContent>
+                            {isKumiteIde && <TabsContent value={EditorTabValue.DEV} />}
+                            {isKumiteIde && (
+                                <div
+                                    className={
+                                        selectedTab === EditorTabValue.DEV
+                                            ? 'block h-full'
+                                            : 'hidden'
+                                    }
+                                >
+                                    <DevTab />
+                                </div>
+                            )}
+                        </div>
+                    </Tabs>
                 </div>
             </ResizablePanel>
         </div>

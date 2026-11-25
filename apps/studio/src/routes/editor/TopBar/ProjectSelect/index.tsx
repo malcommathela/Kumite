@@ -15,9 +15,14 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@kumite/ui/dropdown-menu';
-import { Icons } from '@kumite/ui/icons';
 import { cn } from '@kumite/ui/utils';
-import { KumiteWordmark } from '@kumite/ui/wordmark';
+import {
+    Download01Icon,
+    FileAddIcon,
+    MoreHorizontalIcon,
+    TokenSquareIcon,
+} from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -65,25 +70,20 @@ const ProjectBreadcrumb = observer(() => {
     };
 
     return (
-        <div className="mx-2 flex flex-row items-center text-small gap-2">
+        <div className="flex flex-row items-center text-small">
             <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
                 <DropdownMenuTrigger asChild>
                     <Button
-                        variant={'ghost'}
-                        className="mx-0 h-8 gap-2 rounded-full px-2.5 text-[12.5px] text-foreground-secondary hover:bg-background-hover hover:text-foreground"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Project actions"
+                        title={isClosingProject ? 'Stopping project…' : 'Project actions'}
+                        className={cn(
+                            'text-foreground-tertiary',
+                            isClosingProject && 'animate-pulse',
+                        )}
                     >
-                        <KumiteWordmark
-                            className={cn(
-                                'hidden text-sm md:inline',
-                                isClosingProject && 'animate-pulse',
-                            )}
-                        />
-                        <span className="mx-0 max-w-[60px] truncate px-0 text-foreground-secondary md:max-w-[100px] lg:max-w-[200px]">
-                            {isClosingProject
-                                ? 'Stopping project...'
-                                : projectsManager.project?.name}
-                        </span>
-                        <Icons.ChevronDown className="text-foreground-tertiary transition-all duration-200 ease-in-out rotate-0 group-data-[state=open]:-rotate-180" />
+                        <HugeiconsIcon icon={MoreHorizontalIcon} size={16} strokeWidth={1.7} />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -102,7 +102,11 @@ const ProjectBreadcrumb = observer(() => {
                 >
                     <DropdownMenuItem onClick={() => handleNavigateToProjects()}>
                         <div className="flex row center items-center group">
-                            <Icons.Tokens className="mr-2 group-hover:rotate-12 transition-transform" />
+                            <HugeiconsIcon
+                                icon={TokenSquareIcon}
+                                size={16}
+                                className="mr-2 transition-transform group-hover:rotate-12"
+                            />
                             {t('projects.actions.goToAllProjects')}
                         </div>
                     </DropdownMenuItem>
@@ -121,7 +125,7 @@ const ProjectBreadcrumb = observer(() => {
                                     'dark:hover:bg-blue-900 dark:hover:text-blue-100',
                                 )}
                             >
-                                <Icons.FilePlus className="mr-2 h-4 w-4" />
+                                <HugeiconsIcon icon={FileAddIcon} size={16} className="mr-2" />
                                 {t('projects.actions.startFromScratch')}
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -133,7 +137,7 @@ const ProjectBreadcrumb = observer(() => {
                                     'dark:hover:bg-teal-900 dark:hover:text-teal-100',
                                 )}
                             >
-                                <Icons.Download className="mr-2 h-4 w-4" />
+                                <HugeiconsIcon icon={Download01Icon} size={16} className="mr-2" />
                                 {t('projects.actions.importProject')}
                             </DropdownMenuItem>
                         </DropdownMenuSubContent>
