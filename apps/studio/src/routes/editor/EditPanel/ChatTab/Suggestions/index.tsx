@@ -83,7 +83,7 @@ const Suggestions = forwardRef<
         >
             <motion.div
                 tabIndex={-1}
-                className="flex flex-col gap-2 p-2"
+                className="flex flex-col gap-1.5 px-3 pb-2"
                 animate={{ opacity: shouldHideSuggestions ? 0 : 1 }}
                 initial={false}
                 transition={{ duration: 0.2 }}
@@ -99,12 +99,7 @@ const Suggestions = forwardRef<
                             ease: 'easeOut',
                         }}
                         key={suggestion.title}
-                        className="text-xs flex border border-blue-500/20 items-center gap-2 p-2 
-                            text-left text-blue-300 bg-blue-500/10 rounded-lg transition-all 
-                            relative hover:bg-blue-500/20 
-                            focus:outline-none focus:ring-2 focus:ring-blue-500 
-                            focus:border-blue-400/40 focus:bg-blue-500/30 
-                            focus:text-blue-200 focus:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        className="relative flex items-center gap-2 rounded-xl border border-border/80 bg-surface px-3 py-2.5 text-left text-xs text-foreground-secondary transition-colors hover:border-border-hover hover:bg-background-hover hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                         onClick={() => setInput(suggestion.prompt)}
                         onFocus={() => {
                             setFocusedIndex(index);
@@ -121,8 +116,9 @@ const Suggestions = forwardRef<
                             }
                         }}
                     >
-                        <Icons.Lightbulb className="w-4 h-4" />
-                        {suggestion.title}
+                        <Icons.Lightbulb className="h-4 w-4 shrink-0 text-foreground-tertiary" />
+                        <span className="min-w-0 flex-1 truncate">{suggestion.title}</span>
+                        <Icons.ArrowRight className="h-3.5 w-3.5 text-foreground-tertiary" />
                     </motion.button>
                 ))}
             </motion.div>

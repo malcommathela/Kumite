@@ -32,6 +32,7 @@ export enum SettingsTabValue {
 export enum LayersPanelTabValue {
     PAGES = 'pages',
     LAYERS = 'layers',
+    AGENTS = 'agents',
     COMPONENTS = 'components',
     ICONS = 'icons',
     IMAGES = 'images',

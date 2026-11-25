@@ -1,8 +1,8 @@
 import { useEditorEngine } from '@/components/Context';
 import { Button } from '@kumite/ui/button';
-import { Icons } from '@kumite/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
-import { TooltipArrow } from '@radix-ui/react-tooltip';
+import { PlusSignIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 
 export const ChatControls = observer(() => {
@@ -13,23 +13,21 @@ export const ChatControls = observer(() => {
     };
 
     return (
-        <div className="flex flex-row opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100">
+        <div className="flex flex-row">
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button
                         variant={'ghost'}
-                        size={'icon'}
-                        className="p-2 w-fit h-fit hover:bg-background-kumite"
+                        size="icon-sm"
+                        className="text-foreground-tertiary"
+                        aria-label="New chat"
                         onClick={handleNewChat}
                         disabled={editorEngine.chat.isWaiting}
                     >
-                        <Icons.Plus />
+                        <HugeiconsIcon icon={PlusSignIcon} size={16} />
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">
-                    <p>New Chat</p>
-                    <TooltipArrow className="fill-foreground" />
-                </TooltipContent>
+                <TooltipContent side="bottom">New chat</TooltipContent>
             </Tooltip>
         </div>
     );

@@ -1,26 +1,42 @@
-import { useEditorEngine, useProjectsManager } from '@/components/Context';
+import { useEditorEngine } from '@/components/Context';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/lib/editor/engine/chat';
 import { EditorTabValue } from '@/lib/models';
 import { compressImage } from '@/lib/utils';
 import type { ChatMessageContext, ImageMessageContext } from '@kumite/models/chat';
 import { MessageContextType } from '@kumite/models/chat';
-import { Button } from '@kumite/ui/button';
-import { Icons } from '@kumite/ui/icons';
-import { Textarea } from '@kumite/ui/textarea';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@kumite/ui/tooltip';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupTextarea,
+} from '@kumite/ui/chat-input-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@kumite/ui/tooltip';
 import { cn } from '@kumite/ui/utils';
+import {
+    ArrowRight01Icon,
+    Image01Icon,
+    LaptopIcon,
+    PlusSignIcon,
+    StopIcon,
+} from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DraftContextPill } from './ContextPills/DraftContextPill';
 import { DraftImagePill } from './ContextPills/DraftingImagePill';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@kumite/ui/dropdown-menu';
 import type { SuggestionsRef } from './Suggestions';
 import Suggestions from './Suggestions';
 
 export const ChatInput = observer(() => {
     const editorEngine = useEditorEngine();
-    const projectsManager = useProjectsManager();
     const { t } = useTranslation();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -56,6 +72,15 @@ export const ChatInput = observer(() => {
 
         window.addEventListener(FOCUS_CHAT_INPUT_EVENT, focusHandler);
         return () => window.removeEventListener(FOCUS_CHAT_INPUT_EVENT, focusHandler);
+    }, []);
+
+    useEffect(() => {
+        const handlePrompt = (event: Event) => {
+            setInputValue((event as CustomEvent<string>).detail);
+            focusInput();
+        };
+        window.addEventListener('kumite:chat-prompt', handlePrompt);
+        return () => window.removeEventListener('kumite:chat-prompt', handlePrompt);
     }, []);
 
     useEffect(() => {
@@ -134,8 +159,8 @@ export const ChatInput = observer(() => {
         editorEngine.chat.context.context = newContext;
     };
 
-    const handleOpenFileDialog = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.currentTarget.blur(); // Removes focus from the button to prevent tooltip from showing
+    const handleOpenFileDialog = () => {
+        document.activeElement instanceof HTMLElement && document.activeElement.blur();
         const inputElement = document.createElement('input');
         inputElement.type = 'file';
         inputElement.accept = 'image/*';
@@ -221,7 +246,7 @@ export const ChatInput = observer(() => {
     return (
         <div
             className={cn(
-                'flex flex-col w-full text-foreground-tertiary border-t text-small transition-colors duration-200',
+                'flex w-full flex-col border-t border-border/80 bg-background/70 text-small text-foreground-tertiary transition-colors duration-200',
                 '[&[data-dragging-image=true]]:bg-teal-500/40',
                 isDragging && 'cursor-copy',
             )}
@@ -260,202 +285,160 @@ export const ChatInput = observer(() => {
                 }}
             />
 
-            <div className="flex flex-col w-full p-4">
-                <div
-                    className={cn(
-                        'flex flex-row flex-wrap w-full gap-1.5 text-micro mb-1 text-foreground-secondary',
-                        editorEngine.chat.context.context.length > 0 ? 'min-h-6' : 'h-0',
+            <div className="mx-3 my-2">
+                <InputGroup>
+                    {editorEngine.chat.context.context.length > 0 && (
+                        <InputGroupAddon align="block-start" className="flex-wrap">
+                            <AnimatePresence mode="popLayout">
+                                {editorEngine.chat.context.context.map(
+                                    (context: ChatMessageContext) =>
+                                        context.type === MessageContextType.IMAGE ? (
+                                            <DraftImagePill
+                                                key={`image-${context.content}`}
+                                                context={context}
+                                                onRemove={() => handleRemoveContext(context)}
+                                            />
+                                        ) : (
+                                            <DraftContextPill
+                                                key={`${context.type}-${context.content}`}
+                                                context={context}
+                                                onRemove={() => handleRemoveContext(context)}
+                                            />
+                                        ),
+                                )}
+                            </AnimatePresence>
+                        </InputGroupAddon>
                     )}
-                >
-                    <AnimatePresence mode="popLayout">
-                        {editorEngine.chat.context.context.map(
-                            (context: ChatMessageContext, index: number) => {
-                                if (context.type === MessageContextType.IMAGE) {
-                                    return (
-                                        <DraftImagePill
-                                            key={`image-${context.content}`}
-                                            context={context}
-                                            onRemove={() => handleRemoveContext(context)}
-                                        />
-                                    );
-                                }
-                                return (
-                                    <DraftContextPill
-                                        key={`${context.type}-${context.content}`}
-                                        context={context}
-                                        onRemove={() => handleRemoveContext(context)}
-                                    />
-                                );
-                            },
+                    <InputGroupTextarea
+                        ref={textareaRef}
+                        disabled={disabled}
+                        placeholder={
+                            disabled
+                                ? t('editor.panels.edit.tabs.chat.emptyState')
+                                : t('editor.panels.edit.tabs.chat.input.placeholder')
+                        }
+                        className={cn(
+                            'max-h-32 overflow-auto caret-[#FA003C] text-foreground-primary selection:bg-[#FA003C]/30 selection:text-[#FA003C] placeholder:text-foreground-primary/50',
+                            isDragging ? 'pointer-events-none' : 'pointer-events-auto',
                         )}
-                    </AnimatePresence>
-                </div>
-                <Textarea
-                    ref={textareaRef}
-                    disabled={disabled}
-                    placeholder={
-                        disabled
-                            ? t('editor.panels.edit.tabs.chat.emptyState')
-                            : t('editor.panels.edit.tabs.chat.input.placeholder')
-                    }
-                    className={cn(
-                        'mt-2 overflow-auto max-h-32 text-small p-0 border-0 shadow-none rounded-none caret-[#FA003C]',
-                        'selection:bg-[#FA003C]/30 selection:text-[#FA003C] text-foreground-primary',
-                        'placeholder:text-foreground-primary/50',
-                        'cursor-text',
-                        isDragging ? 'pointer-events-none' : 'pointer-events-auto',
-                    )}
-                    rows={3}
-                    style={{ resize: 'none' }}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onInput={handleInput}
-                    onKeyDown={handleKeyDown}
-                    onPaste={handlePaste}
-                    onCompositionStart={() => setIsComposing(true)}
-                    onCompositionEnd={(e) => {
-                        setIsComposing(false);
-                    }}
-                    onDragEnter={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.parentElement?.dispatchEvent(
-                            new DragEvent('dragenter', {
-                                bubbles: true,
-                                cancelable: true,
-                                dataTransfer: e.dataTransfer,
-                            }),
-                        );
-                    }}
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.parentElement?.dispatchEvent(
-                            new DragEvent('dragover', {
-                                bubbles: true,
-                                cancelable: true,
-                                dataTransfer: e.dataTransfer,
-                            }),
-                        );
-                    }}
-                    onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        rows={3}
+                        style={{ resize: 'none' }}
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onInput={handleInput}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        onCompositionStart={() => setIsComposing(true)}
+                        onCompositionEnd={(e) => {
+                            setIsComposing(false);
+                        }}
+                        onDragEnter={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             e.currentTarget.parentElement?.dispatchEvent(
-                                new DragEvent('dragleave', {
+                                new DragEvent('dragenter', {
                                     bubbles: true,
                                     cancelable: true,
                                     dataTransfer: e.dataTransfer,
                                 }),
                             );
-                        }
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.currentTarget.parentElement?.dispatchEvent(
-                            new DragEvent('drop', {
-                                bubbles: true,
-                                cancelable: true,
-                                dataTransfer: e.dataTransfer,
-                            }),
-                        );
-                    }}
-                />
-            </div>
-            <div className="flex flex-row w-full justify-between pt-2 pb-2 px-2">
-                <div className="flex flex-row justify-start gap-1.5">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={'ghost'}
-                                size={'icon'}
-                                className="w-9 h-9 text-foreground-tertiary group hover:bg-transparent"
-                                onClick={handleOpenFileDialog}
-                                disabled={disabled}
+                        }}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.currentTarget.parentElement?.dispatchEvent(
+                                new DragEvent('dragover', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    dataTransfer: e.dataTransfer,
+                                }),
+                            );
+                        }}
+                        onDragLeave={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                e.currentTarget.parentElement?.dispatchEvent(
+                                    new DragEvent('dragleave', {
+                                        bubbles: true,
+                                        cancelable: true,
+                                        dataTransfer: e.dataTransfer,
+                                    }),
+                                );
+                            }
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.currentTarget.parentElement?.dispatchEvent(
+                                new DragEvent('drop', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    dataTransfer: e.dataTransfer,
+                                }),
+                            );
+                        }}
+                    />
+                    <InputGroupAddon align="block-end" className="justify-between">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <InputGroupButton
+                                    variant="outline"
+                                    size="icon-sm"
+                                    className="rounded-full"
+                                    aria-label="Add context"
+                                    disabled={disabled}
+                                >
+                                    <HugeiconsIcon icon={PlusSignIcon} size={16} />
+                                </InputGroupButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" side="top" className="w-52">
+                                <DropdownMenuItem onSelect={handleOpenFileDialog}>
+                                    <HugeiconsIcon icon={Image01Icon} size={16} />
+                                    Upload image reference
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() =>
+                                        editorEngine.chat.context.addScreenshotContext()
+                                    }
+                                >
+                                    <HugeiconsIcon icon={LaptopIcon} size={16} />
+                                    Add current page screenshot
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        {editorEngine.chat.isWaiting ? (
+                            <Tooltip open={actionTooltipOpen} onOpenChange={setActionTooltipOpen}>
+                                <TooltipTrigger asChild>
+                                    <InputGroupButton
+                                        size="icon-sm"
+                                        variant="secondary"
+                                        aria-label="Stop response"
+                                        className="rounded-full text-primary"
+                                        onClick={() => {
+                                            setActionTooltipOpen(false);
+                                            editorEngine.chat.stopStream();
+                                        }}
+                                    >
+                                        <HugeiconsIcon icon={StopIcon} size={16} />
+                                    </InputGroupButton>
+                                </TooltipTrigger>
+                                <TooltipContent>{'Stop response'}</TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            <InputGroupButton
+                                size="icon-sm"
+                                variant="default"
+                                aria-label="Send message"
+                                className="rounded-full"
+                                disabled={inputEmpty || editorEngine.chat.isWaiting}
+                                onClick={sendMessage}
                             >
-                                <Icons.Image
-                                    className={cn(
-                                        'w-5 h-5',
-                                        disabled
-                                            ? 'text-foreground-tertiary'
-                                            : 'group-hover:text-foreground',
-                                    )}
-                                />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                            <TooltipContent side="top" sideOffset={5}>
-                                {disabled ? 'Select an element to start' : 'Upload Image Reference'}
-                            </TooltipContent>
-                        </TooltipPortal>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={'ghost'}
-                                size={'icon'}
-                                className="w-9 h-9 text-foreground-tertiary group hover:bg-transparent"
-                                onClick={() => {
-                                    editorEngine.chat.context.addScreenshotContext();
-                                }}
-                                disabled={disabled}
-                            >
-                                <Icons.Laptop
-                                    className={cn(
-                                        'w-5 h-5',
-                                        disabled
-                                            ? 'text-foreground-tertiary'
-                                            : 'group-hover:text-foreground',
-                                    )}
-                                />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                            <TooltipContent side="top" sideOffset={5}>
-                                {disabled
-                                    ? 'Select an element to start'
-                                    : 'Add screenshot of the current page'}
-                            </TooltipContent>
-                        </TooltipPortal>
-                    </Tooltip>
-                    <Button
-                        variant={'outline'}
-                        className="w-fit h-fit py-0.5 px-2.5 text-foreground-tertiary hidden"
-                    >
-                        <Icons.FilePlus className="mr-2" />
-                        <span className="text-smallPlus">File Reference</span>
-                    </Button>
-                </div>
-                {editorEngine.chat.isWaiting ? (
-                    <Tooltip open={actionTooltipOpen} onOpenChange={setActionTooltipOpen}>
-                        <TooltipTrigger asChild>
-                            <Button
-                                size={'icon'}
-                                variant={'secondary'}
-                                className="text-smallPlus w-fit h-full py-0.5 px-2.5 text-primary"
-                                onClick={() => {
-                                    setActionTooltipOpen(false);
-                                    editorEngine.chat.stopStream();
-                                }}
-                            >
-                                <Icons.Stop />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>{'Stop response'}</TooltipContent>
-                    </Tooltip>
-                ) : (
-                    <Button
-                        size={'icon'}
-                        variant={'secondary'}
-                        className="text-smallPlus w-fit h-full py-0.5 px-2.5 text-primary"
-                        disabled={inputEmpty || editorEngine.chat.isWaiting}
-                        onClick={sendMessage}
-                    >
-                        <Icons.ArrowRight />
-                    </Button>
-                )}
+                                <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
+                            </InputGroupButton>
+                        )}
+                    </InputGroupAddon>
+                </InputGroup>
             </div>
         </div>
     );

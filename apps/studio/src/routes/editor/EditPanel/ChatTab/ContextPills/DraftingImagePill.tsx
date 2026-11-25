@@ -1,5 +1,13 @@
 import { type ChatMessageContext, MessageContextType } from '@kumite/models/chat';
-import { Icons } from '@kumite/ui/icons/index';
+import {
+    Attachment,
+    AttachmentAction,
+    AttachmentActions,
+    AttachmentContent,
+    AttachmentMedia,
+} from '@kumite/ui/attachment';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { motion } from 'motion/react';
 import React from 'react';
 import { getTruncatedName } from './helpers';
@@ -29,36 +37,32 @@ export const DraftImagePill = React.forwardRef<
                     ease: 'easeOut',
                 },
             }}
-            className="group relative flex flex-row items-center gap-1 justify-center border bg-background-tertiary rounded-md h-7"
+            className="relative"
             key={context.displayName}
             ref={ref}
         >
-            {/* Left side: Image thumbnail */}
-            <div className="w-7 h-7 flex items-center justify-center overflow-hidden relative">
-                <img
-                    src={context.content}
-                    alt={context.displayName}
-                    className="w-full h-full object-cover rounded-l-md"
-                />
-                <div className="absolute inset-0 border-l-[1px] border-y-[1px] rounded-l-md border-white/10 pointer-events-none" />
-            </div>
-
-            {/* Right side: Filename */}
-            <span className="text-xs overflow-hidden whitespace-nowrap text-ellipsis max-w-[100px] pr-1">
-                {getTruncatedName(context)}
-            </span>
-
-            {/* Hover X button */}
-            <button
-                onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onRemove();
-                }}
-                className="absolute -top-1.5 -right-1.5 w-6 h-6 p-1 rounded-full bg-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            >
-                <Icons.CrossL className="w-2.5 h-2.5 text-primary-foreground" />
-            </button>
+            <Attachment size="sm" className="max-w-40 gap-1.5 p-0">
+                <AttachmentMedia className="size-7 overflow-hidden rounded-l-md">
+                    <img
+                        src={context.content}
+                        alt={context.displayName}
+                        className="size-full object-cover"
+                    />
+                </AttachmentMedia>
+                <AttachmentContent className="pr-2">{getTruncatedName(context)}</AttachmentContent>
+                <AttachmentActions className="pr-1">
+                    <AttachmentAction
+                        aria-label={`Remove ${getTruncatedName(context)}`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onRemove();
+                        }}
+                    >
+                        <HugeiconsIcon icon={Cancel01Icon} size={12} aria-hidden="true" />
+                    </AttachmentAction>
+                </AttachmentActions>
+            </Attachment>
         </motion.span>
     );
 });

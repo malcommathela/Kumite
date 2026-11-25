@@ -19,9 +19,10 @@ import { useState } from 'react';
 interface ChatHistoryProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
+    side?: 'left' | 'right';
 }
 
-export const ChatHistory = observer(({ isOpen, onOpenChange }: ChatHistoryProps) => {
+export const ChatHistory = observer(({ isOpen, onOpenChange, side = 'left' }: ChatHistoryProps) => {
     const editorEngine = useEditorEngine();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
@@ -49,8 +50,10 @@ export const ChatHistory = observer(({ isOpen, onOpenChange }: ChatHistoryProps)
 
     return (
         <Popover open={isOpen} onOpenChange={handlePopoverOpenChange}>
-            <PopoverAnchor className="absolute -left-2 top-0" />
-            <PopoverContent side="left" align="start" className="rounded-xl p-0">
+            <PopoverAnchor
+                className={cn('absolute top-0', side === 'right' ? 'right-12' : '-left-2')}
+            />
+            <PopoverContent side={side} align="start" className="rounded-xl p-0">
                 <div className="flex flex-col select-none">
                     <div className="border-b">
                         <div className="flex flex-row justify-between items-center p-1 h-fit text-xs text-foreground-tertiary">
