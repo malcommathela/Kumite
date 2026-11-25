@@ -361,6 +361,10 @@ export class EditorEngine {
                 img: image.toDataURL(),
                 name: imageName,
             });
+            if (!path) {
+                console.error('Failed to save project preview image');
+                return null;
+            }
             return {
                 name: imageName,
             };

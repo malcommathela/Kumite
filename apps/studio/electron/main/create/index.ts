@@ -72,7 +72,138 @@ export class ProjectCreator {
 
     public async createBlankProject(): Promise<CreateProjectResponse> {
         return this.executeProjectCreation(async () => {
-            const projectPath = await this.runCreate();
+            const projectsPath = getCreateProjectPath();
+            await fs.promises.mkdir(projectsPath, { recursive: true });
+
+            const projectName = `project-${Date.now()}`;
+            const projectPath = path.join(projectsPath, projectName);
+
+            // Keep blank creation local and synchronous with respect to the
+            // editor: no template download or dependency installation here.
+            await fs.promises.mkdir(projectPath, { recursive: false });
+
+            const files: Record<string, string> = {
+                'package.json': JSON.stringify(
+                    {
+                        name: projectName,
+                        private: true,
+                        version: '1.0.0',
+                        type: 'module',
+                        scripts: {
+                            // Install in the project terminal, after the editor
+                            // has opened. Bun is the app's default npm runtime.
+                            dev: 'npm install --no-audit --no-fund && vite --host 0.0.0.0 --port 3000',
+                            build: 'vite build',
+                            preview: 'vite preview',
+                        },
+                        dependencies: {
+                            react: '^18.3.1',
+                            'react-dom': '^18.3.1',
+                        },
+                        devDependencies: {
+                            '@vitejs/plugin-react': '^4.2.1',
+                            '@types/react': '^18.2.64',
+                            '@types/react-dom': '^18.2.21',
+                            typescript: '^5.5.4',
+                            vite: '^6.0.11',
+                        },
+                    },
+                    null,
+                    4,
+                ),
+                'index.html': `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${projectName}</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+`,
+                'vite.config.ts': `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+    plugins: [react()],
+    server: {
+        host: '0.0.0.0',
+        port: 3000,
+    },
+});
+`,
+                'tsconfig.json': JSON.stringify(
+                    {
+                        compilerOptions: {
+                            target: 'ES2020',
+                            useDefineForClassFields: true,
+                            lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+                            module: 'ESNext',
+                            skipLibCheck: true,
+                            moduleResolution: 'Bundler',
+                            allowImportingTsExtensions: true,
+                            resolveJsonModule: true,
+                            isolatedModules: true,
+                            noEmit: true,
+                            jsx: 'react-jsx',
+                            strict: true,
+                        },
+                        include: ['src'],
+                    },
+                    null,
+                    4,
+                ),
+                'src/main.tsx': `import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+        <App />
+    </StrictMode>,
+);
+`,
+                'src/App.tsx': `export default function App() {
+    return <main className="min-h-screen" aria-label="Blank project canvas" />;
+}
+`,
+                'src/index.css': `* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    min-width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    background: #ffffff;
+    color: #111827;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+main {
+    min-height: 100vh;
+}
+`,
+            };
+
+            await Promise.all(
+                Object.entries(files).map(async ([relativePath, content]) => {
+                    const filePath = path.join(projectPath, relativePath);
+                    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+                    await fs.promises.writeFile(filePath, content, 'utf8');
+                }),
+            );
+
             return { projectPath, content: '' };
         });
     }
@@ -169,7 +300,6 @@ export class ProjectCreator {
 Use this as the starting template:
 ${PAGE_SYSTEM_PROMPT.defaultContent}`;
 
-        // For text-only messages
         if (images.length === 0) {
             return [
                 {
@@ -179,7 +309,6 @@ ${PAGE_SYSTEM_PROMPT.defaultContent}`;
             ];
         }
 
-        // For messages with images
         return [
             {
                 role: 'user',
@@ -203,7 +332,6 @@ ${PAGE_SYSTEM_PROMPT.defaultContent}`;
         generatedPage: { path: string; content: string },
     ): Promise<void> {
         const pagePath = path.join(projectPath, generatedPage.path);
-        // Create recursive directories if they don't exist
         await fs.promises.mkdir(path.dirname(pagePath), { recursive: true });
         await fs.promises.writeFile(pagePath, generatedPage.content);
     }

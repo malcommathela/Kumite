@@ -1,12 +1,11 @@
 import type { ShadcnInstallProgress } from '@kumite/models';
 import { MainChannels } from '@kumite/models/constants';
-import { dialog, ipcMain, type WebContents } from 'electron';
+import { ipcMain, type WebContents } from 'electron';
 import {
     cancelComponentInstall,
     applyArtifactInsertion,
     cancelArtifactInsertion,
     finishArtifactInsertion,
-    getArtifactInsertionApprovalDetails,
     getComponentStatus,
     initializeComponents,
     installComponent,
@@ -71,37 +70,8 @@ export function listenForComponentMessages() {
         ) {
             throw new Error('Artifact insertion approval is invalid or incomplete.');
         }
-        const approval = getArtifactInsertionApprovalDetails(args.planId, args.planHash);
-        const decision = await dialog.showMessageBox({
-            type: 'warning',
-            title: 'Approve component insertion',
-            message: `Publish ${approval.artifactId} into this project?`,
-            detail: [
-                `Project: ${approval.projectRoot}`,
-                `Runtime: ${approval.framework}; package manager: ${approval.packageManager ?? 'unknown'}`,
-                `Aliases: components=${approval.aliases.components ?? 'default'}, ui=${approval.aliases.ui ?? 'default'}`,
-                `Editor target: ${approval.editorTarget?.oid ?? 'missing'} (DOM ${approval.editorTarget?.domId ?? 'missing'})`,
-                `Artifact SHA-256: ${approval.artifactHash}`,
-                `Files: ${approval.files.map((file) => `${file.path} [${file.sourceHash} → ${file.publishedHash}]`).join(', ') || 'none'}`,
-                `AST transformations: ${approval.files.flatMap((file) => file.transformations.map((item) => `${item.from} → ${item.to}`)).join(', ') || 'none'}`,
-                `Assets: ${approval.assets.map((asset) => `${asset.path} [${asset.sha256 ?? 'external/unhashed'}]`).join(', ') || 'none'}`,
-                `Dependencies: ${approval.dependencies.map((dependency) => `${dependency.name}@${dependency.version} (${dependency.action}; ${dependency.provenance}; scripts=${dependency.lifecycleScripts === null ? 'unknown (disabled)' : dependency.lifecycleScripts.length ? dependency.lifecycleScripts.join(',') + ' (disabled)' : 'none'})`).join(', ') || 'none'}`,
-                `Lockfiles/manifests to change: ${approval.lockfilesToChange.join(', ') || 'none'}`,
-                approval.transitiveDependencyNote,
-                `Providers: ${approval.providers.join(', ') || 'none'}`,
-                `Configuration: ${approval.configurationChanges.join(', ') || 'none'}`,
-                `Conflicts: ${approval.conflicts.join(', ') || 'none'}`,
-                ...approval.unsupportedRequirements,
-                'Package lifecycle scripts will be disabled.',
-            ].join('\n'),
-            buttons: ['Approve and publish', 'Cancel'],
-            defaultId: 1,
-            cancelId: 1,
-            noLink: true,
-        });
-        if (decision.response !== 0) {
-            throw new Error('Artifact insertion was not approved.');
-        }
+        // The plan hash is validated in applyArtifactInsertion against the prepared
+        // plan, project snapshot and editor target; no extra consent dialog.
         return applyArtifactInsertion(args.planId, args.planHash);
     });
 

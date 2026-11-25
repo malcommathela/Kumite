@@ -18,18 +18,25 @@ export const TabBar = observer(() => {
     const project = projectsManager.project;
     const homeActive = !project || appState.showHome;
 
-    const openHome = () => {
+    const openHome = async () => {
+        if (projectsManager.project && !appState.showHome) {
+            await projectsManager.capturePreview();
+        }
         appState.showHome = true;
         projectsManager.projectsTab = ProjectTabs.PROJECTS;
     };
 
     const closeProject = async () => {
+        // closeProject captures the live editor before disposing its webviews.
+        await projectsManager.closeProject();
         appState.showHome = true;
         projectsManager.projectsTab = ProjectTabs.PROJECTS;
-        await projectsManager.closeProject();
     };
 
-    const newTab = () => {
+    const newTab = async () => {
+        if (projectsManager.project && !appState.showHome) {
+            await projectsManager.capturePreview();
+        }
         appState.showHome = true;
         projectsManager.projectsTab = ProjectTabs.PROMPT_CREATE;
     };

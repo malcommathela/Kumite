@@ -240,6 +240,7 @@
                     "layers": "Layers",
                     "pages": "Pages",
                     "components": "Library",
+                    "icons": "Icons",
                     "images": "Images",
                     "windows": {
                         "name": "Windows",

@@ -33,6 +33,7 @@ export enum LayersPanelTabValue {
     PAGES = 'pages',
     LAYERS = 'layers',
     COMPONENTS = 'components',
+    ICONS = 'icons',
     IMAGES = 'images',
     WINDOWS = 'windows',
     BRAND = 'brand',

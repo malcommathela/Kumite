@@ -1,7 +1,8 @@
 <a id="readme-top"></a>
 
 <div align="center">
-<h3 align="center">Kumite</h3>
+  <img src="assets/logo.png" alt="Kumite" width="160" />
+  <h3 align="center">Kumite</h3>
   <p align="center">
     A design-engineering studio for React apps
     <br />
