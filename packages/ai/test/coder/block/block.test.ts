@@ -35,6 +35,13 @@ describe('Extract Code Blocks', () => {
         });
     });
 
+    test('should extract code blocks from CRLF input', () => {
+        const blocks = coder.extractCodeBlocks('file.ts\r\n```ts\r\nconst x = 1;\r\n```');
+        expect(blocks).toEqual([
+            { fileName: 'file.ts', language: 'ts', content: 'const x = 1;' },
+        ]);
+    });
+
     test('should handle empty input for code blocks', () => {
         const blocks = coder.extractCodeBlocks('');
         expect(blocks).toHaveLength(0);

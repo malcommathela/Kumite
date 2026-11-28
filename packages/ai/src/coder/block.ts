@@ -94,9 +94,9 @@ export class CodeBlockProcessor {
      * @returns Array of code blocks with metadata
      */
     extractCodeBlocks(text: string): CodeBlock[] {
-        // Matches: optional filename on previous line, fence start with optional language, content, fence end
+        const normalizedText = text.replace(/\r\n/g, '\n');
         const blockRegex = /(?:([^\n]+)\n)?```(\w+)?\n([\s\S]*?)```/g;
-        const matches = text.matchAll(blockRegex);
+        const matches = normalizedText.matchAll(blockRegex);
 
         return Array.from(matches).map((match) => ({
             ...(match[1] && { fileName: match[1].trim() }),

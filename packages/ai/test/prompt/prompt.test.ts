@@ -24,7 +24,7 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(systemPath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 
     test('Examples should be the same', async () => {
@@ -38,7 +38,7 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(examplesPath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 
     test('User message should be the same', async () => {
@@ -84,7 +84,7 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(userMessagePath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 
     test('User empty message should be the same', async () => {
@@ -101,7 +101,7 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(userMessagePath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 
     test('File content should be the same', async () => {
@@ -139,7 +139,7 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(fileContentPath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 
     test('Highlights should be the same', async () => {
@@ -168,7 +168,7 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(highlightsPath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 
     test('Summary prompt should be the same', async () => {
@@ -180,7 +180,7 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(summaryPath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 
     test('Create page system prompt should be the same', async () => {
@@ -192,6 +192,6 @@ describe('Prompt', () => {
         }
 
         const existing = await Bun.file(createPageSystemPath).text();
-        expect(prompt).toEqual(existing);
+        expect(prompt.replace(/\r\n/g, '\n')).toEqual(existing.replace(/\r\n/g, '\n'));
     });
 });
