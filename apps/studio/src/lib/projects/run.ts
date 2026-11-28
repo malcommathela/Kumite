@@ -19,6 +19,7 @@ export class RunManager {
     isLoading: boolean = false;
     private previousState: RunState = RunState.STOPPED;
     private cleanupLoadingTimer?: () => void;
+    private disposers: Array<() => void> = [];
 
     constructor(
         private editorEngine: EditorEngine,
@@ -61,7 +62,7 @@ export class RunManager {
     }
 
     set state(state: RunState) {
-        if (this.previousState === state) {
+        if (this._state === state) {
             return;
         }
         this.previousState = this._state;
@@ -158,31 +159,37 @@ export class RunManager {
     }
 
     async listenForStateChanges() {
-        window.api.on(MainChannels.RUN_STATE_CHANGED, async (args) => {
-            const { state, message } = args as { state: RunState; message: string };
-            this.state = state;
-            this.message = message;
-            if (state === RunState.ERROR) {
-                this.editorEngine.errors.addTerminalError(message);
-            }
-        });
-
-        window.api.on(MainChannels.RUN_URL_CHANGED, (args) => {
-            const { id, url } = args as { id: string; url: string };
-            if (id === this.project.id) {
-                this.applyRunUrl(url);
-            }
-        });
-
-        reaction(
-            () => this.editorEngine.errors.errors,
-            (errors) => {
-                if (errors.length > 0) {
-                    this.state = RunState.ERROR;
-                } else {
-                    this.state = this.previousState;
+        this.disposers.push(
+            window.api.on(MainChannels.RUN_STATE_CHANGED, (args) => {
+                const { state, message } = args as { state: RunState; message: string };
+                this.state = state;
+                this.message = message;
+                if (state === RunState.ERROR) {
+                    this.editorEngine.errors.addTerminalError(message);
                 }
-            },
+            }),
+        );
+
+        this.disposers.push(
+            window.api.on(MainChannels.RUN_URL_CHANGED, (args) => {
+                const { id, url } = args as { id: string; url: string };
+                if (id === this.project.id) {
+                    this.applyRunUrl(url);
+                }
+            }),
+        );
+
+        this.disposers.push(
+            reaction(
+                () => this.editorEngine.errors.errors,
+                (errors) => {
+                    if (errors.length > 0) {
+                        this.state = RunState.ERROR;
+                    } else {
+                        this.state = this.previousState;
+                    }
+                },
+            ),
         );
     }
 
@@ -234,6 +241,8 @@ export class RunManager {
         if (this.cleanupLoadingTimer) {
             this.cleanupLoadingTimer();
         }
+        this.disposers.forEach((dispose) => dispose());
+        this.disposers = [];
         await this.stop();
         this.portManager.dispose();
     }

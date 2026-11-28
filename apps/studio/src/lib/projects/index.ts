@@ -95,7 +95,9 @@ export class ProjectsManager {
         const updatedProjects = this._projects.map((p) =>
             p.id === newProject.id ? newProject : p,
         );
-        this.project = newProject;
+        if (this._project?.id === newProject.id) {
+            this.project = newProject;
+        }
         this.projects = updatedProjects;
     }
 

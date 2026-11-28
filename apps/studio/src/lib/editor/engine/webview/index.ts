@@ -156,10 +156,6 @@ export class WebviewManager {
 
     private notifyStateObservers(id: string): void {
         const state = this.getState(id);
-        if (!state) {
-            return;
-        }
-
         this.stateObservers.get(id)?.forEach((observer) => {
             observer(state);
         });

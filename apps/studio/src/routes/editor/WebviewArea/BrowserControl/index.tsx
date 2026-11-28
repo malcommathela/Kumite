@@ -65,14 +65,14 @@ const BrowserControls = observer(
 
             editorEngine.webviews.observeState(settings.id, observer);
 
-            return editorEngine.webviews.unobserveState(settings.id, observer);
-        });
+            return () => {
+                editorEngine.webviews.unobserveState(settings.id, observer);
+            };
+        }, [editorEngine, settings.id]);
 
         useEffect(() => {
             const observer = (newSettings: FrameSettings) => {
-                if (newSettings.theme !== theme) {
-                    setTheme(newSettings.theme || DefaultSettings.THEME);
-                }
+                setTheme(newSettings.theme || DefaultSettings.THEME);
             };
 
             editorEngine.canvas.observeSettings(settings.id, observer);
