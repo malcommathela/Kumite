@@ -230,7 +230,7 @@ describe('artifact insertion runtime integration', () => {
         assert.deepEqual(review.conflicts, []);
         assert.deepEqual(
             review.dependencies.map(({ name, version, action }) => ({ name, version, action })),
-            [{ name: 'react', version: '18.3.1', action: 'present' }],
+            [{ name: 'react', version: '18.3.1', action: 'install' }],
         );
         assert.deepEqual(review.editorTarget, editorTarget);
         assert.equal(fs.existsSync(review.filesToCreate[0].path), false);
