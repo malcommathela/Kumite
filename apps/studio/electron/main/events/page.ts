@@ -2,6 +2,7 @@ import type { PageMetadata } from '@kumite/models';
 import { MainChannels } from '@kumite/models/constants';
 import { ipcMain } from 'electron';
 import path from 'path';
+import { assertSafeRoutePaths } from '../validation';
 import {
     createNextJsPage,
     deleteNextJsPage,
@@ -36,6 +37,7 @@ export function listenForPageMessages() {
                 isDir,
             }: { projectRoot: string; pagePath: string; isDir: boolean },
         ) => {
+            assertSafeRoutePaths(projectRoot, pagePath);
             return await deleteNextJsPage(projectRoot, pagePath, isDir);
         },
     );
@@ -50,6 +52,7 @@ export function listenForPageMessages() {
                 newName,
             }: { projectRoot: string; oldPath: string; newName: string },
         ) => {
+            assertSafeRoutePaths(projectRoot, oldPath, newName);
             return await renameNextJsPage(projectRoot, oldPath, newName);
         },
     );
@@ -64,6 +67,7 @@ export function listenForPageMessages() {
                 targetPath,
             }: { projectRoot: string; sourcePath: string; targetPath: string },
         ) => {
+            assertSafeRoutePaths(projectRoot, sourcePath, targetPath);
             return await duplicateNextJsPage(projectRoot, sourcePath, targetPath);
         },
     );
@@ -78,6 +82,7 @@ export function listenForPageMessages() {
                 metadata,
             }: { projectRoot: string; pagePath: string; metadata: PageMetadata },
         ) => {
+            assertSafeRoutePaths(projectRoot, pagePath);
             return await updateNextJsPage(projectRoot, pagePath, metadata);
         },
     );

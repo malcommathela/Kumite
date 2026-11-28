@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { assertSafeFileName } from '../validation';
 import { ensureLegacyUserDataMigrated } from './migrate';
 
 class ImageStorage {
@@ -28,6 +29,7 @@ class ImageStorage {
     }
 
     readImage(fileName: string): string | null {
+        assertSafeFileName(fileName);
         const filePath = join(this.IMAGES_FOLDER, fileName);
         try {
             if (existsSync(filePath)) {
@@ -44,6 +46,7 @@ class ImageStorage {
     }
 
     writeImage(fileName: string, base64Img: string): string | null {
+        assertSafeFileName(fileName);
         const data = base64Img.replace(/^data:image\/\w+;base64,/, '');
         const imageData = Buffer.from(data, 'base64');
         const filePath = join(this.IMAGES_FOLDER, fileName);
@@ -57,6 +60,7 @@ class ImageStorage {
     }
 
     deleteImage(fileName: string): boolean {
+        assertSafeFileName(fileName);
         const filePath = join(this.IMAGES_FOLDER, fileName);
         try {
             if (existsSync(filePath)) {

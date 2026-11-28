@@ -4,20 +4,19 @@ import { promises as fs } from 'fs';
 import mime from 'mime-lite';
 import path from 'path';
 import { detectRouterType } from '../pages';
+import { assertInsideRoot, assertSafeFileName } from '../validation';
 
 const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico'];
 const MAX_FILENAME_LENGTH = 255;
 const VALID_FILENAME_REGEX = /^[a-zA-Z0-9-_. ]+$/;
 
 async function getImageFolderPath(projectRoot: string, folder?: string): Promise<string> {
-    if (folder) {
-        return path.join(projectRoot, folder);
-    }
-
-    const routerType = await detectRouterType(projectRoot);
-    return routerType?.basePath
-        ? routerType.basePath
-        : path.join(projectRoot, DefaultSettings.IMAGE_FOLDER);
+    const imageFolder = folder
+        ? path.join(projectRoot, folder)
+        : (await detectRouterType(projectRoot))?.basePath ??
+          path.join(projectRoot, DefaultSettings.IMAGE_FOLDER);
+    assertInsideRoot(projectRoot, imageFolder, 'Image path is outside the project');
+    return imageFolder;
 }
 
 // Helper function to validate and process image file
@@ -125,6 +124,7 @@ export async function saveImageToProject(
     image: ImageContentData,
 ): Promise<string> {
     try {
+        assertSafeFileName(image.fileName);
         const imageFolder = await getImageFolderPath(projectRoot, image.folder);
         const uniqueFileName = await getUniqueFileName(imageFolder, image.fileName);
         const imagePath = path.join(imageFolder, uniqueFileName);
@@ -147,6 +147,7 @@ export async function deleteImageFromProject(
     image: ImageContentData,
 ): Promise<string> {
     try {
+        assertSafeFileName(image.fileName);
         const imageFolder = await getImageFolderPath(projectRoot, image.folder);
         const imagePath = path.join(imageFolder, image.fileName);
         await fs.unlink(imagePath);
@@ -165,6 +166,8 @@ export async function renameImageInProject(
     if (!image.fileName || !newName) {
         throw new Error('Image name and new name are required');
     }
+    assertSafeFileName(image.fileName);
+    assertSafeFileName(newName);
 
     const imageFolder = await getImageFolderPath(projectRoot, image.folder);
     const oldImagePath = path.join(imageFolder, image.fileName);

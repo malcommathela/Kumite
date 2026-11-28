@@ -1,7 +1,9 @@
 import { MainChannels } from '@kumite/models/constants';
 import { WindowCommand } from '@kumite/models/projects';
 import { BrowserWindow, ipcMain, shell } from 'electron';
+import path from 'path';
 import { mainWindow } from '..';
+import { PersistentStorage } from '../storage';
 import { imageStorage } from '../storage/images';
 import { updater } from '../update';
 import { listenForAnalyticsMessages } from './analytics';
@@ -58,7 +60,16 @@ function listenForGeneralMessages() {
     ipcMain.handle(
         MainChannels.OPEN_EXTERNAL_WINDOW,
         (e: Electron.IpcMainInvokeEvent, args: string) => {
-            return shell.openExternal(args);
+            let url: URL;
+            try {
+                url = new URL(args);
+            } catch {
+                return;
+            }
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                return;
+            }
+            return shell.openExternal(url.toString());
         },
     );
 
@@ -104,6 +115,11 @@ function listenForGeneralMessages() {
     );
 
     ipcMain.handle(MainChannels.DELETE_FOLDER, (e: Electron.IpcMainInvokeEvent, args: string) => {
-        return shell.trashItem(args);
+        const target = path.resolve(args);
+        const projects = PersistentStorage.PROJECTS.read()?.projects ?? [];
+        if (!projects.some((project) => path.resolve(project.folderPath) === target)) {
+            throw new Error('Only a known project folder can be deleted');
+        }
+        return shell.trashItem(target);
     });
 }

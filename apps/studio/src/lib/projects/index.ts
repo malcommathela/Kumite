@@ -134,11 +134,10 @@ export class ProjectsManager {
         if (this.project?.id === project.id) {
             await this.closeProject();
         }
-        this.projects = this._projects.filter((p) => p.id !== project.id);
-
         if (deleteProjectFolder) {
             await invokeMainChannel(MainChannels.DELETE_FOLDER, project.folderPath);
         }
+        this.projects = this._projects.filter((p) => p.id !== project.id);
         sendAnalytics('delete project', { url: project.url, id: project.id, deleteProjectFolder });
     }
 
