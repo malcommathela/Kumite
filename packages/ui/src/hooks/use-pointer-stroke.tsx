@@ -115,18 +115,3 @@ export function usePointerStroke<T extends Element = Element, InitData = void>(
     return { onPointerDown, onPointerMove, onPointerUp };
 }
 
-export function usePointerStrokeCapture<T extends Element = Element, InitData = void>(
-    options: UsePointerStrokeOptions<T, InitData>,
-    deps?: DependencyList,
-): {
-    onPointerDownCapture: (e: React.PointerEvent<T>) => void;
-    onPointerMoveCapture: (e: React.PointerEvent<T>) => void;
-    onPointerUpCapture: (e: React.PointerEvent<T>) => void;
-} {
-    const props = usePointerStroke(options, deps);
-    return {
-        onPointerDownCapture: props.onPointerDown,
-        onPointerMoveCapture: props.onPointerMove,
-        onPointerUpCapture: props.onPointerUp,
-    };
-}

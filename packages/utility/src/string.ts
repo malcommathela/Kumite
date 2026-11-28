@@ -38,10 +38,6 @@ export function toNormalCase(str: string): string {
         .replace(/^\w/, (c) => c.toUpperCase());
 }
 
-export function capitalizeFirstLetter(string: string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
 /**
  * Generates a unique name by appending a number to the base name until it doesn't conflict with existing names.
  * The comparison is done using camelCase to ensure consistent name formatting.

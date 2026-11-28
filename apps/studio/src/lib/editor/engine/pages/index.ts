@@ -48,11 +48,6 @@ export class PagesManager {
             return false;
         }
 
-        // Skip folder nodes
-        if (node.children && node.children?.length > 0) {
-            return false;
-        }
-
         const normalizedNodePath = node.path.replace(/\\/g, '/');
         const normalizedActivePath = activePath.replace(/\\/g, '/');
 

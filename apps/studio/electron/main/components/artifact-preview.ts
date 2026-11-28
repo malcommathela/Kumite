@@ -774,7 +774,6 @@ export class ArtifactCatalogPreviewServer {
         }
         await this.runtime.releaseOwner(ownerId);
         await Promise.allSettled([...(this.ownerTasks.get(ownerId) ?? [])]);
-        await this.runtime.releaseOwner(ownerId);
         const artifacts = this.ownerArtifacts.get(ownerId);
         const storeRoot = this.ownerStores.get(ownerId);
         if (!artifacts) {

@@ -1,5 +1,3 @@
-import { diff_match_patch } from 'diff-match-patch';
-
 /**
  * Types for search and replace operations
  */
@@ -133,8 +131,6 @@ export function dmpLinesApply(
     originalText: string,
 ): SearchReplaceResult {
     try {
-        const dmp = new diff_match_patch();
-
         // Split texts into lines
         const searchLines = searchText.split('\n');
         const replaceLines = replaceText.split('\n');

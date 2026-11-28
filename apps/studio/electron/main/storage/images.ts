@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { assertSafeFileName } from '../validation';
 import { ensureLegacyUserDataMigrated } from './migrate';
@@ -59,30 +59,6 @@ class ImageStorage {
         }
     }
 
-    deleteImage(fileName: string): boolean {
-        assertSafeFileName(fileName);
-        const filePath = join(this.IMAGES_FOLDER, fileName);
-        try {
-            if (existsSync(filePath)) {
-                unlinkSync(filePath);
-                return true;
-            }
-            console.log(`Image not found: ${filePath}`);
-            return false;
-        } catch (error) {
-            console.error(`Error deleting image ${fileName}:`, error);
-            return false;
-        }
-    }
-
-    listImages(): string[] {
-        try {
-            return readdirSync(this.IMAGES_FOLDER);
-        } catch (error) {
-            console.error('Error listing images:', error);
-            return [];
-        }
-    }
 }
 
 export const imageStorage = ImageStorage.getInstance();

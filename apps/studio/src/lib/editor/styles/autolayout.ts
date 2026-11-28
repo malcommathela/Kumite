@@ -17,7 +17,7 @@ export function parseModeAndValue(value: string): {
     if (value === 'fit-content' || value === 'auto' || value === '') {
         return { mode: LayoutMode.Fit, layoutValue: '' };
     }
-    if (value === '100%' || value === 'auto') {
+    if (value === '100%') {
         return { mode: LayoutMode.Fill, layoutValue: '100%' };
     }
     if (value.includes('%')) {
