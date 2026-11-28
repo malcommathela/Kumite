@@ -64,21 +64,7 @@ export class CodeBlockProcessor {
             if (result.success && result.text) {
                 text = result.text;
             } else {
-                // Fallback to simple replacement if flexible strategies fail
-                try {
-                    const newText = text.replace(search, replace);
-                    if (newText !== text) {
-                        text = newText;
-                    } else {
-                        failures.push({ search, error: 'No changes made' });
-                    }
-                } catch (error) {
-                    failures.push({
-                        search,
-                        error: error instanceof Error ? error.message : 'Unknown error',
-                    });
-                    console.warn('Simple replacement failed:', error);
-                }
+                failures.push({ search, error: 'No changes made' });
             }
         }
 

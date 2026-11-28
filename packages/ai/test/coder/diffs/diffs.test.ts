@@ -47,6 +47,16 @@ describe('Parse and Apply Code Block Diffs', () => {
         });
     });
 
+    test('should not change the file when the search text is not unique', async () => {
+        const originalText = 'const a=1;\nconst a=1;';
+        const result = await coder.applyDiff(
+            originalText,
+            coder.createDiff('const a=1;', 'const a=2;'),
+        );
+        expect(result.success).toBe(false);
+        expect(result.text).toBe(originalText);
+    });
+
     test('should fail when any replacement fails in multiple diffs', async () => {
         const diffText =
             coder.createDiff('sample', 'example') +

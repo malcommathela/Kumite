@@ -80,6 +80,12 @@ describe('Flexible Search and Replace', () => {
         expect(result.text).toBe('    if (condition) {\n        newCode();\n    }');
     });
 
+    test('should not collapse line breaks to force a match', async () => {
+        const result = await flexibleSearchAndReplace('hello world', 'bye', 'hello\nworld\nrest');
+        expect(result.success).toBe(false);
+        expect(result.text).toBeUndefined();
+    });
+
     test('should handle blank line differences', async () => {
         const text = '\n\ncode\n\n';
         const search = 'code';

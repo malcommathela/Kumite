@@ -45,18 +45,24 @@ export class ChatCodeManager {
                 continue;
             }
             let content = originalContent;
+            let fileFailed = false;
             for (const block of codeBlocks) {
                 const result = await this.processor.applyDiff(content, block.content);
                 if (!result.success) {
                     applySuccess = false;
+                    fileFailed = true;
                     console.error('Failed to apply code block', block);
                     toast({
                         title: 'Failed to apply code block',
                         variant: 'destructive',
                         description: 'Please try again or prompt the AI to fix it.',
                     });
+                    continue;
                 }
                 content = result.text;
+            }
+            if (fileFailed) {
+                continue;
             }
 
             const success = await this.writeFileContent(file, content, originalContent);
