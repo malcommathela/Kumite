@@ -4,13 +4,16 @@ import type * as t from '@babel/types';
 import {
     CodeActionType,
     type CodeGroup,
+    type CodeInsert,
     type CodeMove,
+    type CodeUngroup,
     getGroupWrapperClass,
 } from '@kumite/models/actions';
 import { describe, expect, it } from 'bun:test';
 import { parseJsxFile } from '../electron/main/code/helpers';
 import { generateCode, getOidFromJsxElement } from '../electron/main/code/diff/helpers';
-import { groupElementsInNode } from '../electron/main/code/diff/group';
+import { groupElementsInNode, ungroupElementsInNode } from '../electron/main/code/diff/group';
+import { createInsertedElement, insertAtIndex } from '../electron/main/code/diff/insert';
 import { moveElementInNode } from '../electron/main/code/diff/move';
 import { GENERATE_CODE_OPTIONS } from '../electron/main/run/helpers';
 
@@ -213,5 +216,61 @@ describe('group wrapper', () => {
         expect(generated).toMatch(/<div className="contents" data-oid="group"/);
         expect(generated).toContain('data-oid="a"');
         expect(generated).toContain('data-oid="b"');
+    });
+});
+
+describe('ungroup wrapper', () => {
+    it('keeps text and expression children when spreading the wrapper', () => {
+        const source = page(`
+            before <span data-oid="g"><b data-oid="b"/>{value}<i data-oid="i"/></span>{count} after`);
+        const ast = parseJsxFile(source);
+        const parent = findPath(ast!, 'root');
+        expect(parent).not.toBeNull();
+
+        const ungroup: CodeUngroup = {
+            type: CodeActionType.UNGROUP,
+            oid: 'ungroup',
+            container: { domId: 'g-dom', oid: 'g', tagName: 'div', attributes: {} },
+            children: [],
+        };
+        ungroupElementsInNode(parent!, ungroup);
+        const generated = generateCode(ast!, GENERATE_CODE_OPTIONS, source);
+
+        expect(generated).toContain('{value}');
+        expect(generated).toContain('{count}');
+        expect(generated).toContain('before');
+        expect(generated).toContain('after');
+        expect(generated).not.toContain('data-oid="g"');
+    });
+});
+
+describe('insertAtIndex', () => {
+    it('appends after trailing text instead of inserting before the last child', () => {
+        const source = page(`<a data-oid="a"/>tail`);
+        const ast = parseJsxFile(source);
+        const parent = findPath(ast!, 'root');
+        expect(parent).not.toBeNull();
+
+        const insert: CodeInsert = {
+            type: CodeActionType.INSERT,
+            oid: 'new',
+            tagName: 'span',
+            attributes: {},
+            textContent: 'X',
+            pasteParams: null,
+            codeBlock: null,
+            children: [],
+            location: {
+                type: 'index',
+                targetDomId: 'root-dom',
+                targetOid: 'root',
+                index: 1,
+                originalIndex: 1,
+            },
+        };
+        insertAtIndex(parent!, createInsertedElement(insert), 1);
+        const generated = generateCode(ast!, GENERATE_CODE_OPTIONS, source);
+
+        expect(generated.indexOf('tail')).toBeLessThan(generated.indexOf('X'));
     });
 });

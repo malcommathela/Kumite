@@ -91,20 +91,23 @@ export function insertAtIndex(
     newElement: t.JSXElement | t.JSXFragment,
     index: number,
 ): void {
-    if (index !== -1) {
-        const jsxElements = path.node.children.filter(jsxFilter);
-
-        const targetIndex = Math.min(index, jsxElements.length);
-
-        if (targetIndex === path.node.children.length) {
-            path.node.children.push(newElement);
-        } else {
-            const targetChild = jsxElements[targetIndex];
-            const targetChildIndex = path.node.children.indexOf(targetChild);
-            path.node.children.splice(targetChildIndex, 0, newElement);
-        }
-    } else {
+    if (index === -1) {
         console.error('Invalid index:', index);
         path.node.children.push(newElement);
+        return;
     }
+
+    const jsxElements = path.node.children.filter(jsxFilter);
+    const targetIndex = Math.min(index, jsxElements.length);
+    if (targetIndex >= jsxElements.length) {
+        path.node.children.push(newElement);
+        return;
+    }
+
+    const targetChildIndex = path.node.children.indexOf(jsxElements[targetIndex]);
+    if (targetChildIndex === -1) {
+        path.node.children.push(newElement);
+        return;
+    }
+    path.node.children.splice(targetChildIndex, 0, newElement);
 }

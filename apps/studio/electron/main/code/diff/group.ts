@@ -79,11 +79,12 @@ export function ungroupElementsInNode(path: NodePath<t.JSXElement>, element: Cod
 
     const containerIndex = children.indexOf(container);
 
-    const containerChildren = container.children.filter(jsxFilter);
+    const containerChildren = [...container.children];
 
-    // Add each child at the container's position
     containerChildren.forEach((child, index) => {
-        addKeyToElement(child, true);
+        if (t.isJSXElement(child) || t.isJSXFragment(child)) {
+            addKeyToElement(child, true);
+        }
         children.splice(containerIndex + index, 0, child);
     });
 
